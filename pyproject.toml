@@ -29,7 +29,7 @@ flake8 = "^4.0.0"
 isort = "^5.7.0"
 mypy = "^0.920"
 pytest = "^6.2.1"
-tox = "^3.24.1"
+tox = "^3.24.5"
 black = "^21.12b0"
 
 [tool.poetry.scripts]
