@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "slotscheck"
+version = "0.0.1"
+description = "Check the usage of __slots__."
+authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
+license = "MIT"
+classifiers = [
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+packages = [
+    { include = "slotscheck", from = "src" },
+]
+readme = "README.rst"
+include = ["CHANGELOG.rst", "README.rst"]
+repository = "https://github.com/ariebovenberg/slotscheck"
+
+[tool.poetry.dependencies]
+python = ">=3.7.0,<4"
+importlib-metadata = {version = ">=1,<5", python = "<3.8"}
+click = "^8.0.3"
+
+[tool.poetry.dev-dependencies]
+flake8 = "^4.0.0"
+isort = "^5.7.0"
+mypy = "^0.920"
+pytest = "^6.2.1"
+tox = "^3.24.1"
+black = "^21.12b0"
+
+[tool.poetry.scripts]
+slotscheck = "slotscheck:cli"
+
+[tool.black]
+line-length = 79
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.hg
+  | \.git
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = 'black'
+line_length = 79
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
