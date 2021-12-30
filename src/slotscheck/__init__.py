@@ -79,7 +79,7 @@ def cli(module: str, verbose: bool) -> None:
     if classes_with_broken_slots:
         for klass, culprits in classes_with_broken_slots:
             click.secho(
-                f"incomplete slots in '{_class_fullname(klass)}'",
+                f"Incomplete inheritance in '{_class_fullname(klass)}'",
                 fg="yellow",
             )
             if verbose:

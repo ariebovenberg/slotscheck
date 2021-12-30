@@ -17,7 +17,7 @@
    :target: https://github.com/psf/black
 
 Adding ``__slots__`` to a class in Python is a great way to reduce memory usage.
-But to work properly, all subclasses need to implement it.
+But to work properly, all base classes need to implement it.
 It turns out it's easy to forget one class in complex inheritance trees.
 What's worse: there is nothing warning you that you messed up.
 
@@ -58,7 +58,7 @@ Limitations
 
 - Even in the case that slots are not inherited properly,
   there may still an advantage to using them
-  (i.e. attribute access speed and _some_ memory savings)
+  (i.e. attribute access speed and *some* memory savings)
 - Only classes at module-level are checked (i.e. no nested classes)
 - In rare cases imports may fail, the module is then skipped. This is logged.
 
