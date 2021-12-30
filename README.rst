@@ -53,6 +53,15 @@ For example:
    incomplete slots in 'pandas.core.internals.managers.BaseBlockManager'
    incomplete slots in 'pandas.core.internals.managers.SingleBlockManager'
 
+Limitations
+-----------
+
+- Even in the case that slots are not inherited properly,
+  there may still an advantage to using them
+  (i.e. attribute access speed and _some_ memory savings)
+- Only classes at module-level are checked (i.e. no nested classes)
+- In rare cases imports may fail, the module is then skipped. This is logged.
+
 Installation
 ------------
 
@@ -61,9 +70,3 @@ It's available on PyPI.
 .. code-block:: bash
 
   pip install slotscheck
-
-Limitations
------------
-
-- Only classes at module-level are checked (i.e. no nested classes)
-- In rare cases imports may fail, the module is then skipped. This is logged.
