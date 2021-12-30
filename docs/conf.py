@@ -71,8 +71,8 @@ highlight_language = "python3"
 html_theme_options = {
     "nav_title": "Slots-check",
     # Set the color and the accent color
-    "color_primary": "yellow",
-    "color_accent": "light-yellow",
+    "color_primary": "green",
+    "color_accent": "light-green",
     # Set the repo location to get a badge with stats
     "repo_url": "https://github.com/ariebovenberg/slotscheck/",
     "repo_name": "Slotscheck",
