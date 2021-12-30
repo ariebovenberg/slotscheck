@@ -69,13 +69,13 @@ highlight_language = "python3"
 
 # Material theme options (see theme.conf for more information)
 html_theme_options = {
-    "nav_title": "Slots-check",
+    "nav_title": "Slotscheck",
     # Set the color and the accent color
     "color_primary": "green",
     "color_accent": "light-green",
     # Set the repo location to get a badge with stats
     "repo_url": "https://github.com/ariebovenberg/slotscheck/",
-    "repo_name": "Slotscheck",
+    "repo_name": "slotscheck",
     # Visible levels of the global TOC; -1 means unlimited
     "globaltoc_depth": 3,
     # If False, expand all TOC entries
