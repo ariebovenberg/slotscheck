@@ -130,16 +130,21 @@ def cli(modulename: str, verbose: bool) -> None:
         level=logging.INFO if verbose else logging.ERROR,
     )
     classes = _groupby(
-        set(walk_classes(importlib.import_module(modulename))),
+        sorted(
+            set(walk_classes(importlib.import_module(modulename))),
+            key=_class_fullname,
+        ),
         key=slot_status,
     )
     broken_slots = [
         (
             c,
-            list(
+            sorted(
                 filter(
-                    lambda b: slot_status(b) is SlotsStatus.NO_SLOTS, c.mro()
-                )
+                    lambda b: slot_status(b) is SlotsStatus.NO_SLOTS,
+                    c.mro(),
+                ),
+                key=_class_fullname,
             ),
         )
         for c in classes[SlotsStatus.HAS_SLOTS]
