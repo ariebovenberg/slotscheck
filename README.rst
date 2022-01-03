@@ -54,19 +54,17 @@ and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in 
 
 Use the ``--help`` option to find out more.
 
-Can this be a flake8 plugin?
-----------------------------
+Could this be a flake8 plugin?
+------------------------------
 
-That'd be great of course, but the problem is that AFAIK
-flake8 plugins need to work without importing the code.
-Tracing slots inheritance is very tricky without being able to import the code.
-For example, many libraries define conditional imports or metaclasses
+Maybe. But it'd be a lot of work.
+
+The problem is that flake8 plugins need to work without running the code.
+Many libraries define conditional imports, star imports, re-exports or metaclasses
 which basically require running the code to find out the class tree.
 
-Then again, I haven't investigated flake8 plugins thoroughly yet.
-Perhaps there is some way to resolve complex imports statically.
-
-See `this issue <https://github.com/ariebovenberg/slotscheck/issues/6>`_.
+There's `an issue <https://github.com/ariebovenberg/slotscheck/issues/6>`_
+to track any progress on the matter.
 
 Notes
 -----
