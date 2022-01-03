@@ -32,10 +32,7 @@ def cli(modulename: str, verbose: bool) -> None:
         level=logging.INFO if verbose else logging.ERROR,
     )
     classes = _groupby(
-        sorted(
-            set(walk_classes(importlib.import_module(modulename))),
-            key=_class_fullname,
-        ),
+        set(walk_classes(importlib.import_module(modulename))),
         key=slot_status,
     )
     broken_slots = [
@@ -102,7 +99,9 @@ def walk_classes(module: ModuleType) -> Iterator[type]:
 
     packages = pkgutil.walk_packages([module_path])
     for finder, name, _ in packages:
-        if not getattr(finder, "path", "").startswith(module_path):
+        if name == "__main__" or not getattr(finder, "path", "").startswith(
+            module_path
+        ):
             continue
 
         module_name = f"{module.__name__}.{name}"
