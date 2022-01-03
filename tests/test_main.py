@@ -9,7 +9,7 @@ from slotscheck import SlotsStatus, slot_status, walk_classes
 
 
 def test_walk_classes():
-    assert len(list(walk_classes(urllib))) == 55
+    assert len(set(walk_classes(urllib))) == 54
 
 
 def test_slot_status():
