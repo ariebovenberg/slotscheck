@@ -1,11 +1,28 @@
+import enum
 import importlib
 import inspect
+import logging
 import pkgutil
 import sys
-from itertools import filterfalse
-from typing import Any, Iterator
+from collections import defaultdict
+from dataclasses import dataclass
+from types import ModuleType
+from typing import (
+    Callable,
+    Collection,
+    FrozenSet,
+    Iterable,
+    Iterator,
+    Mapping,
+    TypeVar,
+)
 
 import click
+
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
+
+logger = logging.getLogger(__name__)
 
 # Single-sourcing the version number with poetry:
 # https://github.com/python-poetry/poetry/pull/2366#issuecomment-652418094
@@ -15,14 +32,25 @@ except ModuleNotFoundError:  # pragma: no cover
     __version__ = __import__("importlib_metadata").version(__name__)
 
 
-def _classes_in_module(module: Any, verbose: bool) -> Iterator[type]:
+@enum.unique
+class SlotsStatus(enum.Enum):
+    NO_SLOTS = enum.auto()
+    HAS_SLOTS = enum.auto()
+    NOT_PUREPYTHON = enum.auto()
+
+
+def _all_bases_have_slots(c: type) -> bool:
+    return all(slot_status(b) is not SlotsStatus.NO_SLOTS for b in c.__bases__)
+
+
+def walk_classes(module: ModuleType) -> Iterator[type]:
     yield from (
         klass
         for _, klass in inspect.getmembers(module, inspect.isclass)
         if klass.__module__.startswith(module.__name__)
     )
     try:
-        module_path = module.__path__[0]
+        module_path = module.__path__[0]  # type: ignore
     except (AttributeError, IndexError):
         return  # it's not a package with submodules
 
@@ -33,58 +61,109 @@ def _classes_in_module(module: Any, verbose: bool) -> Iterator[type]:
 
         module_name = f"{module.__name__}.{name}"
         try:
-            yield from _classes_in_module(
-                importlib.import_module(module_name), verbose
-            )
+            next_module = importlib.import_module(module_name)
         except BaseException as e:
             # sometimes packages make it impossible to import
             # certain modules directly or out of order, or without
             # some system or dependency requirement.
-            if verbose:
-                click.secho(
-                    f"Couldn't import {module_name} ({e.__class__.__name__}).",
-                    err=True,
-                    fg="cyan",
-                )
+            logger.warning("Couldn't import %s. (%r)", module_name, e)
+        else:
+            yield from walk_classes(next_module)
 
 
-_BUILTINS_WITH_SLOTS = (object, tuple)
-
-
-def _has_slots(klass: type) -> bool:
-    # note that hasattr(klass, '__dict__') wouldn't work!
-    return "__slots__" in klass.__dict__ or klass in _BUILTINS_WITH_SLOTS
-
-
-def _has_improper_slots(klass: type) -> bool:
-    return _has_slots(klass) and not all(map(_has_slots, klass.__bases__))
+def slot_status(c: type) -> SlotsStatus:
+    if "__slots__" in c.__dict__:
+        return SlotsStatus.HAS_SLOTS
+    elif _is_purepython_class(c):
+        return SlotsStatus.NO_SLOTS
+    else:
+        return SlotsStatus.NOT_PUREPYTHON
 
 
 def _class_fullname(k: type) -> str:
     return f"{k.__module__}.{k.__qualname__}"
 
 
+def _is_purepython_class(t: type) -> bool:
+    "whether a class is defined in Python, or an extension/C module"
+    # There is no easy way to check if a class is pure Python.
+    # One symptom of a non-native class is that it is not possible to
+    # set attributes on it. Let's do that.
+    try:
+        t._SLOTSCHECK_POKE = 1  # type: ignore
+    except TypeError as e:
+        if e.args[0].startswith(
+            "cannot set '_SLOTSCHECK_POKE' attribute of immutable type"
+        ):
+            return False
+        raise  # some other error we may want to know about
+    else:
+        del t._SLOTSCHECK_POKE  # type: ignore
+        return True
+
+
+def _groupby(
+    it: Iterable[T1], key: Callable[[T1], T2]
+) -> Mapping[T2, Collection[T1]]:
+    grouped = defaultdict(list)
+    for i in it:
+        grouped[key(i)].append(i)
+
+    return grouped
+
+
+@dataclass(frozen=True)
+class BrokenSlots:
+    cls: type
+    bases: FrozenSet[type]
+
+
 @click.command()
 @click.version_option()
-@click.argument("module")
+@click.argument("modulename")
 @click.option("-v", "--verbose", is_flag=True)
-def cli(module: str, verbose: bool) -> None:
-    classes_with_broken_slots = [
-        (k, list(filterfalse(_has_slots, k.__bases__)))
-        for k in _classes_in_module(
-            importlib.import_module(module), verbose=verbose
+def cli(modulename: str, verbose: bool) -> None:
+    "Report the __slots__ definitions of classes in a package."
+    logging.basicConfig(
+        format="LOG: %(message)s",
+        stream=sys.stderr,
+        level=logging.INFO if verbose else logging.ERROR,
+    )
+    classes = _groupby(
+        set(walk_classes(importlib.import_module(modulename))),
+        key=slot_status,
+    )
+    broken_slots = [
+        (
+            c,
+            list(
+                filter(
+                    lambda b: slot_status(b) is SlotsStatus.NO_SLOTS, c.mro()
+                )
+            ),
         )
-        if _has_improper_slots(k)
+        for c in classes[SlotsStatus.HAS_SLOTS]
+        if not _all_bases_have_slots(c)
     ]
-    if classes_with_broken_slots:
-        for klass, culprits in classes_with_broken_slots:
-            click.secho(
-                f"Incomplete inheritance in '{_class_fullname(klass)}'",
-                fg="yellow",
+    if broken_slots:
+        for klass, slotless_bases in broken_slots:
+            print(
+                f"ERROR: '{_class_fullname(klass)}' has slots but "
+                "inherits from non-slot class"
             )
             if verbose:
-                for c in culprits:
-                    click.secho(f"↳ {_class_fullname(c)}", fg="red", err=True)
-
-        sys.exit(1)
-    click.secho("All good!", fg="green", err=True)
+                for cls in slotless_bases:
+                    print(f"       - {_class_fullname(cls)}")
+        exit(1)
+    else:
+        print(
+            """\
+All OK!
+Classes scanned:
+  with slots:              {}
+  without slots:           {}
+""".format(
+                len(classes[SlotsStatus.HAS_SLOTS]),
+                len(classes[SlotsStatus.NO_SLOTS]),
+            )
+        )
