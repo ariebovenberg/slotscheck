@@ -52,7 +52,7 @@ For example:
 Now get to fixing --
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
 
-Use the `--help` option to find out more.
+Use the ``--help`` option to find out more.
 
 Notes
 -----

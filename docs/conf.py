@@ -69,10 +69,10 @@ highlight_language = "python3"
 
 # Material theme options (see theme.conf for more information)
 html_theme_options = {
-    "nav_title": "Slotscheck",
+    "nav_title": "🎰 Slotscheck",
     # Set the color and the accent color
-    "color_primary": "green",
-    "color_accent": "light-green",
+    "color_primary": "red",
+    "color_accent": "light-red",
     # Set the repo location to get a badge with stats
     "repo_url": "https://github.com/ariebovenberg/slotscheck/",
     "repo_name": "slotscheck",
