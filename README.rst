@@ -21,8 +21,10 @@ But to work properly, all base classes need to implement it.
 It turns out it's easy to forget one class in complex inheritance trees.
 What's worse: there is nothing warning you that you messed up.
 
-
 ✨ *Until now!* ✨
+
+See my `blog post <https://dev.arie.bovenberg.net/blog/finding-broken-slots-in-popular-python-libraries/>`_
+for the longer story behind ``slotscheck``.
 
 Quickstart
 ----------
@@ -54,10 +56,11 @@ and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in 
 
 Use the ``--help`` option to find out more.
 
+
 Could this be a flake8 plugin?
 ------------------------------
 
-Maybe. But it'd be a lot of work.
+I'd love it to be. But it'd be a lot of work.
 
 The problem is that flake8 plugins need to work without running the code.
 Many libraries define conditional imports, star imports, re-exports or metaclasses
