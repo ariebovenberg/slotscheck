@@ -136,7 +136,7 @@ def _all_bases_have_slots(c: type) -> bool:
 
 _UNSETTABLE_ATTRITUBE_MSG = (
     "cannot set '_SLOTSCHECK_POKE' attribute of immutable type"
-    if sys.version_info > (3, 8)
+    if sys.version_info > (3, 10)
     else "can't set attributes of built-in/extension type"
 )
 
