@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.1.2"
+version = "0.2.0"
 description = "Check the usage of __slots__."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -34,7 +34,7 @@ tox = "^3.24.1"
 black = "^21.12b0"
 
 [tool.poetry.scripts]
-slotscheck = "slotscheck:cli"
+slotscheck = "slotscheck.common:cli"
 
 [tool.black]
 line-length = 79
