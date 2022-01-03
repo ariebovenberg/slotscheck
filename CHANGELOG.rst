@@ -1,10 +1,15 @@
 Changelog
 =========
 
-0.1.0 (2022-01-03)
+0.1.1 (2022-01-03)
 ------------------
 
-- Improve documentation, output format
+- Improve output report
+
+0.1.0 (2020-12-30)
+------------------
+
+- Improve documentation
 
 0.0.1 (2021-12-29)
 ------------------
