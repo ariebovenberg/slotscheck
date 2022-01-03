@@ -12,13 +12,13 @@ clean:
 	find . | grep -E "(__pycache__|docs_.*$$|\.pyc|\.pyo$$)" | xargs rm -rf
 
 isort:
-	isort .
+	isort src tests
 
 isort-check:
 	isort . --check-only --diff
 
 format:
-	black .
+	black src tests
 
 format-check:
 	black --check --diff .

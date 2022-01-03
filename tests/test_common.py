@@ -5,7 +5,7 @@ from enum import Enum
 from fractions import Fraction
 from random import Random
 
-from slotscheck import SlotsStatus, slot_status, walk_classes
+from slotscheck.common import SlotsStatus, slot_status, walk_classes
 
 
 def test_walk_classes():
