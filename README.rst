@@ -1,19 +1,19 @@
-✅ Slotscheck
+🎰 Slotscheck
 =============
 
-.. image:: https://img.shields.io/pypi/v/slotscheck.svg?style=flat-square
+.. image:: https://img.shields.io/pypi/v/slotscheck.svg
    :target: https://pypi.python.org/pypi/slotscheck
 
-.. image:: https://img.shields.io/pypi/l/slotscheck.svg?style=flat-square
+.. image:: https://img.shields.io/pypi/l/slotscheck.svg
    :target: https://pypi.python.org/pypi/slotscheck
 
-.. image:: https://img.shields.io/pypi/pyversions/slotscheck.svg?style=flat-square
+.. image:: https://img.shields.io/pypi/pyversions/slotscheck.svg
    :target: https://pypi.python.org/pypi/slotscheck
 
-.. image:: https://img.shields.io/readthedocs/slotscheck.svg?style=flat-square
+.. image:: https://img.shields.io/readthedocs/slotscheck.svg
    :target: http://slotscheck.readthedocs.io/
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg?style=flat-square
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
 
 Adding ``__slots__`` to a class in Python is a great way to reduce memory usage.
@@ -21,7 +21,8 @@ But to work properly, all base classes need to implement it.
 It turns out it's easy to forget one class in complex inheritance trees.
 What's worse: there is nothing warning you that you messed up.
 
-*Until now!*
+
+✨ *Until now!* ✨
 
 Quickstart
 ----------
@@ -38,29 +39,36 @@ For example:
 .. code-block:: bash
 
    $ slotscheck pandas
-   incomplete slots in 'pandas.core.internals.blocks.Block'
-   incomplete slots in 'pandas.core.internals.blocks.NumericBlock'
-   incomplete slots in 'pandas.core.internals.blocks.ObjectBlock'
-   incomplete slots in 'pandas.core.internals.array_manager.SingleArrayManager'
-   incomplete slots in 'pandas.core.internals.managers.SingleBlockManager'
-   incomplete slots in 'pandas.core.internals.array_manager.BaseArrayManager'
-   incomplete slots in 'pandas.core.internals.array_manager.SingleArrayManager'
-   incomplete slots in 'pandas.core.internals.blocks.Block'
-   incomplete slots in 'pandas.core.internals.blocks.CategoricalBlock'
-   incomplete slots in 'pandas.core.internals.blocks.DatetimeLikeBlock'
-   incomplete slots in 'pandas.core.internals.blocks.NumericBlock'
-   incomplete slots in 'pandas.core.internals.blocks.ObjectBlock'
-   incomplete slots in 'pandas.core.internals.managers.BaseBlockManager'
-   incomplete slots in 'pandas.core.internals.managers.SingleBlockManager'
+   ERROR: 'pandas.core.internals.array_manager.SingleArrayManager' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.blocks.Block' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.blocks.NumericBlock' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.blocks.DatetimeLikeBlock' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.blocks.ObjectBlock' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.blocks.CategoricalBlock' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.array_manager.BaseArrayManager' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.managers.BaseBlockManager' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.managers.SingleBlockManager' has slots but inherits from non-slot class
 
-Limitations
------------
+Now get to fixing --
+and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
 
+Use the ``--help`` option to find out more.
+
+Notes
+-----
+
+- ``slotscheck`` will try to import all submodules of the given package.
+  If there are scripts without ``if __name__ == "__main__":`` blocks,
+  they may be executed.
 - Even in the case that slots are not inherited properly,
   there may still an advantage to using them
   (i.e. attribute access speed and *some* memory savings)
 - Only classes at module-level are checked (i.e. no nested classes)
-- In rare cases imports may fail, the module is then skipped. This is logged.
+- In rare cases imports may fail, the module is then skipped.
+  Use the verbose mode to show detailed information.
+- Limited to the CPython implementation for now.
+- Non pure-Python classes are currently assumed to have slots.
+  This is not necessarily the case, but it is nontrivial to determine.
 
 Installation
 ------------

@@ -1,7 +1,8 @@
-API reference
+API Reference
 =============
 
-.. automodule:: slotscheck
-   :members:
-   :exclude-members: __namedtuple_cls__, __hash__, __weakref__, __getnewargs__,
-      __new__, __repr__, __eq__, __ne__, __init__, __next_in_mro__
+For help, use this command:
+
+.. code-block:: bash
+
+   slotscheck --help

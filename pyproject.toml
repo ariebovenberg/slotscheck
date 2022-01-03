@@ -5,8 +5,9 @@ description = "Check the usage of __slots__."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
 classifiers = [
-    "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
+    "Topic :: Software Development :: Quality Assurance",
+    "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
