@@ -1,10 +1,15 @@
 Changelog
 =========
 
+0.2.1 (2022-01-04)
+------------------
+
+- Improved error message if module cannot be found (#18)
+
 0.2.0 (2022-01-03)
 ------------------
 
-- Enable running with ``-m slotscheck``
+- Enable running with ``-m slotscheck`` (#13)
 
 0.1.2 (2022-01-03)
 ------------------
