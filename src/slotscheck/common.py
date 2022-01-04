@@ -24,8 +24,15 @@ def cli(modulename: str, verbose: bool) -> None:
         stream=sys.stderr,
         level=logging.INFO if verbose else logging.ERROR,
     )
+
+    try:
+        module = importlib.import_module(modulename)
+    except ModuleNotFoundError:
+        print(f"ERROR: could not import module '{modulename}'")
+        return
+
     classes = _groupby(
-        set(walk_classes(importlib.import_module(modulename))),
+        set(walk_classes(module)),
         key=slot_status,
     )
     broken_slots = [
