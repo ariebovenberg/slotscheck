@@ -1,7 +1,7 @@
 🎰 Slotscheck
 =============
 
-.. image:: https://img.shields.io/pypi/v/slotscheck.svg
+.. image:: https://img.shields.io/pypi/v/slotscheck.svg?color=blue
    :target: https://pypi.python.org/pypi/slotscheck
 
 .. image:: https://img.shields.io/pypi/l/slotscheck.svg
@@ -60,7 +60,7 @@ Use the ``--help`` option to find out more.
 Could this be a flake8 plugin?
 ------------------------------
 
-I'd love it to be. But it'd be a lot of work.
+Maybe. But it'd be a lot of work.
 
 The problem is that flake8 plugins need to work without running the code.
 Many libraries define conditional imports, star imports, re-exports or metaclasses
@@ -76,8 +76,9 @@ Notes
   If there are scripts without ``if __name__ == "__main__":`` blocks,
   they may be executed.
 - Even in the case that slots are not inherited properly,
-  there may still an advantage to using them
-  (i.e. attribute access speed and *some* memory savings)
+  there may still be an advantage to using them
+  (i.e. attribute access speed and *some* memory savings).
+  However, I've found in most cases this is unintentional.
 - Only classes at module-level are checked (i.e. no nested classes)
 - In rare cases imports may fail, the module is then skipped.
   Use the verbose mode to show detailed information.
