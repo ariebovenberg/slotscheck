@@ -29,7 +29,7 @@ def cli(modulename: str, verbose: bool) -> None:
         module = importlib.import_module(modulename)
     except ModuleNotFoundError:
         print(f"ERROR: could not import module '{modulename}'")
-        return
+        exit(1)
 
     classes = _groupby(
         set(walk_classes(module)),
