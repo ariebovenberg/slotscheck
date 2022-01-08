@@ -32,9 +32,10 @@ mypy = "^0.920"
 pytest = "^6.2.1"
 tox = "^3.24.1"
 black = "^21.12b0"
+pytest-cov = "^3.0.0"
 
 [tool.poetry.scripts]
-slotscheck = "slotscheck.common:cli"
+slotscheck = "slotscheck.cli:root"
 
 [tool.black]
 line-length = 79

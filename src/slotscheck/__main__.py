@@ -1,4 +1,4 @@
-from .common import cli
+from .cli import root
 
 if __name__ == "__main__":
-    cli()
+    root()
