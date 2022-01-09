@@ -1,6 +1,9 @@
+import re
+
 import pytest
 from click.testing import CliRunner
 
+from slotscheck.cli import DEFAULT_EXCLUDE_RE
 from slotscheck.cli import root as cli
 
 
@@ -61,7 +64,7 @@ All OK!
 stats:
   modules:     7
     checked:   6
-    pruned:    1
+    excluded:  1
     skipped:   0
 
   classes:     64
@@ -78,10 +81,28 @@ def test_module_not_ok(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.foo.S' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo.T' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo.U' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo.W' defines overlapping slots.
+ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+Oh no, found some problems!
+"""
+    )
+
+
+def test_module_not_ok_excludes(runner: CliRunner):
+    result = runner.invoke(
+        cli, ["module_not_ok", "--exclude", "(.*?foo:U|.*:(W|S))"]
+    )
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 Oh no, found some problems!
 """
     )
@@ -93,15 +114,19 @@ def test_module_not_ok_verbose(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.foo.S' has slots but inherits from non-slot class.
-       - module_not_ok.foo.R
-ERROR: 'module_not_ok.foo.T' has slots but inherits from non-slot class.
-       - module_not_ok.foo.A
-ERROR: 'module_not_ok.foo.U' has slots but inherits from non-slot class.
-       - module_not_ok.foo.L
-       - module_not_ok.foo.D
-       - module_not_ok.foo.C
-ERROR: 'module_not_ok.foo.W' defines overlapping slots.
+ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+       - module_not_ok.a.b:A
+ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
+       - module_not_ok.foo:R
+ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
+       - module_not_ok.foo:A
+ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+       - module_not_ok.foo:L
+       - module_not_ok.foo:D
+       - module_not_ok.foo:C
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+       - w
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
        - p
        - v
 Oh no, found some problems!
@@ -109,12 +134,12 @@ Oh no, found some problems!
 stats:
   modules:     4
     checked:   4
-    pruned:    0
+    excluded:  0
     skipped:   0
 
-  classes:     21
-    has slots: 16
-    no slots:  5
+  classes:     24
+    has slots: 18
+    no slots:  6
     n/a:       0
 """
     )
@@ -132,6 +157,22 @@ All OK!
     )
 
 
+def test_module_exclude(runner: CliRunner, mocker):
+    result = runner.invoke(cli, ["module_misc", "--exclude", ".*evil.*"])
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+NOTE:  Failed to import 'module_misc.a.b.__main__'.
+All OK!
+"""
+    )
+
+    from module_misc import a
+
+    assert not a.evil_was_imported
+
+
 def test_module_disallow_import_failures(runner: CliRunner):
     result = runner.invoke(cli, ["module_misc", "--strict-imports"])
     assert result.exit_code == 1
@@ -142,3 +183,18 @@ ERROR: Failed to import 'module_misc.a.evil'.
 Oh no, found some problems!
 """
     )
+
+
+@pytest.mark.parametrize(
+    "string, expect",
+    [
+        ("__main__", True),
+        ("__main__.bla.foo", True),
+        ("fz.k.__main__.bla.foo", True),
+        ("fz.k.__main__", True),
+        ("Some__main__", False),
+        ("fr.__main__thing", False),
+    ],
+)
+def test_default_exclude(string, expect):
+    assert bool(re.fullmatch(DEFAULT_EXCLUDE_RE, string)) is expect

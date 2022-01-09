@@ -3,15 +3,26 @@ from __future__ import annotations
 import importlib
 import importlib.abc
 import pkgutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import partial
 from inspect import isclass
 from pathlib import Path
 from textwrap import indent
 from types import ModuleType
-from typing import Any, FrozenSet, Iterable, Iterator, Optional, Union
+from typing import (
+    Any,
+    Callable,
+    FrozenSet,
+    Iterable,
+    Iterator,
+    Optional,
+    Union,
+)
 
 from .common import flatten, unique
+
+ModuleName = str
+"The full, dotted name of a module"
 
 
 @dataclass(frozen=True)
@@ -26,6 +37,11 @@ class Module:
 
     def __len__(self) -> int:
         return 1
+
+    def filtername(
+        self, _: Callable[[ModuleName], bool], /, *, prefix: str = ""
+    ) -> ModuleTree:
+        return self
 
 
 @dataclass(frozen=True)
@@ -51,6 +67,19 @@ class Package:
 
     def __len__(self) -> int:
         return 1 + sum(map(len, self.content))
+
+    def filtername(
+        self, pred: Callable[[ModuleName], bool], /, *, prefix: str = ""
+    ) -> ModuleTree:
+        new_prefix = f"{prefix}{self.name}."
+        return replace(
+            self,
+            content=frozenset(
+                sub.filtername(pred, prefix=new_prefix)
+                for sub in self.content
+                if pred(new_prefix + sub.name)
+            ),
+        )
 
 
 ModuleTree = Union[Module, Package]

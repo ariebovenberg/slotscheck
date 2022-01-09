@@ -33,6 +33,7 @@ pytest = "^6.2.1"
 tox = "^3.24.1"
 black = "^21.12b0"
 pytest-cov = "^3.0.0"
+pytest-mock = "^3.6.1"
 
 [tool.poetry.scripts]
 slotscheck = "slotscheck.cli:root"

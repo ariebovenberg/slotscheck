@@ -69,6 +69,9 @@ class S(R):
 class U(L):
     __slots__ = ("o", "p")
 
+    class Ua(Q):
+        __slots__ = ("i", "w")
+
 
 class T(A):
     __slots__ = {"z", "r"}

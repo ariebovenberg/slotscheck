@@ -196,3 +196,61 @@ module_misc.a.b
 
     def test_module(self):
         assert module_tree("module_singular") == Module("module_singular")
+
+
+class TestFilterName:
+    def test_module(self):
+        assert Module("foo").filtername(lambda x: False) == Module("foo")
+
+    def test_package(self):
+        package = Package(
+            "a",
+            fset(
+                Module("a"),
+                Module("b"),
+                Package(
+                    "c",
+                    fset(Module("a"), Package("b", fset(Module("a")))),
+                ),
+                Package(
+                    "d",
+                    fset(
+                        Package(
+                            "a",
+                            fset(
+                                Module("a"),
+                                Package(
+                                    "b", fset(Package("a", fset(Module("x"))))
+                                ),
+                            ),
+                        ),
+                        Module("z"),
+                        Module("b"),
+                    ),
+                ),
+            ),
+        )
+        result = package.filtername(lambda x: "b.a" not in x)
+
+        assert result == Package(
+            "a",
+            fset(
+                Module("a"),
+                Module("b"),
+                Package(
+                    "c",
+                    fset(Module("a"), Package("b", fset())),
+                ),
+                Package(
+                    "d",
+                    fset(
+                        Package(
+                            "a",
+                            fset(Module("a"), Package("b", fset())),
+                        ),
+                        Module("z"),
+                        Module("b"),
+                    ),
+                ),
+            ),
+        )
