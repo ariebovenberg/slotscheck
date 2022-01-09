@@ -1,6 +1,13 @@
 Changelog
 =========
 
+under development
+-----------------
+
+- Add ``--strict-imports`` flag
+- Detect overlapping slots (#10)
+- 100% test coverage
+
 0.2.1 (2022-01-04)
 ------------------
 
