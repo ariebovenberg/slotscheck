@@ -25,5 +25,6 @@ z = Z()
 
 W.boom = Z()
 
+
 def __getattr__(name):
     raise RuntimeError(f"BOOM: {name}")

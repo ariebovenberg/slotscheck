@@ -67,7 +67,7 @@ class TestHasSlots:
         assert not has_slots(klass)
 
     def test_opaque_class(self):
-        with pytest.raises(TypeError, match='BOOM!'):
+        with pytest.raises(TypeError, match="BOOM!"):
             assert not has_slots(_UnsettableClass)
 
 

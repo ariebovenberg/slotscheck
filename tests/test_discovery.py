@@ -166,7 +166,9 @@ class TestModuleTree:
             ),
         )
         assert len(list(tree)) == len(tree) == 7
-        assert tree.display() == """\
+        assert (
+            tree.display()
+            == """\
 module_misc.a.b
  __main__
  c
@@ -174,6 +176,7 @@ module_misc.a.b
   bla
   foo
    z"""
+        )
 
     def test_namespaced(self):
         assert module_tree("namespaced.module") == Package(

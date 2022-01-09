@@ -177,9 +177,7 @@ def slot_messages(c: type) -> Iterable[Message]:
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
 )
 @click.option(
-    "--strict-imports",
-    is_flag=True,
-    help="Treat failed imports as errors."
+    "--strict-imports", is_flag=True, help="Treat failed imports as errors."
 )
 def root(modulename: str, verbose: bool, strict_imports: bool) -> None:
     "Check the __slots__ definitions in a module."
