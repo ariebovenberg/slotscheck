@@ -39,7 +39,7 @@ class Module:
         return 1
 
     def filtername(
-        self, _: Callable[[ModuleName], bool], /, *, prefix: str = ""
+        self, __pred: Callable[[ModuleName], bool], *, prefix: str = ""
     ) -> ModuleTree:
         return self
 
@@ -69,15 +69,15 @@ class Package:
         return 1 + sum(map(len, self.content))
 
     def filtername(
-        self, pred: Callable[[ModuleName], bool], /, *, prefix: str = ""
+        self, __pred: Callable[[ModuleName], bool], *, prefix: str = ""
     ) -> ModuleTree:
         new_prefix = f"{prefix}{self.name}."
         return replace(
             self,
             content=frozenset(
-                sub.filtername(pred, prefix=new_prefix)
+                sub.filtername(__pred, prefix=new_prefix)
                 for sub in self.content
-                if pred(new_prefix + sub.name)
+                if __pred(new_prefix + sub.name)
             ),
         )
 
