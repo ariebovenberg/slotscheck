@@ -19,6 +19,7 @@ def fset(*args) -> frozenset:
 class TestWalkClasses:
     def test_module_does_not_exist(self):
         [result] = walk_classes(Module("cannot_import"), parent_name=None)
+        assert isinstance(result, FailedImport)
         assert result == FailedImport("cannot_import", mock.ANY)
 
         with pytest.raises(ModuleNotFoundError, match="cannot_import"):
@@ -26,6 +27,7 @@ class TestWalkClasses:
 
     def test_module_import_raises_other_error(self):
         [result] = walk_classes(Module("module_misc.a.evil"), parent_name=None)
+        assert isinstance(result, FailedImport)
         assert result == FailedImport("module_misc.a.evil", mock.ANY)
 
         with pytest.raises(RuntimeError, match="Can't import this!"):

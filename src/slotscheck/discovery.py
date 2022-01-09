@@ -76,7 +76,9 @@ def module_tree(module: str) -> ModuleTree:
 
 def _submodule(m: pkgutil.ModuleInfo) -> ModuleTree:
     if m.ispkg:
-        [subdir] = m.module_finder.find_spec(m.name).submodule_search_locations
+        [subdir] = m.module_finder.find_spec(
+            m.name  # type: ignore
+        ).submodule_search_locations
         return _package(m.name, Path(subdir))
     else:
         return Module(m.name)
