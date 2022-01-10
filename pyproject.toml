@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.2.1"
+version = "0.3.0"
 description = "Check the usage of __slots__."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -28,13 +28,15 @@ click = "^8.0.3"
 [tool.poetry.dev-dependencies]
 flake8 = "^4.0.0"
 isort = "^5.7.0"
-mypy = "^0.920"
+mypy = "^0.931"
 pytest = "^6.2.1"
 tox = "^3.24.1"
 black = "^21.12b0"
+pytest-cov = "^3.0.0"
+pytest-mock = "^3.6.1"
 
 [tool.poetry.scripts]
-slotscheck = "slotscheck.common:cli"
+slotscheck = "slotscheck.cli:root"
 
 [tool.black]
 line-length = 79

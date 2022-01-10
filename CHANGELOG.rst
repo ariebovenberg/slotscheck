@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.3.0 (2022-01-10)
+------------------
+
+- Add ``--strict-imports`` flag (#24)
+- Detect overlapping slots (#10)
+- 100% test coverage (#15)
+- Add ``--exclude`` flag (#9)
+
 0.2.1 (2022-01-04)
 ------------------
 
