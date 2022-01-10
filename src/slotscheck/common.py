@@ -1,17 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from itertools import chain, filterfalse, tee
-from typing import (
-    Callable,
-    Collection,
-    Iterable,
-    Iterator,
-    Mapping,
-    Set,
-    Tuple,
-    TypeVar,
-)
+from itertools import chain, filterfalse
+from typing import Callable, Collection, Iterable, Mapping, Set, TypeVar
 
 flatten = chain.from_iterable
 
