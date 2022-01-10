@@ -29,11 +29,7 @@ DEFAULT_EXCLUDE_RE = r"(.+\.)?__main__(\..+)?"
 
 
 @click.command("slotscheck")
-@click.version_option()
 @click.argument("modulename")
-@click.option(
-    "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
-)
 @click.option(
     "--strict-imports", is_flag=True, help="Treat failed imports as errors."
 )
@@ -42,10 +38,14 @@ DEFAULT_EXCLUDE_RE = r"(.+\.)?__main__(\..+)?"
     help="A regular expression that matches modules or classes to exclude. "
     "Use `:` to seperate module and class paths. "
     "Excluded modules (without `:`) will not be imported at all. "
-    "Example: `foo\\.(bla|bar):Settings`.",
+    "Examples: `.*foo.*`, `.*\\.api:(Settings|Config)`.",
     default=DEFAULT_EXCLUDE_RE,
     show_default=DEFAULT_EXCLUDE_RE,
 )
+@click.option(
+    "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
+)
+@click.version_option()
 def root(
     modulename: str, verbose: bool, strict_imports: bool, exclude: str
 ) -> None:
