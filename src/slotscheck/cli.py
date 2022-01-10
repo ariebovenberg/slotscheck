@@ -38,6 +38,7 @@ DEFAULT_EXCLUDE_RE = r"(.+\.)?__main__(\..+)?"
     help="A regular expression that matches modules or classes to exclude. "
     "Use `:` to seperate module and class paths. "
     "Excluded modules (without `:`) will not be imported at all. "
+    "The root module will always be imported. "
     "Examples: `.*foo.*`, `.*\\.api:(Settings|Config)`.",
     default=DEFAULT_EXCLUDE_RE,
     show_default=DEFAULT_EXCLUDE_RE,

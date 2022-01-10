@@ -44,15 +44,17 @@ For example:
 .. code-block:: bash
 
    $ slotscheck pandas
-   ERROR: 'pandas.core.internals.array_manager.SingleArrayManager' has slots but inherits from non-slot class
-   ERROR: 'pandas.core.internals.blocks.Block' has slots but inherits from non-slot class
-   ERROR: 'pandas.core.internals.blocks.NumericBlock' has slots but inherits from non-slot class
-   ERROR: 'pandas.core.internals.blocks.DatetimeLikeBlock' has slots but inherits from non-slot class
-   ERROR: 'pandas.core.internals.blocks.ObjectBlock' has slots but inherits from non-slot class
-   ERROR: 'pandas.core.internals.blocks.CategoricalBlock' has slots but inherits from non-slot class
-   ERROR: 'pandas.core.internals.array_manager.BaseArrayManager' has slots but inherits from non-slot class
-   ERROR: 'pandas.core.internals.managers.BaseBlockManager' has slots but inherits from non-slot class
-   ERROR: 'pandas.core.internals.managers.SingleBlockManager' has slots but inherits from non-slot class
+   ERROR: 'pandas.core.internals.array_manager:BaseArrayManager' has slots but inherits from non-slot class.
+   ERROR: 'pandas.core.internals.array_manager:SingleArrayManager' defines overlapping slots.
+   ERROR: 'pandas.core.internals.array_manager:SingleArrayManager' has slots but inherits from non-slot class.
+   ERROR: 'pandas.core.internals.blocks:Block' has slots but inherits from non-slot class.
+   ERROR: 'pandas.core.internals.blocks:CategoricalBlock' has slots but inherits from non-slot class.
+   ERROR: 'pandas.core.internals.blocks:DatetimeLikeBlock' has slots but inherits from non-slot class.
+   ERROR: 'pandas.core.internals.blocks:NumericBlock' has slots but inherits from non-slot class.
+   ERROR: 'pandas.core.internals.blocks:ObjectBlock' has slots but inherits from non-slot class.
+   ERROR: 'pandas.core.internals.managers:BaseBlockManager' has slots but inherits from non-slot class.
+   ERROR: 'pandas.core.internals.managers:SingleBlockManager' has slots but inherits from non-slot class.
+   Oh no, found some problems!
 
 Now get to fixing --
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!

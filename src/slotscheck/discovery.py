@@ -134,16 +134,18 @@ def _package(module: str, path: Path) -> Package:
 
 def walk_classes(
     n: ModuleTree, parent_name: Optional[str]
-) -> Iterable[Union[FailedImport, FrozenSet[type]]]:
+) -> Iterator[Union[FailedImport, FrozenSet[type]]]:
     fullname = n.name if parent_name is None else f"{parent_name}.{n.name}"
     try:
         module = importlib.import_module(fullname)
-    except (Exception, SystemExit) as e:
+    except BaseException as e:
         # sometimes packages make it impossible to import
         # certain modules directly or out of order, or without
         # some system or dependency requirement.
-        # The raised exception can be SystemExit in case
-        # of accidentally importing CLIs.
+        # The Exceptions can be quite exotic,
+        # inheriting from BaseException in some cases!
+        if isinstance(e, KeyboardInterrupt):
+            raise
         yield FailedImport(fullname, e)
     else:
         yield frozenset(_classes_in_module(module))

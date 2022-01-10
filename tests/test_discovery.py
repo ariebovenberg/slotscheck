@@ -30,8 +30,15 @@ class TestWalkClasses:
         assert isinstance(result, FailedImport)
         assert result == FailedImport("module_misc.a.evil", mock.ANY)
 
-        with pytest.raises(RuntimeError, match="Can't import this!"):
+        with pytest.raises(BaseException, match="Can't import this!"):
             raise result.exc
+
+    def test_module_import_raises_keyboardinterrupt(self, mocker):
+        mocker.patch(
+            "importlib.import_module", side_effect=KeyboardInterrupt("foo")
+        )
+        with pytest.raises(KeyboardInterrupt, match="foo"):
+            next(walk_classes(Module("module_misc.a"), parent_name=None))
 
     def test_single_module(self):
         [result] = list(
@@ -200,7 +207,7 @@ module_misc.a.b
 
 class TestFilterName:
     def test_module(self):
-        assert Module("foo").filtername(lambda x: False) == Module("foo")
+        assert Module("foo").filtername(lambda _: False) == Module("foo")
 
     def test_package(self):
         package = Package(
