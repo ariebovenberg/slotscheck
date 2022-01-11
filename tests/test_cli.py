@@ -92,8 +92,25 @@ Oh no, found some problems!
     )
 
 
+def test_errors_disallow_nonslot_inherit(runner: CliRunner):
+    result = runner.invoke(cli, ["module_not_ok", "--disallow-nonslot-base"])
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+Oh no, found some problems!
+"""
+    )
+
+
 def test_errors_no_inherit_error(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "--allow-nonslot-inherit"])
+    result = runner.invoke(cli, ["module_not_ok", "--allow-nonslot-base"])
     assert result.exit_code == 1
     assert (
         result.output

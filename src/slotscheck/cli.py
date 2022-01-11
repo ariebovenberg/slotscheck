@@ -5,7 +5,7 @@ import sys
 from dataclasses import dataclass
 from functools import partial
 from itertools import chain, filterfalse
-from operator import not_
+from operator import attrgetter, not_
 from textwrap import indent
 from typing import Iterable, List, Sequence, Tuple, Union
 
@@ -35,7 +35,7 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     "--strict-imports", is_flag=True, help="Treat failed imports as errors."
 )
 @click.option(
-    "--disallow-nonslot-inherit/--allow-nonslot-inherit",
+    "--disallow-nonslot-base/--allow-nonslot-base",
     help="Report an error when a slots class inherits from a nonslot class.",
     default=True,
     show_default="disallow",
@@ -77,7 +77,7 @@ def root(
     modulename: str,
     verbose: bool,
     strict_imports: bool,
-    disallow_nonslot_inherit: bool,
+    disallow_nonslot_base: bool,
     include_modules: str | None,
     exclude_modules: str,
     include_classes: str | None,
@@ -92,13 +92,13 @@ def root(
         chain(
             map(
                 partial(Message, error=strict_imports),
-                sorted(modules_skipped, key=lambda m: m.name),
+                sorted(modules_skipped, key=attrgetter("name")),
             ),
             flatten(
                 map(
                     partial(
                         slot_messages,
-                        disallow_nonslot_inherit=disallow_nonslot_inherit,
+                        disallow_nonslot_base=disallow_nonslot_base,
                     ),
                     sorted(
                         _class_includes(
@@ -298,15 +298,13 @@ def any_errors(ms: Iterable[Message]) -> bool:
     return any(m.error for m in ms)
 
 
-def slot_messages(
-    c: type, disallow_nonslot_inherit: bool
-) -> Iterable[Message]:
+def slot_messages(c: type, disallow_nonslot_base: bool) -> Iterable[Message]:
     if slots_overlap(c):
         yield Message(
             OverlappingSlots(c),
             error=True,
         )
-    if disallow_nonslot_inherit and has_slots(c) and has_slotless_base(c):
+    if disallow_nonslot_base and has_slots(c) and has_slotless_base(c):
         yield Message(BadSlotInheritance(c), error=True)
 
 
