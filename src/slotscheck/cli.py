@@ -48,12 +48,26 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
 )
 @click.option(
+    "--include-classes",
+    help="A regular expression that matches classes to include. "
+    "Use `:` to separate module and class paths. "
+    "For example: `app\\.config:.*Settings`, `.*?:.*(Foo|Bar)`. "
+    "Exclusions are determined first, then inclusions.",
+    show_default="include all",
+)
+@click.option(
     "--exclude-modules",
     help="A regular expression that matches modules to exclude. "
     "Excluded modules will not be imported. "
     "The root module will always be imported. ",
     default=DEFAULT_EXCLUDE_RE,
     show_default=DEFAULT_EXCLUDE_RE,
+)
+@click.option(
+    "--include-modules",
+    help="A regular expression that matches modules to include. "
+    "Exclusions are determined first, then inclusions.",
+    show_default="include all",
 )
 @click.option(
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
@@ -64,15 +78,16 @@ def root(
     verbose: bool,
     strict_imports: bool,
     disallow_nonslot_inherit: bool,
+    include_modules: str | None,
     exclude_modules: str,
+    include_classes: str | None,
     exclude_classes: str | None,
 ) -> None:
     "Check the __slots__ definitions in a module."
-    tree = discover(modulename)
-    pruned = tree.filtername(
-        compose(not_, re.compile(exclude_modules, flags=re.VERBOSE).fullmatch)
+    tree, original_count = _collect_modules(
+        modulename, exclude_modules, include_modules
     )
-    classes, modules_skipped = extract_classes(pruned)
+    classes, modules_skipped = extract_classes(tree)
     messages = list(
         chain(
             map(
@@ -86,18 +101,10 @@ def root(
                         disallow_nonslot_inherit=disallow_nonslot_inherit,
                     ),
                     sorted(
-                        filter(
-                            compose(
-                                not_,
-                                re.compile(
-                                    exclude_classes, flags=re.VERBOSE
-                                ).fullmatch,
-                                _class_fullname,
-                            ),
-                            classes,
-                        )
-                        if exclude_classes
-                        else classes,
+                        _class_includes(
+                            _class_excludes(classes, exclude_classes),
+                            include_classes,
+                        ),
                         key=_class_fullname,
                     ),
                 )
@@ -134,9 +141,9 @@ stats:
     has slots: {}
     no slots:  {}
     n/a:       {}""".format(
+                original_count,
                 len(tree),
-                len(pruned) - len(modules_skipped),
-                len(tree) - len(pruned),
+                original_count - len(tree),
                 len(modules_skipped),
                 len(classes),
                 len(classes_by_status[True]),
@@ -148,6 +155,57 @@ stats:
 
     if errors_found:
         exit(1)
+
+
+def _collect_modules(
+    name: str, exclude: str, include: str | None
+) -> Tuple[ModuleTree, int]:
+    """Collect and filter modules,
+    returning the pruned tree and the number of original modules"""
+    tree = discover(name)
+    pruned = tree.filtername(
+        compose(not_, re.compile(exclude, flags=re.VERBOSE).fullmatch)
+    )
+    return (
+        pruned.filtername(
+            compose(bool, re.compile(include, flags=re.VERBOSE).fullmatch)
+        )
+        if include
+        else pruned
+    ), len(tree)
+
+
+def _class_excludes(
+    classes: Iterable[type], exclude: str | None
+) -> Iterable[type]:
+    return (
+        filter(
+            compose(
+                not_,
+                re.compile(exclude, flags=re.VERBOSE).fullmatch,
+                _class_fullname,
+            ),
+            classes,
+        )
+        if exclude
+        else classes
+    )
+
+
+def _class_includes(
+    classes: Iterable[type], include: str | None
+) -> Iterable[type]:
+    return (
+        filter(
+            compose(
+                re.compile(include, flags=re.VERBOSE).fullmatch,
+                _class_fullname,
+            ),
+            classes,
+        )
+        if include
+        else classes
+    )
 
 
 def discover(modulename: str) -> ModuleTree:

@@ -121,6 +121,34 @@ Oh no, found some problems!
     )
 
 
+def test_errors_with_include_classes(runner: CliRunner):
+    result = runner.invoke(
+        cli, ["module_not_ok", "--include-classes", "(.*?foo:.*a|.*:(W|S))"]
+    )
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+Oh no, found some problems!
+"""
+    )
+
+
+def test_errors_with_include_modules(runner: CliRunner):
+    result = runner.invoke(cli, ["module_not_ok", "--include-modules", ".*a.*"])
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+Oh no, found some problems!
+"""
+    )
+
+
 def test_module_not_ok_verbose(runner: CliRunner):
     result = runner.invoke(cli, ["module_not_ok", "-v"])
     assert result.exit_code == 1
