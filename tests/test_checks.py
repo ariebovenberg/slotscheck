@@ -3,6 +3,7 @@ from decimal import Decimal
 from enum import Enum
 from fractions import Fraction
 from random import Random
+from xml.etree.ElementTree import Element
 
 import pytest
 
@@ -49,19 +50,28 @@ class _UnsettableClass(metaclass=_RestrictiveMeta):
 class TestHasSlots:
     @pytest.mark.parametrize(
         "klass",
-        [type, dict, date, float, Decimal, AssertionError, RuntimeError],
+        [type, dict, date, float, Decimal, Element],
     )
     def test_not_purepython(self, klass):
         assert has_slots(klass)
 
     @pytest.mark.parametrize(
-        "klass", [Fraction, HasSlots, GoodInherit, BadInherit, BadOverlaps]
+        "klass",
+        [Fraction, HasSlots, GoodInherit, BadInherit, BadOverlaps],
     )
     def test_slots(self, klass):
         assert has_slots(klass)
 
     @pytest.mark.parametrize(
-        "klass", [Random, Enum, NoSlotsInherits, ChildOfBadClass]
+        "klass",
+        [
+            Random,
+            Enum,
+            NoSlotsInherits,
+            ChildOfBadClass,
+            RuntimeError,
+            KeyboardInterrupt,
+        ],
     )
     def test_no_slots(self, klass):
         assert not has_slots(klass)
@@ -99,7 +109,7 @@ class TestSlotsOverlap:
 class TestHasSlotlessBase:
     @pytest.mark.parametrize(
         "klass",
-        [type, dict, date, float, Decimal, AssertionError, RuntimeError],
+        [type, dict, date, float, Decimal],
     )
     def test_not_purepython(self, klass):
         assert not has_slotless_base(klass)
@@ -110,7 +120,10 @@ class TestHasSlotlessBase:
     def test_slots_ok(self, klass):
         assert not has_slotless_base(klass)
 
-    @pytest.mark.parametrize("klass", [BadInherit, BadInheritAndOverlap])
+    @pytest.mark.parametrize(
+        "klass",
+        [BadInherit, BadInheritAndOverlap, AssertionError, RuntimeError],
+    )
     def test_slots_not_ok(self, klass):
         assert has_slotless_base(klass)
 

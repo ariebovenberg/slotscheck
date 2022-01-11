@@ -25,7 +25,7 @@ from .discovery import (
     walk_classes,
 )
 
-DEFAULT_EXCLUDE_RE = r"(.+\.)?__main__(\..+)?"
+DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
 
 
 @click.command("slotscheck")
@@ -39,7 +39,7 @@ DEFAULT_EXCLUDE_RE = r"(.+\.)?__main__(\..+)?"
     "Use `:` to seperate module and class paths. "
     "Excluded modules (without `:`) will not be imported at all. "
     "The root module will always be imported. "
-    "Examples: `.*foo.*`, `.*\\.api:(Settings|Config)`.",
+    "Examples: `(\\w*\\.)*foo(\\.\\w*)*`, `\\w\\.api:(Settings|Config)`.",
     default=DEFAULT_EXCLUDE_RE,
     show_default=DEFAULT_EXCLUDE_RE,
 )

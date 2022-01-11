@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.3.2 (2022-01-10)
+------------------
+
+- Recognize builtin exceptions as not having slots.
+
 0.3.1 (2022-01-10)
 ------------------
 
