@@ -1,10 +1,11 @@
 Changelog
 =========
 
-0.3.2 (2022-01-10)
+0.4.0 (2022-01-11)
 ------------------
 
 - Recognize builtin exceptions as not having slots.
+- split ``--exclude-modules`` and ``exclude-classes``.
 
 0.3.1 (2022-01-10)
 ------------------

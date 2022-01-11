@@ -5,6 +5,7 @@ import sys
 from dataclasses import dataclass
 from functools import partial
 from itertools import chain, filterfalse
+from operator import not_
 from textwrap import indent
 from typing import Iterable, List, Sequence, Tuple, Union
 
@@ -16,7 +17,7 @@ from .checks import (
     is_purepython_class,
     slots_overlap,
 )
-from .common import flatten, groupby
+from .common import compose, flatten, groupby
 from .discovery import (
     FailedImport,
     ModuleNotPurePython,
@@ -34,12 +35,16 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     "--strict-imports", is_flag=True, help="Treat failed imports as errors."
 )
 @click.option(
-    "--exclude",
-    help="A regular expression that matches modules or classes to exclude. "
-    "Use `:` to seperate module and class paths. "
-    "Excluded modules (without `:`) will not be imported at all. "
-    "The root module will always be imported. "
-    "Examples: `(\\w*\\.)*foo(\\.\\w*)*`, `\\w\\.api:(Settings|Config)`.",
+    "--exclude-classes",
+    help="A regular expression that matches classes to exclude. "
+    "Use `:` to separate module and class paths. "
+    "For example: `app\\.api:Settings`, `.*?:.*(Exception|Error)`. "
+    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
+)
+@click.option(
+    "--exclude-modules",
+    help="A regular expression that matches modules to exclude. "
+    "Excluded modules will not be imported. ",
     default=DEFAULT_EXCLUDE_RE,
     show_default=DEFAULT_EXCLUDE_RE,
 )
@@ -48,12 +53,17 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
 )
 @click.version_option()
 def root(
-    modulename: str, verbose: bool, strict_imports: bool, exclude: str
+    modulename: str,
+    verbose: bool,
+    strict_imports: bool,
+    exclude_modules: str,
+    exclude_classes: str | None,
 ) -> None:
     "Check the __slots__ definitions in a module."
-    exclude_re = re.compile(exclude)
     tree = discover(modulename)
-    pruned = tree.filtername(lambda x: not exclude_re.fullmatch(x))
+    pruned = tree.filtername(
+        compose(not_, re.compile(exclude_modules, flags=re.VERBOSE).fullmatch)
+    )
     classes, modules_skipped = extract_classes(pruned)
     messages = list(
         chain(
@@ -66,11 +76,17 @@ def root(
                     slot_messages,
                     sorted(
                         filter(
-                            lambda c: not exclude_re.fullmatch(
-                                _class_fullname(c)
+                            compose(
+                                not_,
+                                re.compile(
+                                    exclude_classes, flags=re.VERBOSE
+                                ).fullmatch,
+                                _class_fullname,
                             ),
                             classes,
-                        ),
+                        )
+                        if exclude_classes
+                        else classes,
                         key=_class_fullname,
                     ),
                 )

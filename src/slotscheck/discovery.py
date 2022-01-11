@@ -15,7 +15,6 @@ from typing import (
     FrozenSet,
     Iterable,
     Iterator,
-    Optional,
     Union,
 )
 
@@ -133,8 +132,8 @@ def _package(module: str, path: Path) -> Package:
 
 
 def walk_classes(
-    n: ModuleTree, parent_name: Optional[str]
-) -> Iterator[Union[FailedImport, FrozenSet[type]]]:
+    n: ModuleTree, parent_name: str | None
+) -> Iterator[FailedImport | FrozenSet[type]]:
     fullname = n.name if parent_name is None else f"{parent_name}.{n.name}"
     try:
         module = importlib.import_module(fullname)

@@ -92,9 +92,9 @@ Oh no, found some problems!
     )
 
 
-def test_module_not_ok_excludes(runner: CliRunner):
+def test_module_not_ok_excludes_classes(runner: CliRunner):
     result = runner.invoke(
-        cli, ["module_not_ok", "--exclude", "(.*?foo:U|.*:(W|S))"]
+        cli, ["module_not_ok", "--exclude-classes", "(.*?foo:U|.*:(W|S))"]
     )
     assert result.exit_code == 1
     assert (
@@ -157,8 +157,10 @@ All OK!
     )
 
 
-def test_module_exclude(runner: CliRunner, mocker):
-    result = runner.invoke(cli, ["module_misc", "--exclude", ".*evil.*"])
+def test_module_exclude(runner: CliRunner):
+    result = runner.invoke(
+        cli, ["module_misc", "--exclude-modules", ".* evil .*"]
+    )
     assert result.exit_code == 0
     assert (
         result.output
