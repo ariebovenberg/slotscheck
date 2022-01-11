@@ -160,7 +160,7 @@ def extract_classes(
 ) -> Tuple[Sequence[type], Sequence[ModuleSkipped]]:
     classes: List[type] = []
     skipped: List[ModuleSkipped] = []
-    for result in walk_classes(tree, parent_name=None):
+    for result in walk_classes(tree):
         if isinstance(result, FailedImport):
             skipped.append(ModuleSkipped(result.module, result.exc))
         else:

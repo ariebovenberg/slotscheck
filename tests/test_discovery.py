@@ -18,7 +18,7 @@ def fset(*args) -> frozenset:
 
 class TestWalkClasses:
     def test_module_does_not_exist(self):
-        [result] = walk_classes(Module("cannot_import"), parent_name=None)
+        [result] = walk_classes(Module("cannot_import"))
         assert isinstance(result, FailedImport)
         assert result == FailedImport("cannot_import", mock.ANY)
 
@@ -26,7 +26,7 @@ class TestWalkClasses:
             raise result.exc
 
     def test_module_import_raises_other_error(self):
-        [result] = walk_classes(Module("module_misc.a.evil"), parent_name=None)
+        [result] = walk_classes(Module("module_misc.a.evil"))
         assert isinstance(result, FailedImport)
         assert result == FailedImport("module_misc.a.evil", mock.ANY)
 
@@ -38,12 +38,10 @@ class TestWalkClasses:
             "importlib.import_module", side_effect=KeyboardInterrupt("foo")
         )
         with pytest.raises(KeyboardInterrupt, match="foo"):
-            next(walk_classes(Module("module_misc.a"), parent_name=None))
+            next(walk_classes(Module("module_misc.a")))
 
     def test_single_module(self):
-        [result] = list(
-            walk_classes(Module("module_singular"), parent_name=None)
-        )
+        [result] = list(walk_classes(Module("module_singular")))
 
         import module_singular
 
@@ -81,8 +79,7 @@ class TestWalkClasses:
                             ),
                         ),
                     ),
-                ),
-                parent_name=None,
+                )
             )
         )
         assert len(result) == 7
