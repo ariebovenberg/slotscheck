@@ -138,7 +138,9 @@ Oh no, found some problems!
 
 
 def test_errors_with_include_modules(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "--include-modules", ".*a.*"])
+    result = runner.invoke(
+        cli, ["module_not_ok", "--include-modules", ".*a.*"]
+    )
     assert result.exit_code == 1
     assert (
         result.output
