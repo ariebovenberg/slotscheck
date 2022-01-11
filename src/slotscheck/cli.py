@@ -35,16 +35,23 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     "--strict-imports", is_flag=True, help="Treat failed imports as errors."
 )
 @click.option(
+    "--disallow-nonslot-inherit/--allow-nonslot-inherit",
+    help="Report an error when a slots class inherits from a nonslot class.",
+    default=True,
+    show_default="disallow",
+)
+@click.option(
     "--exclude-classes",
     help="A regular expression that matches classes to exclude. "
     "Use `:` to separate module and class paths. "
-    "For example: `app\\.api:Settings`, `.*?:.*(Exception|Error)`. "
+    "For example: `app\\.config:Settings`, `.*?:.*(Exception|Error)`. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
 )
 @click.option(
     "--exclude-modules",
     help="A regular expression that matches modules to exclude. "
-    "Excluded modules will not be imported. ",
+    "Excluded modules will not be imported. "
+    "The root module will always be imported. ",
     default=DEFAULT_EXCLUDE_RE,
     show_default=DEFAULT_EXCLUDE_RE,
 )
@@ -56,6 +63,7 @@ def root(
     modulename: str,
     verbose: bool,
     strict_imports: bool,
+    disallow_nonslot_inherit: bool,
     exclude_modules: str,
     exclude_classes: str | None,
 ) -> None:
@@ -73,7 +81,10 @@ def root(
             ),
             flatten(
                 map(
-                    slot_messages,
+                    partial(
+                        slot_messages,
+                        disallow_nonslot_inherit=disallow_nonslot_inherit,
+                    ),
                     sorted(
                         filter(
                             compose(
@@ -229,13 +240,15 @@ def any_errors(ms: Iterable[Message]) -> bool:
     return any(m.error for m in ms)
 
 
-def slot_messages(c: type) -> Iterable[Message]:
+def slot_messages(
+    c: type, disallow_nonslot_inherit: bool
+) -> Iterable[Message]:
     if slots_overlap(c):
         yield Message(
             OverlappingSlots(c),
             error=True,
         )
-    if has_slots(c) and has_slotless_base(c):
+    if disallow_nonslot_inherit and has_slots(c) and has_slotless_base(c):
         yield Message(BadSlotInheritance(c), error=True)
 
 

@@ -5,7 +5,8 @@ Changelog
 ------------------
 
 - Recognize builtin exceptions as not having slots.
-- split ``--exclude-modules`` and ``exclude-classes``.
+- Split ``--exclude-modules`` and ``exclude-classes``.
+- Allow disable slots inheritance check with ``--allow-broken-inherit``.
 
 0.3.1 (2022-01-10)
 ------------------

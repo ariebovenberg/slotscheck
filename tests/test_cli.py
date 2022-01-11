@@ -12,7 +12,7 @@ def runner():
     return CliRunner()
 
 
-def test_no_module(runner: CliRunner):
+def test_no_argument(runner: CliRunner):
     result = runner.invoke(cli, [])
     assert result.exit_code == 2
     assert (
@@ -32,19 +32,19 @@ def test_module_doesnt_exist(runner: CliRunner):
     assert result.output == "ERROR: Module 'foo' not found.\n"
 
 
-def test_module_ok(runner: CliRunner):
+def test_everything_ok(runner: CliRunner):
     result = runner.invoke(cli, ["module_ok"])
     assert result.exit_code == 0
     assert result.output == "All OK!\n"
 
 
-def test_module_single(runner: CliRunner):
+def test_single_file_module(runner: CliRunner):
     result = runner.invoke(cli, ["module_singular"])
     assert result.exit_code == 0
     assert result.output == "All OK!\n"
 
 
-def test_module_builtins(runner: CliRunner):
+def test_builtins(runner: CliRunner):
     result = runner.invoke(cli, ["builtins"])
     assert result.exit_code == 2
     assert result.output == (
@@ -53,7 +53,7 @@ def test_module_builtins(runner: CliRunner):
     )
 
 
-def test_module_ok_verbose(runner: CliRunner):
+def test_success_verbose(runner: CliRunner):
     result = runner.invoke(cli, ["module_ok", "-v"])
     assert result.exit_code == 0
     assert (
@@ -75,7 +75,7 @@ stats:
     )
 
 
-def test_module_not_ok(runner: CliRunner):
+def test_errors_with_default_settings(runner: CliRunner):
     result = runner.invoke(cli, ["module_not_ok"])
     assert result.exit_code == 1
     assert (
@@ -92,7 +92,20 @@ Oh no, found some problems!
     )
 
 
-def test_module_not_ok_excludes_classes(runner: CliRunner):
+def test_errors_no_inherit_error(runner: CliRunner):
+    result = runner.invoke(cli, ["module_not_ok", "--allow-nonslot-inherit"])
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+Oh no, found some problems!
+"""
+    )
+
+
+def test_errors_with_exclude_classes(runner: CliRunner):
     result = runner.invoke(
         cli, ["module_not_ok", "--exclude-classes", "(.*?foo:U|.*:(W|S))"]
     )
