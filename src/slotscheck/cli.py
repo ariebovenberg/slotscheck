@@ -8,16 +8,7 @@ from functools import partial
 from itertools import chain, filterfalse
 from operator import attrgetter, not_
 from textwrap import indent
-from typing import (
-    Collection,
-    Iterable,
-    Iterator,
-    List,
-    Literal,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Collection, Iterable, Iterator, List, Sequence, Tuple, Union
 
 import click
 
@@ -98,7 +89,7 @@ def root(
     modulename: str,
     strict_imports: bool,
     disallow_nonslot_base: bool,
-    require_slots: Literal["always", "subclass", "no"],
+    require_slots: str,
     include_modules: str | None,
     exclude_modules: str,
     include_classes: str | None,
