@@ -16,6 +16,9 @@
 .. image:: https://github.com/ariebovenberg/slotscheck/actions/workflows/build.yml/badge.svg
    :target: https://github.com/ariebovenberg/slotscheck/actions/workflows/build.yml
 
+.. image:: https://img.shields.io/codecov/c/github/ariebovenberg/slotscheck.svg
+   :target: https://codecov.io/gh/ariebovenberg/slotscheck
+
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
 
