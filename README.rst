@@ -68,8 +68,9 @@ Could this be a flake8 plugin?
 Maybe. But it'd be a lot of work.
 
 The problem is that flake8 plugins need to work without running the code.
-Many libraries define conditional imports, star imports, re-exports or metaclasses
-which basically require running the code to find out the class tree.
+Many libraries use conditional imports, star imports, re-exports,
+and define slots with decorators or metaclasses.
+This all but requires running the code to determine the class tree and slots.
 
 There's `an issue <https://github.com/ariebovenberg/slotscheck/issues/6>`_
 to track any progress on the matter.
@@ -84,9 +85,6 @@ Notes
   there may still be an advantage to using them
   (i.e. attribute access speed and *some* memory savings).
   However, I've found in most cases this is unintentional.
-- Only classes at module-level are checked (i.e. no nested classes)
-- In rare cases imports may fail, the module is then skipped.
-  Use the verbose mode to show detailed information.
 - Limited to the CPython implementation for now.
 - Non pure-Python classes are currently assumed to have slots.
   This is not necessarily the case, but it is nontrivial to determine.
