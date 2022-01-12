@@ -232,10 +232,10 @@ ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
        - module_not_ok.foo:D
        - module_not_ok.foo:C
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
-       - w
+       - w (module_not_ok.foo:Q)
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
-       - p
-       - v
+       - p (module_not_ok.foo:U)
+       - v (module_not_ok.foo:V)
 stats:
   modules:     4
     checked:   4

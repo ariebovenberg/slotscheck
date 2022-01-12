@@ -319,14 +319,21 @@ class OverlappingSlots:
         return (
             f"'{_class_fullname(self.cls)}' defines overlapping slots."
             + verbose
-            * ("\n" + _bulletlist(sorted(_overlapping_slots(self.cls))))
+            * (
+                "\n"
+                + _bulletlist(
+                    f"{name} ({_class_fullname(base)})"
+                    for name, base in sorted(_overlapping_slots(self.cls))
+                )
+            )
         )
 
 
-def _overlapping_slots(c: type) -> Iterable[str]:
+def _overlapping_slots(c: type) -> Iterable[Tuple[str, type]]:
     slots = set(c.__dict__["__slots__"])
     for base in c.mro()[1:]:
-        yield from slots.intersection(base.__dict__.get("__slots__", ()))
+        for overlap in slots.intersection(base.__dict__.get("__slots__", ())):
+            yield (overlap, base)
 
 
 @dataclass(frozen=True)
