@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import re
 import sys
 from dataclasses import dataclass
@@ -7,7 +8,16 @@ from functools import partial
 from itertools import chain, filterfalse
 from operator import attrgetter, not_
 from textwrap import indent
-from typing import Iterable, List, Sequence, Tuple, Union
+from typing import (
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Literal,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import click
 
@@ -41,33 +51,44 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     show_default="disallow",
 )
 @click.option(
-    "--exclude-classes",
-    help="A regular expression that matches classes to exclude. "
-    "Use `:` to separate module and class paths. "
-    "For example: `app\\.config:Settings`, `.*?:.*(Exception|Error)`. "
-    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
+    "--require-slots",
+    type=click.Choice(["always", "subclass", "no"]),
+    help="Require slots to be present always, "
+    "when subclassing a slotted class, or to not require it.",
+    default="no",
+    show_default="no",
 )
 @click.option(
-    "--include-classes",
-    help="A regular expression that matches classes to include. "
-    "Use `:` to separate module and class paths. "
-    "For example: `app\\.config:.*Settings`, `.*?:.*(Foo|Bar)`. "
-    "Exclusions are determined first, then inclusions.",
+    "--include-modules",
+    help="A regular expression that matches modules to include. "
+    "Exclusions are determined first, then inclusions. "
+    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     show_default="include all",
 )
 @click.option(
     "--exclude-modules",
     help="A regular expression that matches modules to exclude. "
     "Excluded modules will not be imported. "
-    "The root module will always be imported. ",
+    "The root module will always be imported. "
+    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     default=DEFAULT_EXCLUDE_RE,
     show_default=DEFAULT_EXCLUDE_RE,
 )
 @click.option(
-    "--include-modules",
-    help="A regular expression that matches modules to include. "
-    "Exclusions are determined first, then inclusions.",
+    "--include-classes",
+    help="A regular expression that matches classes to include. "
+    "Use `:` to separate module and class paths. "
+    "For example: `app\\.config:.*Settings`, `.*:.*(Foo|Bar)`. "
+    "Exclusions are determined first, then inclusions. "
+    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     show_default="include all",
+)
+@click.option(
+    "--exclude-classes",
+    help="A regular expression that matches classes to exclude. "
+    "Use `:` to separate module and class paths. "
+    "For example: `app\\.config:Settings`, `.*:.*(Exception|Error)`. "
+    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
 )
 @click.option(
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
@@ -75,15 +96,17 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
 @click.version_option()
 def root(
     modulename: str,
-    verbose: bool,
     strict_imports: bool,
     disallow_nonslot_base: bool,
+    require_slots: Literal["always", "subclass", "no"],
     include_modules: str | None,
     exclude_modules: str,
     include_classes: str | None,
     exclude_classes: str | None,
+    verbose: bool,
 ) -> None:
     "Check the __slots__ definitions in a module."
+    slots_requirement = RequireSlots[require_slots.upper()]
     tree, original_count = _collect_modules(
         modulename, exclude_modules, include_modules
     )
@@ -94,43 +117,50 @@ def root(
                 partial(Message, error=strict_imports),
                 sorted(modules_skipped, key=attrgetter("name")),
             ),
-            flatten(
-                map(
-                    partial(
-                        slot_messages,
-                        disallow_nonslot_base=disallow_nonslot_base,
-                    ),
-                    sorted(
-                        _class_includes(
-                            _class_excludes(classes, exclude_classes),
-                            include_classes,
-                        ),
-                        key=_class_fullname,
-                    ),
-                )
+            _check_classes(
+                classes,
+                disallow_nonslot_base,
+                include_classes,
+                exclude_classes,
+                slots_requirement,
             ),
         )
     )
-    errors_found = any_errors(messages)
     for msg in messages:
         print(msg.for_display(verbose))
 
-    if errors_found:
+    if verbose:
+        _print_report(
+            ModuleReport(
+                original_count,
+                len(tree),
+                original_count - len(tree),
+                len(modules_skipped),
+            ),
+            classes,
+        )
+
+    if any_errors(messages):
         print("Oh no, found some problems!")
+        exit(1)
     else:
         print("All OK!")
 
-    if verbose:
-        classes_by_status = groupby(
-            classes,
-            key=lambda c: None
-            if not is_purepython_class(c)
-            else True
-            if has_slots(c)
-            else False,
-        )
-        print(
-            """
+
+def _print_report(
+    modules: ModuleReport,
+    classes: Collection[type],
+) -> None:
+    classes_by_status = groupby(
+        classes,
+        key=lambda c: None
+        if not is_purepython_class(c)
+        else True
+        if has_slots(c)
+        else False,
+    )
+    print(
+        """\
 stats:
   modules:     {}
     checked:   {}
@@ -140,21 +170,62 @@ stats:
   classes:     {}
     has slots: {}
     no slots:  {}
-    n/a:       {}""".format(
-                original_count,
-                len(tree),
-                original_count - len(tree),
-                len(modules_skipped),
-                len(classes),
-                len(classes_by_status[True]),
-                len(classes_by_status[False]),
-                len(classes_by_status[None]),
-            ),
-            file=sys.stderr,
-        )
+    n/a:       {}
+""".format(
+            modules.all,
+            modules.checked,
+            modules.excluded,
+            modules.skipped,
+            len(classes),
+            len(classes_by_status[True]),
+            len(classes_by_status[False]),
+            len(classes_by_status[None]),
+        ),
+        file=sys.stderr,
+    )
 
-    if errors_found:
-        exit(1)
+
+@dataclass(frozen=True)
+class ModuleReport:
+    all: int
+    checked: int
+    excluded: int
+    skipped: int
+
+
+def _check_classes(
+    classes: Iterable[type],
+    disallow_nonslot_base: bool,
+    include: str | None,
+    exclude: str | None,
+    slots_requirement: RequireSlots,
+) -> Iterator[Message]:
+    return map(
+        partial(Message, error=True),
+        flatten(
+            map(
+                partial(
+                    slot_messages,
+                    slots_requirement=slots_requirement,
+                    disallow_nonslot_base=disallow_nonslot_base,
+                ),
+                sorted(
+                    _class_includes(
+                        _class_excludes(classes, exclude),
+                        include,
+                    ),
+                    key=_class_fullname,
+                ),
+            )
+        ),
+    )
+
+
+@enum.unique
+class RequireSlots(enum.Enum):
+    ALWAYS = enum.auto()
+    SUBCLASS = enum.auto()
+    NO = enum.auto()
 
 
 def _collect_modules(
@@ -280,7 +351,17 @@ class BadSlotInheritance:
         )
 
 
-Notice = Union[ModuleSkipped, OverlappingSlots, BadSlotInheritance]
+@dataclass(frozen=True)
+class ShouldHaveSlots:
+    cls: type
+
+    def for_display(self, verbose: bool) -> str:
+        return f"'{_class_fullname(self.cls)}' has no slots (required)."
+
+
+Notice = Union[
+    ModuleSkipped, OverlappingSlots, BadSlotInheritance, ShouldHaveSlots
+]
 
 
 @dataclass(frozen=True)
@@ -298,14 +379,21 @@ def any_errors(ms: Iterable[Message]) -> bool:
     return any(m.error for m in ms)
 
 
-def slot_messages(c: type, disallow_nonslot_base: bool) -> Iterable[Message]:
+def slot_messages(
+    c: type, disallow_nonslot_base: bool, slots_requirement: RequireSlots
+) -> Iterable[Notice]:
     if slots_overlap(c):
-        yield Message(
-            OverlappingSlots(c),
-            error=True,
-        )
+        yield OverlappingSlots(c)
     if disallow_nonslot_base and has_slots(c) and has_slotless_base(c):
-        yield Message(BadSlotInheritance(c), error=True)
+        yield BadSlotInheritance(c)
+    elif slots_requirement is RequireSlots.ALWAYS and not has_slots(c):
+        yield ShouldHaveSlots(c)
+    elif (
+        slots_requirement is RequireSlots.SUBCLASS
+        and not has_slots(c)
+        and not has_slotless_base(c)
+    ):
+        yield ShouldHaveSlots(c)
 
 
 _ERROR_PREFIX = "ERROR: "

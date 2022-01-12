@@ -59,8 +59,6 @@ def test_success_verbose(runner: CliRunner):
     assert (
         result.output
         == """\
-All OK!
-
 stats:
   modules:     7
     checked:   6
@@ -71,6 +69,8 @@ stats:
     has slots: 44
     no slots:  20
     n/a:       0
+
+All OK!
 """
     )
 
@@ -82,6 +82,53 @@ def test_errors_with_default_settings(runner: CliRunner):
         result.output
         == """\
 ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+Oh no, found some problems!
+"""
+    )
+
+
+def test_errors_require_slots_always(runner: CliRunner):
+    result = runner.invoke(cli, ["module_not_ok", "--require-slots", "always"])
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.a.b:A' has no slots (required).
+ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:A' has no slots (required).
+ERROR: 'module_not_ok.foo:C' has no slots (required).
+ERROR: 'module_not_ok.foo:D' has no slots (required).
+ERROR: 'module_not_ok.foo:L' has no slots (required).
+ERROR: 'module_not_ok.foo:R' has no slots (required).
+ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:X' has no slots (required).
+Oh no, found some problems!
+"""
+    )
+
+
+def test_errors_require_slots_subclass(runner: CliRunner):
+    result = runner.invoke(
+        cli, ["module_not_ok", "--require-slots", "subclass"]
+    )
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.a.b:A' has no slots (required).
+ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:A' has no slots (required).
+ERROR: 'module_not_ok.foo:C' has no slots (required).
+ERROR: 'module_not_ok.foo:R' has no slots (required).
 ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
 ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
 ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
@@ -189,18 +236,18 @@ ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
        - p
        - v
-Oh no, found some problems!
-
 stats:
   modules:     4
     checked:   4
     excluded:  0
     skipped:   0
 
-  classes:     24
+  classes:     25
     has slots: 18
-    no slots:  6
+    no slots:  7
     n/a:       0
+
+Oh no, found some problems!
 """
     )
 

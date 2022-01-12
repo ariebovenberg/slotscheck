@@ -83,3 +83,7 @@ class V(U):
 
 class W(V):
     __slots__ = {"p": "", "q": "", "v": ""}
+
+
+class X(RuntimeError):
+    pass
