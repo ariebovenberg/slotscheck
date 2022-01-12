@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.3.1"
+version = "0.4.0"
 description = "Check the usage of __slots__."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -23,7 +23,7 @@ repository = "https://github.com/ariebovenberg/slotscheck"
 [tool.poetry.dependencies]
 python = ">=3.7.0,<4"
 importlib-metadata = {version = ">=1,<5", python = "<3.8"}
-click = "^8.0.3"
+click = ">=7.1.2,<9"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^4.0.0"

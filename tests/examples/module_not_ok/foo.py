@@ -42,11 +42,11 @@ class L(D):
     pass
 
 
-class M(RuntimeError):
+class M(zip):
     __slots__ = ()
 
 
-class N(RuntimeError):
+class N(zip):
     __slots__ = ("a", "b")
 
 
@@ -83,3 +83,7 @@ class V(U):
 
 class W(V):
     __slots__ = {"p": "", "q": "", "v": ""}
+
+
+class X(RuntimeError):
+    pass

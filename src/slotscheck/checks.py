@@ -1,9 +1,17 @@
+import builtins
 import sys
 from functools import lru_cache
 
 
 def has_slots(c: type) -> bool:
-    return "__slots__" in c.__dict__ or not is_purepython_class(c)
+    return (
+        "__slots__" in c.__dict__
+        or c in _SLOTTED_BUILTINS
+        or (
+            not issubclass(c, BaseException)
+            and not is_purepython_class(c)  # type: ignore
+        )
+    )
 
 
 def has_slotless_base(c: type) -> bool:
@@ -19,6 +27,13 @@ def slots_overlap(c: type) -> bool:
         if not slots.isdisjoint(ancestor.__dict__.get("__slots__", ())):
             return True
     return False
+
+
+_SLOTTED_BUILTINS = {
+    obj
+    for obj in builtins.__dict__.values()
+    if type(obj) is type and not issubclass(obj, BaseException)
+}
 
 
 _UNSETTABLE_ATTRITUBE_MSG = (

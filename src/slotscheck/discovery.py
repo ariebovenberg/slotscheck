@@ -9,15 +9,7 @@ from inspect import isclass
 from pathlib import Path
 from textwrap import indent
 from types import ModuleType
-from typing import (
-    Any,
-    Callable,
-    FrozenSet,
-    Iterable,
-    Iterator,
-    Optional,
-    Union,
-)
+from typing import Any, Callable, FrozenSet, Iterable, Iterator, Union
 
 from .common import flatten, unique
 
@@ -133,9 +125,9 @@ def _package(module: str, path: Path) -> Package:
 
 
 def walk_classes(
-    n: ModuleTree, parent_name: Optional[str]
-) -> Iterator[Union[FailedImport, FrozenSet[type]]]:
-    fullname = n.name if parent_name is None else f"{parent_name}.{n.name}"
+    n: ModuleTree, prefix: str = ""
+) -> Iterator[FailedImport | FrozenSet[type]]:
+    fullname = prefix + n.name
     try:
         module = importlib.import_module(fullname)
     except BaseException as e:
@@ -151,7 +143,7 @@ def walk_classes(
         yield frozenset(_classes_in_module(module))
         if isinstance(n, Package):
             yield from flatten(
-                map(partial(walk_classes, parent_name=fullname), n.content)
+                map(partial(walk_classes, prefix=fullname + "."), n.content)
             )
 
 
