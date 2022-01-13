@@ -1,9 +1,8 @@
-import re
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
-from slotscheck.cli import DEFAULT_EXCLUDE_RE
 from slotscheck.cli import root as cli
 
 
@@ -130,7 +129,7 @@ Oh no, found some problems!
     )
 
 
-def test_errors_no_inherit_error(runner: CliRunner):
+def test_errors_no_require_superclass(runner: CliRunner):
     result = runner.invoke(cli, ["module_not_ok", "--no-require-superclass"])
     assert result.exit_code == 1
     assert (
@@ -268,16 +267,24 @@ Oh no, found some problems!
     )
 
 
-@pytest.mark.parametrize(
-    "string, expect",
-    [
-        ("__main__", True),
-        ("__main__.bla.foo", True),
-        ("fz.k.__main__.bla.foo", True),
-        ("fz.k.__main__", True),
-        ("Some__main__", False),
-        ("fr.__main__thing", False),
-    ],
-)
-def test_default_exclude(string, expect):
-    assert bool(re.fullmatch(DEFAULT_EXCLUDE_RE, string)) is expect
+def test_errors_use_toml(runner: CliRunner, mocker, tmpdir):
+    (tmpdir / "myconf.toml").write_binary(
+        b"""
+[tool.slotscheck]
+require-superclass = false
+"""
+    )
+    mocker.patch(
+        "slotscheck.config.find_pyproject_toml",
+        return_value=Path(tmpdir / "myconf.toml"),
+    )
+    result = runner.invoke(cli, ["module_not_ok"])
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+Oh no, found some problems!
+"""
+    )

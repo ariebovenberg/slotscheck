@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import enum
 import re
 import sys
 from dataclasses import dataclass
 from functools import partial
 from itertools import chain, filterfalse
 from operator import attrgetter, not_
+from pathlib import Path
 from textwrap import indent
-from typing import Collection, Iterable, Iterator, List, Tuple, Union
+from typing import Any, Collection, Iterable, Iterator, List, Tuple, Union
 
 import click
 
+from . import config
 from .checks import (
     has_slotless_base,
     has_slots,
@@ -27,25 +28,27 @@ from .discovery import (
     walk_classes,
 )
 
-DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
-
 
 @click.command("slotscheck")
 @click.argument("modulename")
 @click.option(
-    "--strict-imports", is_flag=True, help="Treat failed imports as errors."
+    "--strict-imports/--no-strict-imports",
+    help="Treat failed imports as errors.",
+    default=None,
+    show_default="not strict",
 )
 @click.option(
     "--require-superclass/--no-require-superclass",
     help="Report an error when a slots class inherits from "
     "a non-slotted class.",
-    default=True,
+    default=None,
     show_default="required",
 )
 @click.option(
     "--require-subclass/--no-require-subclass",
     help="Report an error when a non-slotted class inherits from "
     "a slotted class.",
+    default=None,
     show_default="not required",
 )
 @click.option(
@@ -60,8 +63,7 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     "Excluded modules will not be imported. "
     "The root module will always be imported. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
-    default=DEFAULT_EXCLUDE_RE,
-    show_default=f"``{DEFAULT_EXCLUDE_RE}``",
+    show_default=f"``{config.DEFAULT_MODULE_EXCLUDE_RE}``",
 )
 @click.option(
     "--include-classes",
@@ -84,29 +86,26 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
 @click.version_option()
 def root(
     modulename: str,
-    strict_imports: bool,
-    require_superclass: bool,
-    require_subclass: bool,
-    include_modules: str | None,
-    exclude_modules: str,
-    include_classes: str | None,
-    exclude_classes: str | None,
     verbose: bool,
+    **kwargs: Any,
 ) -> None:
     "Check the ``__slots__`` definitions in a module."
-    classes, modules = collect(modulename, include_modules, exclude_modules)
+    options = config.collect(kwargs, Path.cwd())
+    classes, modules = collect(
+        modulename, options.include_modules, options.exclude_modules
+    )
     messages = list(
         chain(
             map(
-                partial(Message, error=strict_imports),
+                partial(Message, error=options.strict_imports),
                 sorted(modules.skipped, key=attrgetter("name")),
             ),
             _check_classes(
                 classes,
-                require_superclass,
-                include_classes,
-                exclude_classes,
-                require_subclass,
+                options.require_superclass,
+                options.include_classes,
+                options.exclude_classes,
+                options.require_subclass,
             ),
         )
     )
