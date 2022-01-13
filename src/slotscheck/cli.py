@@ -54,7 +54,6 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     help="A regular expression that matches modules to include. "
     "Exclusions are determined first, then inclusions. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
-    show_default="include all",
 )
 @click.option(
     "--exclude-modules",
@@ -72,7 +71,6 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     "For example: `app\\.config:.*Settings`, `.*:.*(Foo|Bar)`. "
     "Exclusions are determined first, then inclusions. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
-    show_default="include all",
 )
 @click.option(
     "--exclude-classes",
