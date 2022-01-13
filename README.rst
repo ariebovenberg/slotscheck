@@ -62,55 +62,7 @@ For example:
 Now get to fixing --
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
 
-Usage
------
-
-Use the ``--help`` option to find out more:
-
-.. code-block::
-
-   $ slotscheck --help
-   Usage: slotscheck [OPTIONS] MODULENAME
-
-     Check the __slots__ definitions in a module.
-
-   Options:
-     --strict-imports                Treat failed imports as errors.
-     --disallow-nonslot-base / --allow-nonslot-base
-                                     Report an error when a slots class inherits
-                                     from a nonslot class.  [default: (disallow)]
-     --require-slots [always|subclass|no]
-                                     Require slots to be present always, when
-                                     subclassing a slotted class, or to not
-                                     require it.  [default: (no)]
-     --include-modules TEXT          A regular expression that matches modules to
-                                     include. Exclusions are determined first,
-                                     then inclusions. Uses Python's verbose regex
-                                     dialect, so whitespace is mostly ignored.
-     --exclude-modules TEXT          A regular expression that matches modules to
-                                     exclude. Excluded modules will not be
-                                     imported. The root module will always be
-                                     imported. Uses Python's verbose regex
-                                     dialect, so whitespace is mostly ignored.
-                                     [default: ((\w*\.)*__main__(\.\w*)*)]
-     --include-classes TEXT          A regular expression that matches classes to
-                                     include. Use `:` to separate module and
-                                     class paths. For example:
-                                     `app\.config:.*Settings`, `.*:.*(Foo|Bar)`.
-                                     Exclusions are determined first, then
-                                     inclusions. Uses Python's verbose regex
-                                     dialect, so whitespace is mostly ignored.
-     --exclude-classes TEXT          A regular expression that matches classes to
-                                     exclude. Use `:` to separate module and
-                                     class paths. For example:
-                                     `app\.config:Settings`,
-                                     `.*:.*(Exception|Error)`. Uses Python's
-                                     verbose regex dialect, so whitespace is
-                                     mostly ignored.
-     -v, --verbose                   Display extra descriptive output.
-     --version                       Show the version and exit.
-     --help                          Show this message and exit.
-
+See `the documentation <https://slotscheck.rtfd.io>`_ for more details.
 
 
 Could this be a flake8 plugin?

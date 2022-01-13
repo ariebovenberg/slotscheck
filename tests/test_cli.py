@@ -81,57 +81,31 @@ def test_errors_with_default_settings(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
-Oh no, found some problems!
-"""
-    )
-
-
-def test_errors_require_slots_always(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "--require-slots", "always"])
-    assert result.exit_code == 1
-    assert (
-        result.output
-        == """\
-ERROR: 'module_not_ok.a.b:A' has no slots (required).
-ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:A' has no slots (required).
-ERROR: 'module_not_ok.foo:C' has no slots (required).
-ERROR: 'module_not_ok.foo:D' has no slots (required).
-ERROR: 'module_not_ok.foo:L' has no slots (required).
-ERROR: 'module_not_ok.foo:R' has no slots (required).
-ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
-ERROR: 'module_not_ok.foo:W' defines overlapping slots.
-ERROR: 'module_not_ok.foo:X' has no slots (required).
 Oh no, found some problems!
 """
     )
 
 
 def test_errors_require_slots_subclass(runner: CliRunner):
-    result = runner.invoke(
-        cli, ["module_not_ok", "--require-slots", "subclass"]
-    )
+    result = runner.invoke(cli, ["module_not_ok", "--require-subclass"])
     assert result.exit_code == 1
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:A' has no slots (required).
-ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:A' has no slots (required).
-ERROR: 'module_not_ok.foo:C' has no slots (required).
-ERROR: 'module_not_ok.foo:R' has no slots (required).
-ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.a.b:A' has no slots but superclass does.
+ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:A' has no slots but superclass does.
+ERROR: 'module_not_ok.foo:C' has no slots but superclass does.
+ERROR: 'module_not_ok.foo:R' has no slots but superclass does.
+ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 Oh no, found some problems!
@@ -140,15 +114,15 @@ Oh no, found some problems!
 
 
 def test_errors_disallow_nonslot_inherit(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "--disallow-nonslot-base"])
+    result = runner.invoke(cli, ["module_not_ok", "--require-superclass"])
     assert result.exit_code == 1
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 Oh no, found some problems!
@@ -157,7 +131,7 @@ Oh no, found some problems!
 
 
 def test_errors_no_inherit_error(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "--allow-nonslot-base"])
+    result = runner.invoke(cli, ["module_not_ok", "--no-require-superclass"])
     assert result.exit_code == 1
     assert (
         result.output
@@ -177,8 +151,8 @@ def test_errors_with_exclude_classes(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
-ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 Oh no, found some problems!
 """
@@ -193,7 +167,7 @@ def test_errors_with_include_classes(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 Oh no, found some problems!
@@ -209,7 +183,7 @@ def test_errors_with_include_modules(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
 Oh no, found some problems!
 """
     )
@@ -221,13 +195,13 @@ def test_module_not_ok_verbose(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
        - module_not_ok.a.b:A
-ERROR: 'module_not_ok.foo:S' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
        - module_not_ok.foo:R
-ERROR: 'module_not_ok.foo:T' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
        - module_not_ok.foo:A
-ERROR: 'module_not_ok.foo:U' has slots but inherits from non-slot class.
+ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
        - module_not_ok.foo:L
        - module_not_ok.foo:D
        - module_not_ok.foo:C

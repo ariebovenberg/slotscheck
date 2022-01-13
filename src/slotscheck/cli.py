@@ -36,18 +36,17 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     "--strict-imports", is_flag=True, help="Treat failed imports as errors."
 )
 @click.option(
-    "--disallow-nonslot-base/--allow-nonslot-base",
-    help="Report an error when a slots class inherits from a nonslot class.",
+    "--require-superclass/--no-require-superclass",
+    help="Report an error when a slots class inherits from "
+    "a non-slotted class.",
     default=True,
-    show_default="disallow",
+    show_default="required",
 )
 @click.option(
-    "--require-slots",
-    type=click.Choice(["always", "subclass", "no"]),
-    help="Require slots to be present always, "
-    "when subclassing a slotted class, or to not require it.",
-    default="no",
-    show_default="no",
+    "--require-subclass/--no-require-subclass",
+    help="Report an error when a non-slotted class inherits from "
+    "a slotted class.",
+    show_default="not required",
 )
 @click.option(
     "--include-modules",
@@ -62,21 +61,21 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
     "The root module will always be imported. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     default=DEFAULT_EXCLUDE_RE,
-    show_default=DEFAULT_EXCLUDE_RE,
+    show_default=f"``{DEFAULT_EXCLUDE_RE}``",
 )
 @click.option(
     "--include-classes",
     help="A regular expression that matches classes to include. "
-    "Use `:` to separate module and class paths. "
-    "For example: `app\\.config:.*Settings`, `.*:.*(Foo|Bar)`. "
+    "Use ``:`` to separate module and class paths. "
+    "For example: ``app`\\.config:.*Settings``, ``.*:.*(Foo|Bar)``. "
     "Exclusions are determined first, then inclusions. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
 )
 @click.option(
     "--exclude-classes",
     help="A regular expression that matches classes to exclude. "
-    "Use `:` to separate module and class paths. "
-    "For example: `app\\.config:Settings`, `.*:.*(Exception|Error)`. "
+    "Use ``:`` to separate module and class paths. "
+    "For example: ``app\\.config:Settings``, ``.*:.*(Exception|Error)``. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
 )
 @click.option(
@@ -86,15 +85,15 @@ DEFAULT_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
 def root(
     modulename: str,
     strict_imports: bool,
-    disallow_nonslot_base: bool,
-    require_slots: str,
+    require_superclass: bool,
+    require_subclass: bool,
     include_modules: str | None,
     exclude_modules: str,
     include_classes: str | None,
     exclude_classes: str | None,
     verbose: bool,
 ) -> None:
-    "Check the __slots__ definitions in a module."
+    "Check the ``__slots__`` definitions in a module."
     classes, modules = collect(modulename, include_modules, exclude_modules)
     messages = list(
         chain(
@@ -104,10 +103,10 @@ def root(
             ),
             _check_classes(
                 classes,
-                disallow_nonslot_base,
+                require_superclass,
                 include_classes,
                 exclude_classes,
-                RequireSlots[require_slots.upper()],
+                require_subclass,
             ),
         )
     )
@@ -171,10 +170,10 @@ class ModuleReport:
 
 def _check_classes(
     classes: Iterable[type],
-    disallow_nonslot_base: bool,
+    require_superclass: bool,
     include: str | None,
     exclude: str | None,
-    slots_requirement: RequireSlots,
+    require_subclass: bool,
 ) -> Iterator[Message]:
     return map(
         partial(Message, error=True),
@@ -182,8 +181,8 @@ def _check_classes(
             map(
                 partial(
                     slot_messages,
-                    slots_requirement=slots_requirement,
-                    disallow_nonslot_base=disallow_nonslot_base,
+                    require_subclass=require_subclass,
+                    require_superclass=require_superclass,
                 ),
                 sorted(
                     _class_includes(
@@ -195,13 +194,6 @@ def _check_classes(
             )
         ),
     )
-
-
-@enum.unique
-class RequireSlots(enum.Enum):
-    ALWAYS = enum.auto()
-    SUBCLASS = enum.auto()
-    NO = enum.auto()
 
 
 def _collect_modules(
@@ -340,7 +332,7 @@ class BadSlotInheritance:
     def for_display(self, verbose: bool) -> str:
         return (
             f"'{_class_fullname(self.cls)}' has slots "
-            "but inherits from non-slot class."
+            "but superclass does not."
             + verbose
             * ("\n" + _class_bulletlist(_slotless_superclasses(self.cls)))
         )
@@ -351,7 +343,9 @@ class ShouldHaveSlots:
     cls: type
 
     def for_display(self, verbose: bool) -> str:
-        return f"'{_class_fullname(self.cls)}' has no slots (required)."
+        return (
+            f"'{_class_fullname(self.cls)}' has no slots but superclass does."
+        )
 
 
 Notice = Union[
@@ -375,19 +369,13 @@ def any_errors(ms: Iterable[Message]) -> bool:
 
 
 def slot_messages(
-    c: type, disallow_nonslot_base: bool, slots_requirement: RequireSlots
+    c: type, require_superclass: bool, require_subclass: bool
 ) -> Iterable[Notice]:
     if slots_overlap(c):
         yield OverlappingSlots(c)
-    if disallow_nonslot_base and has_slots(c) and has_slotless_base(c):
+    if require_superclass and has_slots(c) and has_slotless_base(c):
         yield BadSlotInheritance(c)
-    elif slots_requirement is RequireSlots.ALWAYS and not has_slots(c):
-        yield ShouldHaveSlots(c)
-    elif (
-        slots_requirement is RequireSlots.SUBCLASS
-        and not has_slots(c)
-        and not has_slotless_base(c)
-    ):
+    elif require_subclass and not has_slots(c) and not has_slotless_base(c):
         yield ShouldHaveSlots(c)
 
 

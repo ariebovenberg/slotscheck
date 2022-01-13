@@ -5,6 +5,7 @@ Changelog
 ------------------
 
 - More descriptive output on overlapping slots (#26).
+- Simplify slot requirement flags.
 
 0.4.0 (2022-01-12)
 ------------------
