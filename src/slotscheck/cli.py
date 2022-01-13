@@ -8,7 +8,7 @@ from functools import partial
 from itertools import chain, filterfalse
 from operator import attrgetter, not_
 from textwrap import indent
-from typing import Collection, Iterable, Iterator, List, Sequence, Tuple, Union
+from typing import Collection, Iterable, Iterator, List, Tuple, Union
 
 import click
 
@@ -95,23 +95,19 @@ def root(
     verbose: bool,
 ) -> None:
     "Check the __slots__ definitions in a module."
-    slots_requirement = RequireSlots[require_slots.upper()]
-    tree, original_count = _collect_modules(
-        modulename, exclude_modules, include_modules
-    )
-    classes, modules_skipped = extract_classes(tree)
+    classes, modules = collect(modulename, include_modules, exclude_modules)
     messages = list(
         chain(
             map(
                 partial(Message, error=strict_imports),
-                sorted(modules_skipped, key=attrgetter("name")),
+                sorted(modules.skipped, key=attrgetter("name")),
             ),
             _check_classes(
                 classes,
                 disallow_nonslot_base,
                 include_classes,
                 exclude_classes,
-                slots_requirement,
+                RequireSlots[require_slots.upper()],
             ),
         )
     )
@@ -119,15 +115,7 @@ def root(
         print(msg.for_display(verbose))
 
     if verbose:
-        _print_report(
-            ModuleReport(
-                original_count,
-                len(tree),
-                original_count - len(tree),
-                len(modules_skipped),
-            ),
-            classes,
-        )
+        _print_report(modules, classes)
 
     if any_errors(messages):
         print("Oh no, found some problems!")
@@ -161,10 +149,10 @@ stats:
     no slots:  {}
     n/a:       {}
 """.format(
-            modules.all,
-            modules.checked,
-            modules.excluded,
-            modules.skipped,
+            len(modules.all),
+            len(modules.checked),
+            len(modules.all) - len(modules.checked),
+            len(modules.skipped),
             len(classes),
             len(classes_by_status[True]),
             len(classes_by_status[False]),
@@ -176,10 +164,9 @@ stats:
 
 @dataclass(frozen=True)
 class ModuleReport:
-    all: int
-    checked: int
-    excluded: int
-    skipped: int
+    all: ModuleTree
+    checked: ModuleTree
+    skipped: Collection[ModuleSkipped]
 
 
 def _check_classes(
@@ -219,7 +206,7 @@ class RequireSlots(enum.Enum):
 
 def _collect_modules(
     name: str, exclude: str, include: str | None
-) -> Tuple[ModuleTree, int]:
+) -> Tuple[ModuleTree, ModuleTree]:
     """Collect and filter modules,
     returning the pruned tree and the number of original modules"""
     tree = discover(name)
@@ -232,7 +219,7 @@ def _collect_modules(
         )
         if include
         else pruned
-    ), len(tree)
+    ), tree
 
 
 def _class_excludes(
@@ -284,9 +271,21 @@ def discover(modulename: str) -> ModuleTree:
         exit(2)
 
 
-def extract_classes(
+def collect(
+    modulename: str, include: str | None, exclude: str
+) -> Tuple[Collection[type], ModuleReport]:
+    pruned, original_tree = _collect_modules(modulename, exclude, include)
+    classes, skipped = _extract_classes(pruned)
+    return classes, ModuleReport(
+        original_tree,
+        pruned,
+        skipped,
+    )
+
+
+def _extract_classes(
     tree: ModuleTree,
-) -> Tuple[Sequence[type], Sequence[ModuleSkipped]]:
+) -> Tuple[Collection[type], Collection[ModuleSkipped]]:
     classes: List[type] = []
     skipped: List[ModuleSkipped] = []
     for result in walk_classes(tree):
