@@ -7,6 +7,7 @@ Contents
    :maxdepth: 2
 
    cli.rst
+   configuration.rst
 
 
 .. include:: ../CHANGELOG.rst
