@@ -62,7 +62,7 @@ For example:
 Now get to fixing --
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
 
-Use the ``--help`` option to find out more.
+See `the documentation <https://slotscheck.rtfd.io>`_ for more details.
 
 
 Could this be a flake8 plugin?

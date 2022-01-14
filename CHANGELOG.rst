@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.5.0 (2022-01-14)
+------------------
+
+- More descriptive output on overlapping slots (#26).
+- Simplify slot requirement flags.
+- allow configuration by ``pyproject.toml`` (#28).
+
 0.4.0 (2022-01-12)
 ------------------
 

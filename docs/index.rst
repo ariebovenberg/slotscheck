@@ -6,7 +6,8 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   api.rst
+   cli.rst
+   configuration.rst
 
 
 .. include:: ../CHANGELOG.rst

@@ -11,12 +11,13 @@ from textwrap import indent
 from types import ModuleType
 from typing import Any, Callable, FrozenSet, Iterable, Iterator, Union
 
-from .common import flatten, unique
+from .common import add_slots, flatten, unique
 
 ModuleName = str
 "The full, dotted name of a module"
 
 
+@add_slots
 @dataclass(frozen=True)
 class Module:
     name: str
@@ -36,6 +37,7 @@ class Module:
         return self
 
 
+@add_slots
 @dataclass(frozen=True)
 class Package:
     name: str
@@ -147,6 +149,7 @@ def walk_classes(
             )
 
 
+@add_slots
 @dataclass(frozen=True)
 class FailedImport:
     module: str

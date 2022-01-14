@@ -32,6 +32,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
+    "sphinx_click",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -65,7 +66,7 @@ autodoc_member_order = "bysource"
 html_theme = "sphinx_material"
 
 # html_static_path = ['_static']
-highlight_language = "python3"
+# highlight_language = "python3"
 
 # Material theme options (see theme.conf for more information)
 html_theme_options = {
@@ -98,5 +99,4 @@ html_sidebars = {
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "snug": ("https://snug.readthedocs.org/en/latest/", None),
 }

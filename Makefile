@@ -39,5 +39,5 @@ pytest:
 test: check pytest
 
 docs:
-	@touch docs/api.rst
+	@touch docs/cli.rst
 	make -C docs/ html
