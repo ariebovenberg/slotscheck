@@ -7,16 +7,14 @@ project's ``pyproject.toml``.
 Command line options
 --------------------
 
-See the :ref:`command line interface <cli>` documentation
+See the :ref:`command line interface <cli>` documentation.
 
 
 ``pyproject.toml``
 ------------------
 
-The same configuration options are available in the ``pyproject.toml`` file.
-If this file is not found in the current directory,
-it's parent will be tried until the root is reached.
-An example file:
+The ``pyproject.toml`` file offers the same configuration options as the CLI.
+See the :ref:`CLI docs <cli>`. An example TOML configuration:
 
 .. code-block:: toml
 
@@ -24,12 +22,14 @@ An example file:
    strict-imports = true
    exclude-modules = '''
    (
-     .*\\.test\\..*
+     .*\.test\..*  # ignore any test code
      |__main__
-     |some\\.specific\\.module
+     |some\.specific\.module  # this specific module has bad slots
    )
    '''
    require-superclass = false
 
+If ``pyproject.toml`` is not found in the current directory,
+it's parent will be tried until the root of the filesystem is reached.
 Note that CLI options have precedence over ``pyproject.toml``.
-Thus, you can always override what's configured.
+Thus, you can always override what's configured there.
