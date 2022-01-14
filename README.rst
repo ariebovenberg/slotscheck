@@ -30,7 +30,7 @@ What's worse: there is nothing warning you that you messed up.
 ✨ *Until now!* ✨
 
 ``slotscheck`` helps you validate your slots are working properly.
-You can even use to enforce use of slots across (parts of) your codebase.
+You can even use it to enforce the use of slots across (parts of) your codebase.
 
 See my `blog post <https://dev.arie.bovenberg.net/blog/finding-broken-slots-in-popular-python-libraries/>`_
 for the longer story behind ``slotscheck``.
