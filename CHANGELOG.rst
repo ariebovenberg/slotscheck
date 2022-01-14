@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.5.2 (2022-01-14)
+------------------
+
+- Fix crash when encountering overlapping slots from multiple classes.
+
 0.5.1 (2022-01-14)
 ------------------
 

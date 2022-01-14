@@ -5,7 +5,7 @@ import sys
 from dataclasses import dataclass
 from functools import partial
 from itertools import chain, filterfalse
-from operator import attrgetter, not_
+from operator import attrgetter, itemgetter, not_
 from pathlib import Path
 from textwrap import indent
 from typing import Any, Collection, Iterable, Iterator, List, Tuple, Union
@@ -314,7 +314,9 @@ class OverlappingSlots:
                 "\n"
                 + _bulletlist(
                     f"{name} ({_class_fullname(base)})"
-                    for name, base in sorted(_overlapping_slots(self.cls))
+                    for name, base in sorted(
+                        _overlapping_slots(self.cls), key=itemgetter(0)
+                    )
                 )
             )
         )

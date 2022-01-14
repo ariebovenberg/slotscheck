@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.5.1"
-description = "Check the usage of __slots__."
+version = "0.5.2"
+description = "Validate your __slots__"
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
 classifiers = [
@@ -19,6 +19,7 @@ packages = [
 readme = "README.rst"
 include = ["CHANGELOG.rst", "README.rst"]
 repository = "https://github.com/ariebovenberg/slotscheck"
+homepage = "https://github.com/ariebovenberg/slotscheck"
 
 [tool.poetry.dependencies]
 python = ">=3.7.0,<4"
