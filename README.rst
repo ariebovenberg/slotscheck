@@ -29,6 +29,9 @@ What's worse: there is nothing warning you that you messed up.
 
 ✨ *Until now!* ✨
 
+``slotscheck`` helps you validate your slots are working properly.
+You can even use to enforce use of slots across (parts of) your codebase.
+
 See my `blog post <https://dev.arie.bovenberg.net/blog/finding-broken-slots-in-popular-python-libraries/>`_
 for the longer story behind ``slotscheck``.
 
@@ -46,17 +49,9 @@ For example:
 
 .. code-block:: bash
 
-   $ slotscheck pandas
-   ERROR: 'pandas.core.internals.array_manager:BaseArrayManager' has slots but inherits from non-slot class.
-   ERROR: 'pandas.core.internals.array_manager:SingleArrayManager' defines overlapping slots.
-   ERROR: 'pandas.core.internals.array_manager:SingleArrayManager' has slots but inherits from non-slot class.
-   ERROR: 'pandas.core.internals.blocks:Block' has slots but inherits from non-slot class.
-   ERROR: 'pandas.core.internals.blocks:CategoricalBlock' has slots but inherits from non-slot class.
-   ERROR: 'pandas.core.internals.blocks:DatetimeLikeBlock' has slots but inherits from non-slot class.
-   ERROR: 'pandas.core.internals.blocks:NumericBlock' has slots but inherits from non-slot class.
-   ERROR: 'pandas.core.internals.blocks:ObjectBlock' has slots but inherits from non-slot class.
-   ERROR: 'pandas.core.internals.managers:BaseBlockManager' has slots but inherits from non-slot class.
-   ERROR: 'pandas.core.internals.managers:SingleBlockManager' has slots but inherits from non-slot class.
+   $ slotscheck sanic
+   ERROR: 'sanic.app:Sanic' defines overlapping slots.
+   ERROR: 'sanic.response:HTTPResponse' has slots but superclass does not.
    Oh no, found some problems!
 
 Now get to fixing --
