@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.0.0 (2022-01-??)
+0.5.0 (2022-01-14)
 ------------------
 
 - More descriptive output on overlapping slots (#26).

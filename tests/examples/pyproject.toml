@@ -1,0 +1,2 @@
+# an emtpy pyproject.toml to prevent examples from reverting the the root one
+[tool.slotscheck]

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "1.0.0"
+version = "0.5.0"
 description = "Check the usage of __slots__."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -59,6 +59,11 @@ exclude = '''
 [tool.isort]
 profile = 'black'
 line_length = 79
+
+[tool.slotscheck]
+strict-imports = true
+require-subclass = true
+require-superclass = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -47,6 +47,15 @@ class InvalidValueType(Exception):
 @dataclass(frozen=True)
 class PartialOptions:
     "Options given by user. Some may be missing"
+    __slots__ = (
+        "strict_imports",
+        "require_subclass",
+        "require_superclass",
+        "include_modules",
+        "exclude_modules",
+        "include_classes",
+        "exclude_classes",
+    )
     strict_imports: bool | None
     require_subclass: bool | None
     require_superclass: bool | None
@@ -75,6 +84,7 @@ class PartialOptions:
 
 @dataclass(frozen=True)
 class Options(PartialOptions):
+    __slots__ = ()
     strict_imports: bool
     require_subclass: bool
     require_superclass: bool

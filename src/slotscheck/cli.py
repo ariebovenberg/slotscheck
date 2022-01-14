@@ -19,7 +19,7 @@ from .checks import (
     is_purepython_class,
     slots_overlap,
 )
-from .common import compose, flatten, groupby
+from .common import add_slots, compose, flatten, groupby
 from .discovery import (
     FailedImport,
     ModuleNotPurePython,
@@ -160,6 +160,7 @@ stats:
     )
 
 
+@add_slots
 @dataclass(frozen=True)
 class ModuleReport:
     all: ModuleTree
@@ -287,6 +288,7 @@ def _extract_classes(
     return classes, skipped
 
 
+@add_slots
 @dataclass(frozen=True)
 class ModuleSkipped:
     name: str
@@ -299,6 +301,7 @@ class ModuleSkipped:
         )
 
 
+@add_slots
 @dataclass(frozen=True)
 class OverlappingSlots:
     cls: type
@@ -324,6 +327,7 @@ def _overlapping_slots(c: type) -> Iterable[Tuple[str, type]]:
             yield (overlap, base)
 
 
+@add_slots
 @dataclass(frozen=True)
 class BadSlotInheritance:
     cls: type
@@ -337,6 +341,7 @@ class BadSlotInheritance:
         )
 
 
+@add_slots
 @dataclass(frozen=True)
 class ShouldHaveSlots:
     cls: type
@@ -352,6 +357,7 @@ Notice = Union[
 ]
 
 
+@add_slots
 @dataclass(frozen=True)
 class Message:
     notice: Notice

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -5,10 +6,19 @@ from click.testing import CliRunner
 
 from slotscheck.cli import root as cli
 
+from .conftest import EXAMPLES_DIR
+
 
 @pytest.fixture()
 def runner():
     return CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def set_cwd(request):
+    os.chdir(EXAMPLES_DIR)
+    yield
+    os.chdir(request.config.invocation_dir)
 
 
 def test_no_argument(runner: CliRunner):
