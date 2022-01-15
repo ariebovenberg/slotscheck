@@ -21,17 +21,12 @@ def set_cwd(request):
     os.chdir(request.config.invocation_dir)
 
 
-def test_no_argument(runner: CliRunner):
+def test_no_inputs(runner: CliRunner):
     result = runner.invoke(cli, [])
     assert result.exit_code == 2
     assert (
         result.output
-        == """\
-Usage: slotscheck [OPTIONS]
-Try 'slotscheck --help' for help.
-
-Error: Missing option '-m' / '--module'.
-"""
+        == "ERROR: No FILES argument or `-m/--module` option given.\n"
     )
 
 
@@ -39,6 +34,20 @@ def test_module_doesnt_exist(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "foo"])
     assert result.exit_code == 2
     assert result.output == "ERROR: Module 'foo' not found.\n"
+
+
+def test_path_doesnt_exist(runner: CliRunner):
+    result = runner.invoke(cli, ["doesnt_exist"])
+    assert result.exit_code == 2
+    assert (
+        result.output
+        == """\
+Usage: slotscheck [OPTIONS] [FILES]
+Try 'slotscheck --help' for help.
+
+Error: Invalid value for '[FILES]': Path 'doesnt_exist' does not exist.
+"""
+    )
 
 
 def test_everything_ok(runner: CliRunner):
@@ -81,6 +90,40 @@ stats:
 
 All OK!
 """
+    )
+
+
+def test_path_is_module_directory(runner: CliRunner):
+    # let's define the path indirectly to ensure it works
+    path = str(EXAMPLES_DIR / "module_ok/a/..")
+    result = runner.invoke(cli, [path, "-v"])
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+stats:
+  modules:     7
+    checked:   6
+    excluded:  1
+    skipped:   0
+
+  classes:     64
+    has slots: 44
+    no slots:  20
+    n/a:       0
+
+All OK!
+"""
+    )
+
+
+def test_cannot_pass_both_path_and_module(runner: CliRunner):
+    result = runner.invoke(cli, ["module_ok", "-m", "click"])
+    # assert result.exit_code == 2
+    assert (
+        result.output
+        == "ERROR: Specify either FILES argument or `-m/--module` "
+        "option, not both.\n"
     )
 
 

@@ -22,6 +22,7 @@ from .checks import (
 from .common import add_slots, compose, flatten, groupby
 from .discovery import (
     FailedImport,
+    ModuleName,
     ModuleNotPurePython,
     ModuleTree,
     module_tree,
@@ -30,11 +31,15 @@ from .discovery import (
 
 
 @click.command("slotscheck")
+@click.argument(
+    "FILES",
+    type=click.Path(path_type=Path, exists=True, resolve_path=True),
+    required=False,
+)
 @click.option(
     "-m",
     "--module",
-    help="Checck this module. Cannot be combined with PATH argument.",
-    required=True,
+    help="Check this module. Cannot be combined with FILES argument.",
 )
 @click.option(
     "--strict-imports/--no-strict-imports",
@@ -90,14 +95,17 @@ from .discovery import (
 )
 @click.version_option()
 def root(
-    module: str,
+    files: Path | None,
+    module: str | None,
     verbose: bool,
     **kwargs: Any,
 ) -> None:
-    "Check the ``__slots__`` definitions in a module."
+    "Check the ``__slots__`` definitions for files or by -m/--module."
     options = config.collect(kwargs, Path.cwd())
     classes, modules = collect(
-        module, options.include_modules, options.exclude_modules
+        _resolve_module(files, module),
+        options.include_modules,
+        options.exclude_modules,
     )
     messages = list(
         chain(
@@ -125,6 +133,36 @@ def root(
         exit(1)
     else:
         print("All OK!")
+
+
+def _resolve_module(files: Path | None, name: ModuleName | None) -> ModuleName:
+    if files is None and name is None:
+        print(
+            _format_error("No FILES argument or `-m/--module` option given."),
+            file=sys.stderr,
+        )
+        exit(2)
+    elif files:
+        if name is not None:
+            print(
+                _format_error(
+                    "Specify either FILES argument or `-m/--module` "
+                    "option, not both."
+                ),
+                file=sys.stderr,
+            )
+            exit(2)
+        return _determine_module(files)
+    else:
+        assert isinstance(name, str)  # this follows from if/elifs above
+        return name
+
+
+def _determine_module(p: Path) -> ModuleName:
+    if p.is_dir() and (p / "__init__.py").is_file():
+        return p.name
+    else:
+        raise NotImplementedError
 
 
 def _print_report(
