@@ -30,7 +30,12 @@ from .discovery import (
 
 
 @click.command("slotscheck")
-@click.argument("modulename")
+@click.option(
+    "-m",
+    "--module",
+    help="Checck this module. Cannot be combined with PATH argument.",
+    required=True,
+)
 @click.option(
     "--strict-imports/--no-strict-imports",
     help="Treat failed imports as errors.",
@@ -85,14 +90,14 @@ from .discovery import (
 )
 @click.version_option()
 def root(
-    modulename: str,
+    module: str,
     verbose: bool,
     **kwargs: Any,
 ) -> None:
     "Check the ``__slots__`` definitions in a module."
     options = config.collect(kwargs, Path.cwd())
     classes, modules = collect(
-        modulename, options.include_modules, options.exclude_modules
+        module, options.include_modules, options.exclude_modules
     )
     messages = list(
         chain(

@@ -27,34 +27,34 @@ def test_no_argument(runner: CliRunner):
     assert (
         result.output
         == """\
-Usage: slotscheck [OPTIONS] MODULENAME
+Usage: slotscheck [OPTIONS]
 Try 'slotscheck --help' for help.
 
-Error: Missing argument 'MODULENAME'.
+Error: Missing option '-m' / '--module'.
 """
     )
 
 
 def test_module_doesnt_exist(runner: CliRunner):
-    result = runner.invoke(cli, ["foo"])
+    result = runner.invoke(cli, ["-m", "foo"])
     assert result.exit_code == 2
     assert result.output == "ERROR: Module 'foo' not found.\n"
 
 
 def test_everything_ok(runner: CliRunner):
-    result = runner.invoke(cli, ["module_ok"])
+    result = runner.invoke(cli, ["-m", "module_ok"])
     assert result.exit_code == 0
     assert result.output == "All OK!\n"
 
 
 def test_single_file_module(runner: CliRunner):
-    result = runner.invoke(cli, ["module_singular"])
+    result = runner.invoke(cli, ["-m", "module_singular"])
     assert result.exit_code == 0
     assert result.output == "All OK!\n"
 
 
 def test_builtins(runner: CliRunner):
-    result = runner.invoke(cli, ["builtins"])
+    result = runner.invoke(cli, ["-m", "builtins"])
     assert result.exit_code == 2
     assert result.output == (
         "ERROR: Module 'builtins' cannot be inspected. "
@@ -63,7 +63,7 @@ def test_builtins(runner: CliRunner):
 
 
 def test_success_verbose(runner: CliRunner):
-    result = runner.invoke(cli, ["module_ok", "-v"])
+    result = runner.invoke(cli, ["-m", "module_ok", "-v"])
     assert result.exit_code == 0
     assert (
         result.output
@@ -85,7 +85,7 @@ All OK!
 
 
 def test_errors_with_default_settings(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok"])
+    result = runner.invoke(cli, ["-m", "module_not_ok"])
     assert result.exit_code == 1
     assert (
         result.output
@@ -103,7 +103,7 @@ Oh no, found some problems!
 
 
 def test_errors_require_slots_subclass(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "--require-subclass"])
+    result = runner.invoke(cli, ["-m", "module_not_ok", "--require-subclass"])
     assert result.exit_code == 1
     assert (
         result.output
@@ -125,7 +125,9 @@ Oh no, found some problems!
 
 
 def test_errors_disallow_nonslot_inherit(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "--require-superclass"])
+    result = runner.invoke(
+        cli, ["-m", "module_not_ok", "--require-superclass"]
+    )
     assert result.exit_code == 1
     assert (
         result.output
@@ -143,7 +145,9 @@ Oh no, found some problems!
 
 
 def test_errors_no_require_superclass(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "--no-require-superclass"])
+    result = runner.invoke(
+        cli, ["-m", "module_not_ok", "--no-require-superclass"]
+    )
     assert result.exit_code == 1
     assert (
         result.output
@@ -158,7 +162,8 @@ Oh no, found some problems!
 
 def test_errors_with_exclude_classes(runner: CliRunner):
     result = runner.invoke(
-        cli, ["module_not_ok", "--exclude-classes", "(.*?foo:U|.*:(W|S))"]
+        cli,
+        ["-m", "module_not_ok", "--exclude-classes", "(.*?foo:U|.*:(W|S))"],
     )
     assert result.exit_code == 1
     assert (
@@ -175,7 +180,8 @@ Oh no, found some problems!
 
 def test_errors_with_include_classes(runner: CliRunner):
     result = runner.invoke(
-        cli, ["module_not_ok", "--include-classes", "(.*?foo:.*a|.*:(W|S))"]
+        cli,
+        ["-m", "module_not_ok", "--include-classes", "(.*?foo:.*a|.*:(W|S))"],
     )
     assert result.exit_code == 1
     assert (
@@ -191,7 +197,7 @@ Oh no, found some problems!
 
 def test_errors_with_include_modules(runner: CliRunner):
     result = runner.invoke(
-        cli, ["module_not_ok", "--include-modules", ".*a.*"]
+        cli, ["-m", "module_not_ok", "--include-modules", ".*a.*"]
     )
     assert result.exit_code == 1
     assert (
@@ -204,7 +210,7 @@ Oh no, found some problems!
 
 
 def test_module_not_ok_verbose(runner: CliRunner):
-    result = runner.invoke(cli, ["module_not_ok", "-v"])
+    result = runner.invoke(cli, ["-m", "module_not_ok", "-v"])
     assert result.exit_code == 1
     assert (
         result.output
@@ -244,7 +250,7 @@ Oh no, found some problems!
 
 
 def test_module_misc(runner: CliRunner):
-    result = runner.invoke(cli, ["module_misc"])
+    result = runner.invoke(cli, ["-m", "module_misc"])
     assert result.exit_code == 0
     assert (
         result.output
@@ -257,7 +263,7 @@ All OK!
 
 def test_module_exclude(runner: CliRunner):
     result = runner.invoke(
-        cli, ["module_misc", "--exclude-modules", ".* evil .*"]
+        cli, ["-m", "module_misc", "--exclude-modules", ".* evil .*"]
     )
     assert result.exit_code == 0
     assert (
@@ -274,7 +280,7 @@ All OK!
 
 
 def test_module_disallow_import_failures(runner: CliRunner):
-    result = runner.invoke(cli, ["module_misc", "--strict-imports"])
+    result = runner.invoke(cli, ["-m", "module_misc", "--strict-imports"])
     assert result.exit_code == 1
     assert (
         result.output
@@ -296,7 +302,7 @@ require-superclass = false
         "slotscheck.config.find_pyproject_toml",
         return_value=Path(tmpdir / "myconf.toml"),
     )
-    result = runner.invoke(cli, ["module_not_ok"])
+    result = runner.invoke(cli, ["-m", "module_not_ok"])
     assert result.exit_code == 1
     assert (
         result.output

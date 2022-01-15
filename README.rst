@@ -42,14 +42,14 @@ Usage is quick from the command line:
 
 .. code-block:: bash
 
-   slotscheck [MODULE]
+   slotscheck -m [MODULE]
 
 
 For example:
 
 .. code-block:: bash
 
-   $ slotscheck sanic
+   $ slotscheck -m sanic
    ERROR: 'sanic.app:Sanic' defines overlapping slots.
    ERROR: 'sanic.response:HTTPResponse' has slots but superclass does not.
    Oh no, found some problems!

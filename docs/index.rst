@@ -8,6 +8,7 @@ Contents
 
    cli.rst
    configuration.rst
+   errors.rst
 
 
 .. include:: ../CHANGELOG.rst
