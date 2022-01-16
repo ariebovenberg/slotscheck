@@ -42,10 +42,10 @@ def test_path_doesnt_exist(runner: CliRunner):
     assert (
         result.output
         == """\
-Usage: slotscheck [OPTIONS] [FILES]
+Usage: slotscheck [OPTIONS] [FILES]...
 Try 'slotscheck --help' for help.
 
-Error: Invalid value for '[FILES]': Path 'doesnt_exist' does not exist.
+Error: Invalid value for '[FILES]...': Path 'doesnt_exist' does not exist.
 """
     )
 
@@ -57,7 +57,9 @@ def test_everything_ok(runner: CliRunner):
 
 
 def test_single_file_module(runner: CliRunner):
-    result = runner.invoke(cli, ["-m", "module_singular"])
+    result = runner.invoke(
+        cli, ["-m", "module_singular"], catch_exceptions=False
+    )
     assert result.exit_code == 0
     assert result.output == "All OK!\n"
 
@@ -72,7 +74,9 @@ def test_builtins(runner: CliRunner):
 
 
 def test_success_verbose(runner: CliRunner):
-    result = runner.invoke(cli, ["-m", "module_ok", "-v"])
+    result = runner.invoke(
+        cli, ["-m", "module_ok", "-v"], catch_exceptions=False
+    )
     assert result.exit_code == 0
     assert (
         result.output
@@ -93,10 +97,115 @@ All OK!
     )
 
 
+def test_submodule(runner: CliRunner):
+    result = runner.invoke(
+        cli, ["-m", "module_ok.a.b", "-v"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+stats:
+  modules:     2
+    checked:   2
+    excluded:  0
+    skipped:   0
+
+  classes:     16
+    has slots: 11
+    no slots:  5
+    n/a:       0
+
+All OK!
+"""
+    )
+
+
+def test_namespaced(runner: CliRunner):
+    result = runner.invoke(
+        cli, ["-m", "namespaced.module", "-v"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+stats:
+  modules:     3
+    checked:   3
+    excluded:  0
+    skipped:   0
+
+  classes:     1
+    has slots: 1
+    no slots:  0
+    n/a:       0
+
+All OK!
+"""
+    )
+
+
+def test_multiple_modules(runner: CliRunner):
+    result = runner.invoke(
+        cli,
+        ["-v", "-m", "module_singular", "-m", "module_ok", "-m", "namespaced"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+stats:
+  modules:     12
+    checked:   11
+    excluded:  1
+    skipped:   0
+
+  classes:     70
+    has slots: 46
+    no slots:  24
+    n/a:       0
+
+All OK!
+"""
+    )
+
+
+def test_multiple_paths(runner: CliRunner):
+    result = runner.invoke(
+        cli,
+        [
+            "-v",
+            str(EXAMPLES_DIR / "module_singular.py"),
+            str(EXAMPLES_DIR / "module_ok/a/b/../b"),
+            str(EXAMPLES_DIR / "namespaced/module/foo.py"),
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+stats:
+  modules:     4
+    checked:   4
+    excluded:  0
+    skipped:   0
+
+  classes:     22
+    has slots: 13
+    no slots:  9
+    n/a:       0
+
+All OK!
+"""
+    )
+
+
 def test_path_is_module_directory(runner: CliRunner):
     # let's define the path indirectly to ensure it works
-    path = str(EXAMPLES_DIR / "module_ok/a/..")
-    result = runner.invoke(cli, [path, "-v"])
+    path = str(EXAMPLES_DIR / "module_ok/a/../")
+    result = runner.invoke(cli, [path, "-v"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         result.output
@@ -240,7 +349,13 @@ Oh no, found some problems!
 
 def test_errors_with_include_modules(runner: CliRunner):
     result = runner.invoke(
-        cli, ["-m", "module_not_ok", "--include-modules", ".*a.*"]
+        cli,
+        [
+            "-m",
+            "module_not_ok",
+            "--include-modules",
+            "(module_not_ok | .*a.*)",
+        ],
     )
     assert result.exit_code == 1
     assert (
@@ -250,6 +365,26 @@ ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
 Oh no, found some problems!
 """
     )
+
+
+# def test_ingores_given_module_completely(runner: CliRunner):
+#     result = runner.invoke(
+#         cli,
+#         [
+#             "-m",
+#             "module_not_ok",
+#             "--include-modules",
+#             "no match",
+#         ],
+#     )
+#     assert result.exit_code == 0
+#     assert (
+#         result.output
+#         == """\
+# ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
+# Oh no, found some problems!
+# """
+#     )
 
 
 def test_module_not_ok_verbose(runner: CliRunner):
@@ -293,7 +428,7 @@ Oh no, found some problems!
 
 
 def test_module_misc(runner: CliRunner):
-    result = runner.invoke(cli, ["-m", "module_misc"])
+    result = runner.invoke(cli, ["-m", "module_misc"], catch_exceptions=False)
     assert result.exit_code == 0
     assert (
         result.output
@@ -306,7 +441,9 @@ All OK!
 
 def test_module_exclude(runner: CliRunner):
     result = runner.invoke(
-        cli, ["-m", "module_misc", "--exclude-modules", ".* evil .*"]
+        cli,
+        ["-m", "module_misc", "--exclude-modules", ".* evil .*"],
+        catch_exceptions=False,
     )
     assert result.exit_code == 0
     assert (

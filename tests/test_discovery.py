@@ -1,15 +1,22 @@
+import sys
+from importlib import import_module
+from pathlib import Path
 from unittest import mock
 
 import pytest
 
 from slotscheck.discovery import (
     FailedImport,
+    FoundModule,
     Module,
     ModuleNotPurePython,
     Package,
+    find_modules,
     module_tree,
     walk_classes,
 )
+
+from .conftest import EXAMPLES_DIR
 
 
 def fset(*args) -> frozenset:
@@ -187,7 +194,13 @@ module_misc.a.b
     def test_namespaced(self):
         assert module_tree("namespaced.module") == Package(
             "namespaced.module",
-            fset(Module("foo")),
+            fset(Module("foo"), Module("bla")),
+        )
+
+    def test_implicitly_namspaced(self):
+        assert module_tree("implicitly_namespaced.module") == Package(
+            "implicitly_namespaced.module",
+            fset(Module("foo"), Module("bla")),
         )
 
     def test_not_inspectable(self):
@@ -204,7 +217,12 @@ module_misc.a.b
 
 class TestFilterName:
     def test_module(self):
-        assert Module("foo").filtername(lambda _: False) == Module("foo")
+        assert Module("foo").filtername(lambda _: True) == Module("foo")
+        assert Module("foo").filtername(lambda _: False) is None
+        assert Module("foo").filtername(lambda s: s.startswith("f")) == Module(
+            "foo"
+        )
+        assert Module("foo").filtername(lambda s: s.startswith("b")) is None
 
     def test_package(self):
         package = Package(
@@ -258,3 +276,77 @@ class TestFilterName:
                 ),
             ),
         )
+
+        assert package.filtername(lambda _: False) is None
+
+
+def _import(m: FoundModule):
+    sys.path.insert(0, str(m.location))
+    try:
+        import_module(m.name)
+    finally:
+        sys.path.remove(str(m.location))
+
+
+class TestFindModules:
+    def test_given_directory_without_python(self):
+        assert list(find_modules(EXAMPLES_DIR / "files/another")) == []
+
+    def test_given_nonpython_file(self):
+        assert list(find_modules(EXAMPLES_DIR / "files/foo")) == []
+
+    def test_given_python_file(self):
+        location = EXAMPLES_DIR / "files/subdir/some_module/../myfile.py"
+        result = list(find_modules(location))
+        assert result == [FoundModule("myfile", location.parent)]
+        for m in result:
+            _import(m)
+
+    def test_given_python_root_module(self):
+        location = EXAMPLES_DIR / "files/subdir/some_module/"
+        result = list(find_modules(location))
+        assert result == [FoundModule("some_module", location.parent)]
+        for m in result:
+            _import(m)
+
+    def test_given_dir_containing_python_files(self):
+        location = EXAMPLES_DIR / "files/my_scripts/sub/.."
+        result = list(find_modules(location))
+        assert len(result) == 4
+        assert set(result) == {
+            FoundModule("bla", location),
+            FoundModule("foo", location),
+            FoundModule("foo", location / "sub"),
+            FoundModule("mymodule", location),
+        }
+        for m in result:
+            _import(m)
+
+    def test_given_file_within_module(self):
+        location = EXAMPLES_DIR / "files/subdir/some_module/sub/foo.py"
+        result = list(find_modules(location))
+        assert result == [
+            FoundModule("some_module.sub.foo", location.parents[2])
+        ]
+        for m in result:
+            _import(m)
+
+    def test_given_submodule(self):
+        location = EXAMPLES_DIR / "files/subdir/some_module/sub/../sub"
+        result = list(find_modules(location))
+        assert result == [
+            FoundModule("some_module.sub", location.resolve().parents[1])
+        ]
+        for m in result:
+            _import(m)
+
+    def test_given_init_py(self):
+        location = (
+            EXAMPLES_DIR / "files/subdir/some_module/sub/../sub/__init__.py"
+        )
+        result = list(find_modules(location))
+        assert result == [
+            FoundModule("some_module.sub", location.resolve().parents[2])
+        ]
+        for m in result:
+            _import(m)

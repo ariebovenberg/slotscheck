@@ -8,7 +8,16 @@ from itertools import chain, filterfalse
 from operator import attrgetter, itemgetter, not_
 from pathlib import Path
 from textwrap import indent
-from typing import Any, Collection, Iterable, Iterator, List, Tuple, Union
+from typing import (
+    Any,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import click
 
@@ -25,6 +34,7 @@ from .discovery import (
     ModuleName,
     ModuleNotPurePython,
     ModuleTree,
+    find_modules,
     module_tree,
     walk_classes,
 )
@@ -35,11 +45,14 @@ from .discovery import (
     "FILES",
     type=click.Path(path_type=Path, exists=True, resolve_path=True),
     required=False,
+    nargs=-1,
 )
 @click.option(
     "-m",
     "--module",
-    help="Check this module. Cannot be combined with FILES argument.",
+    help="Check this module. Cannot be combined with FILES argument. "
+    "Can be repeated multiple times to scan several modules. ",
+    multiple=True,
 )
 @click.option(
     "--strict-imports/--no-strict-imports",
@@ -71,7 +84,6 @@ from .discovery import (
     "--exclude-modules",
     help="A regular expression that matches modules to exclude. "
     "Excluded modules will not be imported. "
-    "The root module will always be imported. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     show_default=f"``{config.DEFAULT_MODULE_EXCLUDE_RE}``",
 )
@@ -95,30 +107,30 @@ from .discovery import (
 )
 @click.version_option()
 def root(
-    files: Path | None,
-    module: str | None,
+    files: Sequence[Path],
+    module: Sequence[str],
     verbose: bool,
     **kwargs: Any,
 ) -> None:
-    "Check the ``__slots__`` definitions for files or by -m/--module."
-    options = config.collect(kwargs, Path.cwd())
+    "Check the ``__slots__`` definitions for files or by module name."
+    conf = config.collect(kwargs, Path.cwd())
     classes, modules = collect(
-        _resolve_module(files, module),
-        options.include_modules,
-        options.exclude_modules,
+        _resolve_modules(files, module),
+        conf.include_modules,
+        conf.exclude_modules,
     )
     messages = list(
         chain(
             map(
-                partial(Message, error=options.strict_imports),
-                sorted(modules.skipped, key=attrgetter("name")),
+                partial(Message, error=conf.strict_imports),
+                sorted(modules.skipped, key=attrgetter("failure.module")),
             ),
             _check_classes(
                 classes,
-                options.require_superclass,
-                options.include_classes,
-                options.exclude_classes,
-                options.require_subclass,
+                conf.require_superclass,
+                conf.include_classes,
+                conf.exclude_classes,
+                conf.require_subclass,
             ),
         )
     )
@@ -135,15 +147,17 @@ def root(
         print("All OK!")
 
 
-def _resolve_module(files: Path | None, name: ModuleName | None) -> ModuleName:
-    if files is None and name is None:
+def _resolve_modules(
+    files: Collection[Path], names: Collection[ModuleName]
+) -> Collection[ModuleName]:
+    if not (files or names):
         print(
             _format_error("No FILES argument or `-m/--module` option given."),
             file=sys.stderr,
         )
         exit(2)
     elif files:
-        if name is not None:
+        if names:
             print(
                 _format_error(
                     "Specify either FILES argument or `-m/--module` "
@@ -152,21 +166,13 @@ def _resolve_module(files: Path | None, name: ModuleName | None) -> ModuleName:
                 file=sys.stderr,
             )
             exit(2)
-        return _determine_module(files)
+        return [m.name for m in flatten(map(find_modules, files))]
     else:
-        assert isinstance(name, str)  # this follows from if/elifs above
-        return name
-
-
-def _determine_module(p: Path) -> ModuleName:
-    if p.is_dir() and (p / "__init__.py").is_file():
-        return p.name
-    else:
-        raise NotImplementedError
+        return names
 
 
 def _print_report(
-    modules: ModuleReport,
+    modules: ModulesReport,
     classes: Collection[type],
 ) -> None:
     classes_by_status = groupby(
@@ -190,9 +196,9 @@ stats:
     no slots:  {}
     n/a:       {}
 """.format(
-            len(modules.all),
-            len(modules.checked),
-            len(modules.all) - len(modules.checked),
+            sum(map(len, modules.all)),
+            sum(map(len, modules.checked)),
+            sum(map(len, modules.all)) - sum(map(len, modules.checked)),
             len(modules.skipped),
             len(classes),
             len(classes_by_status[True]),
@@ -205,9 +211,9 @@ stats:
 
 @add_slots
 @dataclass(frozen=True)
-class ModuleReport:
-    all: ModuleTree
-    checked: ModuleTree
+class ModulesReport:
+    all: Collection[ModuleTree]
+    checked: Collection[ModuleTree]
     skipped: Collection[ModuleSkipped]
 
 
@@ -241,7 +247,7 @@ def _check_classes(
 
 def _collect_modules(
     name: str, exclude: str, include: str | None
-) -> Tuple[ModuleTree, ModuleTree]:
+) -> Tuple[ModuleTree | None, ModuleTree]:
     """Collect and filter modules,
     returning the pruned tree and the number of original modules"""
     tree = discover(name)
@@ -252,7 +258,7 @@ def _collect_modules(
         pruned.filtername(
             compose(bool, re.compile(include, flags=re.VERBOSE).fullmatch)
         )
-        if include
+        if pruned and include
         else pruned
     ), tree
 
@@ -307,14 +313,25 @@ def discover(modulename: str) -> ModuleTree:
 
 
 def collect(
-    modulename: str, include: str | None, exclude: str
-) -> Tuple[Collection[type], ModuleReport]:
-    pruned, original_tree = _collect_modules(modulename, exclude, include)
-    classes, skipped = _extract_classes(pruned)
-    return classes, ModuleReport(
-        original_tree,
-        pruned,
-        skipped,
+    modules: Iterable[ModuleName], include: str | None, exclude: str
+) -> Tuple[Collection[type], ModulesReport]:
+
+    classes_all: List[type] = []
+    modules_all: List[ModuleTree] = []
+    modules_checked: List[ModuleTree] = []
+    modules_skipped: List[ModuleSkipped] = []
+
+    for mod in modules:
+        to_check, tree = _collect_modules(mod, exclude, include)
+        if to_check:
+            classes, skipped = _extract_classes(to_check)
+            classes_all.extend(classes)
+            modules_skipped.extend(skipped)
+            modules_checked.append(to_check)
+        modules_all.append(tree)
+
+    return classes_all, ModulesReport(
+        modules_all, modules_checked, modules_skipped
     )
 
 
@@ -325,7 +342,7 @@ def _extract_classes(
     skipped: List[ModuleSkipped] = []
     for result in walk_classes(tree):
         if isinstance(result, FailedImport):
-            skipped.append(ModuleSkipped(result.module, result.exc))
+            skipped.append(ModuleSkipped(result))
         else:
             classes.extend(result)
     return classes, skipped
@@ -334,13 +351,12 @@ def _extract_classes(
 @add_slots
 @dataclass(frozen=True)
 class ModuleSkipped:
-    name: str
-    exc: BaseException
+    failure: FailedImport
 
     def for_display(self, verbose: bool) -> str:
         return (
-            f"Failed to import '{self.name}'."
-            + verbose * f"\nDue to {self.exc!r}"
+            f"Failed to import '{self.failure.module}'."
+            + verbose * f"\nDue to {self.failure.exc!r}"
         )
 
 

@@ -4,7 +4,8 @@ Changelog
 0.6.0 (2022-01-15)
 ------------------
 
-- Use ``-m`` option instead of argument to scan a module.
+- Arguments are now file paths. Use ``-m`` option to scan a module.
+  This allows use as pre-commit hook.
 - Document the types of slot errors.
 
 0.5.3 (2022-01-14)

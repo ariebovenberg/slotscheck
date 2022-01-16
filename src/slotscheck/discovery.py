@@ -1,3 +1,4 @@
+"Tools to discover and inspect modules, packages, and classes"
 from __future__ import annotations
 
 import importlib
@@ -6,6 +7,7 @@ import pkgutil
 from dataclasses import dataclass, field, replace
 from functools import partial
 from inspect import isclass
+from itertools import takewhile
 from pathlib import Path
 from textwrap import indent
 from types import ModuleType
@@ -33,8 +35,8 @@ class Module:
 
     def filtername(
         self, __pred: Callable[[ModuleName], bool], *, prefix: str = ""
-    ) -> ModuleTree:
-        return self
+    ) -> ModuleTree | None:
+        return self if __pred(prefix + self.name) else None
 
 
 @add_slots
@@ -64,14 +66,21 @@ class Package:
 
     def filtername(
         self, __pred: Callable[[ModuleName], bool], *, prefix: str = ""
-    ) -> ModuleTree:
+    ) -> ModuleTree | None:
+        if not __pred(prefix + self.name):
+            return None
+
         new_prefix = f"{prefix}{self.name}."
         return replace(
             self,
             content=frozenset(
-                sub.filtername(__pred, prefix=new_prefix)
-                for sub in self.content
-                if __pred(new_prefix + sub.name)
+                filter(
+                    None,
+                    (
+                        sub.filtername(__pred, prefix=new_prefix)
+                        for sub in self.content
+                    ),
+                )
             ),
         )
 
@@ -199,3 +208,33 @@ def _is_nested_class(obj: Any, parent: type) -> bool:
     except Exception:
         # Some rare objects crash on introspection. It's best to exclude them.
         return False
+
+
+_INIT_PY = "__init__.py"
+
+
+@dataclass(frozen=True)
+class FoundModule:
+    name: ModuleName
+    location: Path
+
+
+def _is_module(p: Path) -> bool:
+    return (p.is_file() and p.suffixes == [".py"]) or _is_package(p)
+
+
+def _is_package(p: Path) -> bool:
+    return p.is_dir() and (p / _INIT_PY).is_file()
+
+
+def find_modules(p: Path) -> Iterable[FoundModule]:
+    "Recursively find modules at given Path. Nonexistent Path is ignored"
+    if p.name == _INIT_PY:
+        yield from find_modules(p.resolve().parent)
+    elif _is_module(p):
+        parents = [p] + list(takewhile(_is_package, p.resolve().parents))
+        yield FoundModule(
+            ".".join(p.stem for p in reversed(parents)), parents[-1].parent
+        )
+    elif p.is_dir():
+        yield from flatten(map(find_modules, p.iterdir()))
