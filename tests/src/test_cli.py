@@ -454,7 +454,7 @@ All OK!
 """
     )
 
-    from module_misc import a
+    from module_misc import a  # type: ignore
 
     assert not a.evil_was_imported
 

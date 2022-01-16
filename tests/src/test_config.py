@@ -8,8 +8,8 @@ from slotscheck.config import (
     DEFAULT_MODULE_EXCLUDE_RE,
     InvalidKeys,
     InvalidValueType,
-    Options,
-    PartialOptions,
+    Config,
+    PartialConfig,
     find_pyproject_toml,
 )
 
@@ -60,23 +60,23 @@ def test_find_pyproject_toml(tmpdir):
     assert find_pyproject_toml(Path(tmpdir)) is None
 
 
-class TestOptionsCombine:
+class TestOptionsApply:
     def test_empty(self):
-        assert Options(True, False, True, None, "", "hello", None).combine(
-            PartialOptions(None, None, None, None, None, None, None)
-        ) == Options(True, False, True, None, "", "hello", None)
+        assert Config(True, False, True, None, "", "hello", None).apply(
+            PartialConfig(None, None, None, None, None, None, None)
+        ) == Config(True, False, True, None, "", "hello", None)
 
     def test_different(self):
-        assert Options(True, False, True, None, "", "hello", None).combine(
-            PartialOptions(False, None, None, "hi", "", None, None)
-        ) == Options(False, False, True, "hi", "", "hello", None)
+        assert Config(True, False, True, None, "", "hello", None).apply(
+            PartialConfig(False, None, None, "hi", "", None, None)
+        ) == Config(False, False, True, "hi", "", "hello", None)
 
 
 class TestPartialOptionsFromToml:
     def test_options_from_toml(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(EXAMPLE_TOML)
-        options = PartialOptions.from_toml(Path(tmpdir / "myconf.toml"))
-        assert options == PartialOptions(
+        Config = PartialConfig.from_toml(Path(tmpdir / "myconf.toml"))
+        assert Config == PartialConfig(
             strict_imports=None,
             require_subclass=True,
             require_superclass=False,
@@ -95,7 +95,7 @@ class TestPartialOptionsFromToml:
     def test_invalid_toml(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(b"[foo inv]alid")
         with pytest.raises(tomli.TOMLDecodeError):
-            PartialOptions.from_toml(Path(tmpdir / "myconf.toml"))
+            PartialConfig.from_toml(Path(tmpdir / "myconf.toml"))
 
     def test_no_slotscheck_section(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(
@@ -104,9 +104,9 @@ class TestPartialOptionsFromToml:
 k = 5
 """
         )
-        assert PartialOptions.from_toml(
+        assert PartialConfig.from_toml(
             Path(tmpdir / "myconf.toml")
-        ) == PartialOptions(None, None, None, None, None, None, None)
+        ) == PartialConfig(None, None, None, None, None, None, None)
 
     def test_empty_slotscheck_section(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(
@@ -114,15 +114,15 @@ k = 5
 [tool.slotscheck]
 """
         )
-        assert PartialOptions.from_toml(
+        assert PartialConfig.from_toml(
             Path(tmpdir / "myconf.toml")
-        ) == PartialOptions(None, None, None, None, None, None, None)
+        ) == PartialConfig(None, None, None, None, None, None, None)
 
     def test_empty(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(b"")
-        assert PartialOptions.from_toml(
+        assert PartialConfig.from_toml(
             Path(tmpdir / "myconf.toml")
-        ) == PartialOptions(None, None, None, None, None, None, None)
+        ) == PartialConfig(None, None, None, None, None, None, None)
 
     def test_invalid_keys(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(
@@ -137,7 +137,7 @@ foo = 4
             InvalidKeys,
             match=re.escape("Invalid configuration key(s): 'foo', 'k'."),
         ):
-            PartialOptions.from_toml(Path(tmpdir / "myconf.toml"))
+            PartialConfig.from_toml(Path(tmpdir / "myconf.toml"))
 
     def test_invalid_types(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(
@@ -151,7 +151,7 @@ include-modules = false
             InvalidValueType,
             match=re.escape("Invalid value type for 'include-modules'."),
         ):
-            PartialOptions.from_toml(Path(tmpdir / "myconf.toml"))
+            PartialConfig.from_toml(Path(tmpdir / "myconf.toml"))
 
 
 @pytest.mark.parametrize(

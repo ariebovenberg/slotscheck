@@ -1,6 +1,5 @@
 import sys
 from importlib import import_module
-from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -50,7 +49,7 @@ class TestWalkClasses:
     def test_single_module(self):
         [result] = list(walk_classes(Module("module_singular")))
 
-        import module_singular
+        import module_singular  # type: ignore
 
         assert result == fset(
             module_singular.A,
@@ -91,7 +90,7 @@ class TestWalkClasses:
         )
         assert len(result) == 7
 
-        import module_misc
+        import module_misc  # type: ignore
 
         assert set(result) == {
             fset(
@@ -326,7 +325,7 @@ class TestFindModules:
         location = EXAMPLES_DIR / "files/subdir/some_module/sub/foo.py"
         result = list(find_modules(location))
         assert result == [
-            FoundModule("some_module.sub.foo", location.parents[2])
+            FoundModule("some_module.sub.foo", EXAMPLES_DIR / "files/subdir")
         ]
         for m in result:
             _import(m)
