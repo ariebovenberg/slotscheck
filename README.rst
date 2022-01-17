@@ -52,6 +52,7 @@ For example:
    ERROR: 'sanic.app:Sanic' defines overlapping slots.
    ERROR: 'sanic.response:HTTPResponse' has slots but superclass does not.
    Oh no, found some problems!
+   Scanned 72 module(s), 111 class(es).
 
 Now get to fixing —
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
