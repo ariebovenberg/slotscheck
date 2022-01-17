@@ -1,5 +1,6 @@
 import sys
 from importlib import import_module
+from typing import List
 from unittest import mock
 
 import pytest
@@ -9,7 +10,9 @@ from slotscheck.discovery import (
     FoundModule,
     Module,
     ModuleNotPurePython,
+    ModuleTree,
     Package,
+    consolidate,
     find_modules,
     module_tree,
     walk_classes,
@@ -22,6 +25,10 @@ def fset(*args) -> frozenset:
     return frozenset(args)
 
 
+def make_pkg(name: str, *content) -> Package:
+    return Package(name, frozenset(content))
+
+
 class TestWalkClasses:
     def test_module_does_not_exist(self):
         [result] = walk_classes(Module("cannot_import"))
@@ -32,7 +39,11 @@ class TestWalkClasses:
             raise result.exc
 
     def test_module_import_raises_other_error(self):
-        [result] = walk_classes(Module("module_misc.a.evil"))
+        [_, _, result] = list(
+            walk_classes(
+                make_pkg("module_misc", make_pkg("a", Module("evil")))
+            )
+        )
         assert isinstance(result, FailedImport)
         assert result == FailedImport("module_misc.a.evil", mock.ANY)
 
@@ -44,7 +55,7 @@ class TestWalkClasses:
             "importlib.import_module", side_effect=KeyboardInterrupt("foo")
         )
         with pytest.raises(KeyboardInterrupt, match="foo"):
-            next(walk_classes(Module("module_misc.a")))
+            next(walk_classes(make_pkg("module_misc", Module("a"))))
 
     def test_single_module(self):
         [result] = list(walk_classes(Module("module_singular")))
@@ -163,43 +174,55 @@ class TestModuleTree:
 
     def test_subpackage(self):
         tree = module_tree("module_misc.a.b")
-        assert tree == Package(
-            "module_misc.a.b",
-            fset(
-                Module("__main__"),
-                Module("c"),
-                Package(
-                    "mypy",
-                    fset(
-                        Module("bla"),
-                        Package("foo", fset(Module("z"))),
+        assert tree == make_pkg(
+            "module_misc",
+            make_pkg(
+                "a",
+                make_pkg(
+                    "b",
+                    Module("__main__"),
+                    Module("c"),
+                    Package(
+                        "mypy",
+                        fset(
+                            Module("bla"),
+                            Package("foo", fset(Module("z"))),
+                        ),
                     ),
                 ),
             ),
         )
-        assert len(list(tree)) == len(tree) == 7
+        assert len(list(tree)) == len(tree) == 9
         assert (
             tree.display()
             == """\
-module_misc.a.b
- __main__
- c
- mypy
-  bla
-  foo
-   z"""
+module_misc
+ a
+  b
+   __main__
+   c
+   mypy
+    bla
+    foo
+     z"""
+        )
+
+    def test_submodule(self):
+        tree = module_tree("module_misc.a.b.c")
+        assert tree == make_pkg(
+            "module_misc",
+            make_pkg("a", make_pkg("b", Module("c"))),
         )
 
     def test_namespaced(self):
-        assert module_tree("namespaced.module") == Package(
-            "namespaced.module",
-            fset(Module("foo"), Module("bla")),
+        assert module_tree("namespaced.module") == make_pkg(
+            "namespaced", make_pkg("module", Module("foo"), Module("bla"))
         )
 
     def test_implicitly_namspaced(self):
-        assert module_tree("implicitly_namespaced.module") == Package(
-            "implicitly_namespaced.module",
-            fset(Module("foo"), Module("bla")),
+        assert module_tree("implicitly_namespaced.module") == make_pkg(
+            "implicitly_namespaced",
+            make_pkg("module", Module("foo"), Module("bla")),
         )
 
     def test_not_inspectable(self):
@@ -349,3 +372,173 @@ class TestFindModules:
         ]
         for m in result:
             _import(m)
+
+
+class TestConsolidate:
+    def test_empty(self):
+        assert list(consolidate(iter([]))) == []
+
+    @pytest.mark.parametrize(
+        "tree",
+        [
+            Module("foo"),
+            Package("foo", fset(Module("bla"), Package("qux", fset()))),
+            Package("bar", fset(Module("bla"), Package("qux", fset()))),
+        ],
+    )
+    def test_one_module(self, tree: ModuleTree):
+        assert list(consolidate(iter([tree]))) == [tree]
+
+    def test_distinct_modules(self):
+        trees: List[ModuleTree] = [
+            Module("foo"),
+            Package("bar", fset(Module("bla"), Package("qux", fset()))),
+            Module("bla"),
+            Package("buzz", fset()),
+            Module("qux"),
+        ]
+        result = list(consolidate(iter(trees)))
+        assert len(result) == 5
+        assert set(result) == set(trees)
+
+    def test_module_and_package(self):
+        trees: List[ModuleTree] = [
+            Module("foo"),
+            Package("foo", fset(Module("foo"), Module("bar"))),
+        ]
+        assert list(consolidate(iter(trees))) == [
+            Package("foo", fset(Module("foo"), Module("bar"))),
+        ]
+        assert list(consolidate(reversed(trees))) == [
+            Package("foo", fset(Module("foo"), Module("bar"))),
+        ]
+
+
+class TestMergeTrees:
+    def test_no_overlap(self):
+        with pytest.raises(ValueError, match="shared components"):
+            Module("foo").merge(Module("bar"))
+
+        with pytest.raises(ValueError, match="shared components"):
+            Package("foo", fset(Module("bar"))).merge(Package("bar", fset()))
+
+    def test_same_module(self):
+        assert Module("foo").merge(Module("foo")) == Module("foo")
+
+    def test_package_override_module(self):
+        assert Package("foo", fset(Module("bar"))).merge(
+            Module("foo")
+        ) == Package("foo", fset(Module("bar")))
+        assert Module("foo").merge(
+            Package("foo", fset(Module("bar")))
+        ) == Package("foo", fset(Module("bar")))
+
+    def test_same_packages(self):
+        package = Package(
+            "foo", fset(Package("bar", fset(Module("bla"), Module("foo"))))
+        )
+        assert package.merge(package) == package
+
+    @pytest.mark.parametrize(
+        "a, b, expect",
+        [
+            (
+                Package(
+                    "foo",
+                    fset(
+                        Module("foo"),
+                    ),
+                ),
+                Package("foo", fset()),
+                Package(
+                    "foo",
+                    fset(
+                        Module("foo"),
+                    ),
+                ),
+            ),
+            (
+                Package(
+                    "a",
+                    fset(
+                        Package(
+                            "b",
+                            fset(
+                                Module("z"),
+                            ),
+                        ),
+                        Module("c"),
+                    ),
+                ),
+                Package(
+                    "a",
+                    fset(
+                        Package(
+                            "c",
+                            fset(
+                                Module("y"),
+                            ),
+                        )
+                    ),
+                ),
+                Package(
+                    "a",
+                    fset(
+                        Package(
+                            "b",
+                            fset(
+                                Module("z"),
+                            ),
+                        ),
+                        Package(
+                            "c",
+                            fset(
+                                Module("y"),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            (
+                Package(
+                    "a",
+                    fset(
+                        Package(
+                            "b",
+                            fset(
+                                Module("z"),
+                            ),
+                        ),
+                        Module("c"),
+                    ),
+                ),
+                Package(
+                    "a",
+                    fset(
+                        Package(
+                            "b",
+                            fset(
+                                Module("y"),
+                            ),
+                        )
+                    ),
+                ),
+                Package(
+                    "a",
+                    fset(
+                        Package(
+                            "b",
+                            fset(
+                                Module("z"),
+                                Module("y"),
+                            ),
+                        ),
+                        Module("c"),
+                    ),
+                ),
+            ),
+        ],
+    )
+    def test_different_packages(self, a, b, expect):
+        assert a.merge(b) == expect
+        assert b.merge(a) == expect

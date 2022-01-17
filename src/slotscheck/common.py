@@ -8,9 +8,12 @@ from typing import (
     Callable,
     Collection,
     Iterable,
+    Iterator,
     Mapping,
+    Protocol,
     Set,
     Tuple,
+    TypeGuard,
     TypeVar,
 )
 
@@ -58,8 +61,31 @@ class compose:
         return value
 
 
-# Adapted from dataclasses.dataclass_tools
-# Under Apache license 2.0
+# I'd like for this to be a proper Protocol,
+# but mypy won't allow `object` to be recognized as such.
+# So let's just go with object.
+SupportsBool = object
+
+
+Predicate = Callable[[_T1], SupportsBool]
+
+
+def both(__a: Predicate[_T1], __b: Predicate[_T1]) -> Predicate[_T1]:
+    return lambda x: __a(x) and __b(x)
+
+
+def map_optional(
+    f: Callable[[_T1], _T2 | None], it: Iterable[_T1]
+) -> Iterator[_T2]:
+    return filterfalse(_is_none, map(f, it))  # type: ignore
+
+
+def _is_none(x: object) -> TypeGuard[None]:
+    return x is None
+
+
+# From https://github.com/ericvsmith/dataclasses/blob/master/dataclass_tools.py
+# License: https://github.com/ericvsmith/dataclasses/blob/master/LICENSE.txt
 # Changed only `dataclass.fields` naming
 def add_slots(cls: _Ttype) -> _Ttype:  # pragma: no cover
     # Need to create a new class, since we can't set __slots__

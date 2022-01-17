@@ -6,9 +6,9 @@ import tomli
 
 from slotscheck.config import (
     DEFAULT_MODULE_EXCLUDE_RE,
+    Config,
     InvalidKeys,
     InvalidValueType,
-    Config,
     PartialConfig,
     find_pyproject_toml,
 )
