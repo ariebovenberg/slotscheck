@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "slotscheck"
 version = "0.6.0"
-description = "Validate your __slots__"
+description = "Ensure your __slots__ are working properly."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
 classifiers = [
@@ -65,7 +65,6 @@ line_length = 79
 strict-imports = true
 require-subclass = true
 require-superclass = true
-include-modules = 'slotscheck.*'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

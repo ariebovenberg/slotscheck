@@ -121,7 +121,7 @@ def root(
     verbose: bool,
     **kwargs: Any,
 ) -> None:
-    "Validate your ``__slots__`."
+    "Check whether your __slots__ are working properly."
     conf = config.collect(kwargs, Path.cwd())
     if not (files or module):
         print("No files or modules given. Nothing to do!")

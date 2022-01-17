@@ -23,9 +23,8 @@
    :target: https://github.com/psf/black
 
 Adding ``__slots__`` to a class in Python is a great way to reduce memory usage.
-But to work properly, all base classes need to implement it.
-It turns out it's easy to forget one class in complex inheritance trees.
-What's worse: there is nothing warning you that you messed up.
+But to work properly, all base classes need to implement it — without overlap!
+It's easy to get wrong, and what's worse: there is nothing warning you that you messed up.
 
 ✨ *Until now!* ✨
 
@@ -33,7 +32,7 @@ What's worse: there is nothing warning you that you messed up.
 You can even use it to enforce the use of slots across (parts of) your codebase.
 
 See my `blog post <https://dev.arie.bovenberg.net/blog/finding-broken-slots-in-popular-python-libraries/>`_
-for the longer story behind ``slotscheck``.
+for the origin story behind ``slotscheck``.
 
 Quickstart
 ----------
@@ -42,7 +41,7 @@ Usage is quick from the command line:
 
 .. code-block:: bash
 
-   slotscheck -m [MODULE]
+   slotscheck [FILES] [-m [MODULE]]
 
 
 For example:
@@ -54,24 +53,22 @@ For example:
    ERROR: 'sanic.response:HTTPResponse' has slots but superclass does not.
    Oh no, found some problems!
 
-Now get to fixing --
+Now get to fixing —
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
 
 See `the documentation <https://slotscheck.rtfd.io>`_ for more details.
 
 
-Could this be a flake8 plugin?
-------------------------------
+Why not a flake8 plugin?
+------------------------
 
-Maybe. But it'd be a lot of work.
-
-The problem is that flake8 plugins need to work without running the code.
+Flake8 plugins need to work without running the code.
 Many libraries use conditional imports, star imports, re-exports,
 and define slots with decorators or metaclasses.
-This all but requires running the code to determine the class tree and slots.
+This all but requires running the code to determine the slots and class tree.
 
 There's `an issue <https://github.com/ariebovenberg/slotscheck/issues/6>`_
-to track any progress on the matter.
+to discuss the matter.
 
 Notes
 -----
@@ -82,8 +79,8 @@ Notes
 - Even in the case that slots are not inherited properly,
   there may still be an advantage to using them
   (i.e. attribute access speed and *some* memory savings).
-  However, I've found in most cases this is unintentional.
-- Limited to the CPython implementation for now.
+  However, in most cases this is unintentional.
+  ``slotscheck`` allows you to ignore specific cases.
 - Non pure-Python classes are currently assumed to have slots.
   This is not necessarily the case, but it is nontrivial to determine.
 

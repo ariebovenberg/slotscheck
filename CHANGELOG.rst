@@ -1,12 +1,17 @@
 Changelog
 =========
 
-0.6.0 (2022-01-15)
+0.6.0 (2022-01-17)
 ------------------
 
-- Arguments are now file paths. Use ``-m`` option to scan a module.
+**Breaking changes**
+
+- Arguments are now file paths. Use the ``-m/--module`` option to scan modules.
+
+**Features**
+
+- Support use as pre-commit hook.
 - Multiple modules or files allowed as input.
-- Document usage as pre-commit hook.
 - Document the types of slot errors.
 
 0.5.3 (2022-01-14)
