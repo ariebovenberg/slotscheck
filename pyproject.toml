@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.5.3"
-description = "Validate your __slots__"
+version = "0.6.0"
+description = "Ensure your __slots__ are working properly."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
 classifiers = [
@@ -24,7 +24,7 @@ homepage = "https://github.com/ariebovenberg/slotscheck"
 [tool.poetry.dependencies]
 python = ">=3.7.0,<4"
 importlib-metadata = {version = ">=1,<5", python = "<3.8"}
-click = ">=7.1.2,<9"
+click = "^8.0"
 tomli = ">=0.2.6,<3.0.0"
 
 [tool.poetry.dev-dependencies]

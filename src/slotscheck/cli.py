@@ -5,10 +5,19 @@ import sys
 from dataclasses import dataclass
 from functools import partial
 from itertools import chain, filterfalse
-from operator import attrgetter, itemgetter, not_
+from operator import attrgetter, itemgetter, methodcaller, not_
 from pathlib import Path
 from textwrap import indent
-from typing import Any, Collection, Iterable, Iterator, List, Tuple, Union
+from typing import (
+    Any,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import click
 
@@ -19,18 +28,41 @@ from .checks import (
     is_purepython_class,
     slots_overlap,
 )
-from .common import add_slots, compose, flatten, groupby
+from .common import (
+    Predicate,
+    add_slots,
+    both,
+    compose,
+    flatten,
+    groupby,
+    map_optional,
+)
 from .discovery import (
     FailedImport,
+    ModuleName,
     ModuleNotPurePython,
     ModuleTree,
+    consolidate,
+    find_modules,
     module_tree,
     walk_classes,
 )
 
 
 @click.command("slotscheck")
-@click.argument("modulename")
+@click.argument(
+    "FILES",
+    type=click.Path(path_type=Path, exists=True, resolve_path=True),
+    required=False,
+    nargs=-1,
+)
+@click.option(
+    "-m",
+    "--module",
+    help="Check this module. Cannot be combined with FILES argument. "
+    "Can be repeated multiple times to scan several modules. ",
+    multiple=True,
+)
 @click.option(
     "--strict-imports/--no-strict-imports",
     help="Treat failed imports as errors.",
@@ -61,7 +93,6 @@ from .discovery import (
     "--exclude-modules",
     help="A regular expression that matches modules to exclude. "
     "Excluded modules will not be imported. "
-    "The root module will always be imported. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     show_default=f"``{config.DEFAULT_MODULE_EXCLUDE_RE}``",
 )
@@ -85,45 +116,141 @@ from .discovery import (
 )
 @click.version_option()
 def root(
-    modulename: str,
+    files: Sequence[Path],
+    module: Sequence[str],
     verbose: bool,
     **kwargs: Any,
 ) -> None:
-    "Check the ``__slots__`` definitions in a module."
-    options = config.collect(kwargs, Path.cwd())
-    classes, modules = collect(
-        modulename, options.include_modules, options.exclude_modules
-    )
+    "Check whether your __slots__ are working properly."
+    conf = config.collect(kwargs, Path.cwd())
+    if not (files or module):
+        print("No files or modules given. Nothing to do!")
+        exit(0)
+
+    try:
+        classes, modules = _collect(files, module, conf)
+    except ModuleNotFoundError as e:
+        print(_format_error(f"Module '{e.name}' not found."))
+        exit(1)
+    except ModuleNotPurePython as e:
+        print(
+            _format_error(
+                f"Module '{e.name}' cannot be inspected. "
+                "Is it an extension module?"
+            )
+        )
+        exit(1)
+
+    if not modules.filtered:
+        print(
+            "Files or modules given, but filtered out by exclude/include. "
+            "Nothing to do!"
+        )
+        exit(0)
     messages = list(
         chain(
             map(
-                partial(Message, error=options.strict_imports),
-                sorted(modules.skipped, key=attrgetter("name")),
+                partial(Message, error=conf.strict_imports),
+                sorted(modules.skipped, key=attrgetter("failure.module")),
             ),
             _check_classes(
                 classes,
-                options.require_superclass,
-                options.include_classes,
-                options.exclude_classes,
-                options.require_subclass,
+                conf.require_superclass,
+                conf.include_classes,
+                conf.exclude_classes,
+                conf.require_subclass,
             ),
         )
     )
     for msg in messages:
         print(msg.for_display(verbose))
 
-    if verbose:
-        _print_report(modules, classes)
+    any_errors = any(m.error for m in messages)
 
-    if any_errors(messages):
+    if any_errors:
         print("Oh no, found some problems!")
-        exit(1)
     else:
         print("All OK!")
 
+    if verbose:
+        _print_report(
+            modules,
+            classes,
+        )
+    else:
+        print(
+            f"Scanned {sum(map(len, modules.filtered))} module(s), "
+            f"{len(classes)} class(es)."
+        )
+
+    if any_errors:
+        exit(1)
+
+
+def _collect(
+    files: Collection[Path],
+    modules: Collection[ModuleName],
+    conf: config.Config,
+) -> Tuple[Collection[type], ModulesReport]:
+    modulefilter = _create_filter(conf.include_modules, conf.exclude_modules)
+    modules_all = consolidate(
+        map(module_tree, filter(modulefilter, _as_modules(files, modules)))
+    )
+    modules_filtered: Collection[ModuleTree] = list(
+        map_optional(methodcaller("filtername", modulefilter), modules_all)
+    )
+    classes, modules_skipped = _collect_classes(modules_filtered)
+    return classes, ModulesReport(
+        modules_all,
+        modules_filtered,
+        modules_skipped,
+    )
+
+
+def _create_filter(include: str | None, exclude: str) -> Predicate[str]:
+    excluder: Predicate[str] = compose(
+        not_, re.compile(exclude, flags=re.VERBOSE).fullmatch
+    )
+    return (
+        excluder
+        if include is None
+        else both(excluder, re.compile(include, flags=re.VERBOSE).fullmatch)
+    )
+
+
+def _as_modules(
+    files: Collection[Path], names: Collection[ModuleName]
+) -> Collection[ModuleName]:
+    if files and names:
+        print(
+            _format_error(
+                "Specify either FILES argument or `-m/--module` "
+                "option, not both."
+            ),
+            file=sys.stderr,
+        )
+        exit(2)
+    elif files:
+        return [m.name for m in flatten(map(find_modules, files))]
+    else:
+        return names
+
+
+def _collect_classes(
+    trees: Collection[ModuleTree],
+) -> Tuple[Collection[type], Collection[ModuleSkipped]]:
+    classes: List[type] = []
+    skipped: List[ModuleSkipped] = []
+    for result in flatten(map(walk_classes, trees)):
+        if isinstance(result, FailedImport):
+            skipped.append(ModuleSkipped(result))
+        else:
+            classes.extend(result)
+    return classes, skipped
+
 
 def _print_report(
-    modules: ModuleReport,
+    modules: ModulesReport,
     classes: Collection[type],
 ) -> None:
     classes_by_status = groupby(
@@ -145,11 +272,10 @@ stats:
   classes:     {}
     has slots: {}
     no slots:  {}
-    n/a:       {}
-""".format(
-            len(modules.all),
-            len(modules.checked),
-            len(modules.all) - len(modules.checked),
+    n/a:       {}""".format(
+            sum(map(len, modules.all)),
+            sum(map(len, modules.filtered)),
+            sum(map(len, modules.all)) - sum(map(len, modules.filtered)),
             len(modules.skipped),
             len(classes),
             len(classes_by_status[True]),
@@ -162,9 +288,9 @@ stats:
 
 @add_slots
 @dataclass(frozen=True)
-class ModuleReport:
-    all: ModuleTree
-    checked: ModuleTree
+class ModulesReport:
+    all: Collection[ModuleTree]
+    filtered: Collection[ModuleTree]
     skipped: Collection[ModuleSkipped]
 
 
@@ -194,24 +320,6 @@ def _check_classes(
             )
         ),
     )
-
-
-def _collect_modules(
-    name: str, exclude: str, include: str | None
-) -> Tuple[ModuleTree, ModuleTree]:
-    """Collect and filter modules,
-    returning the pruned tree and the number of original modules"""
-    tree = discover(name)
-    pruned = tree.filtername(
-        compose(not_, re.compile(exclude, flags=re.VERBOSE).fullmatch)
-    )
-    return (
-        pruned.filtername(
-            compose(bool, re.compile(include, flags=re.VERBOSE).fullmatch)
-        )
-        if include
-        else pruned
-    ), tree
 
 
 def _class_excludes(
@@ -247,57 +355,15 @@ def _class_includes(
     )
 
 
-def discover(modulename: str) -> ModuleTree:
-    try:
-        return module_tree(modulename)
-    except ModuleNotFoundError:
-        print(_format_error(f"Module '{modulename}' not found."))
-        exit(2)
-    except ModuleNotPurePython:
-        print(
-            _format_error(
-                f"Module '{modulename}' cannot be inspected. "
-                "Is it an extension module?"
-            )
-        )
-        exit(2)
-
-
-def collect(
-    modulename: str, include: str | None, exclude: str
-) -> Tuple[Collection[type], ModuleReport]:
-    pruned, original_tree = _collect_modules(modulename, exclude, include)
-    classes, skipped = _extract_classes(pruned)
-    return classes, ModuleReport(
-        original_tree,
-        pruned,
-        skipped,
-    )
-
-
-def _extract_classes(
-    tree: ModuleTree,
-) -> Tuple[Collection[type], Collection[ModuleSkipped]]:
-    classes: List[type] = []
-    skipped: List[ModuleSkipped] = []
-    for result in walk_classes(tree):
-        if isinstance(result, FailedImport):
-            skipped.append(ModuleSkipped(result.module, result.exc))
-        else:
-            classes.extend(result)
-    return classes, skipped
-
-
 @add_slots
 @dataclass(frozen=True)
 class ModuleSkipped:
-    name: str
-    exc: BaseException
+    failure: FailedImport
 
     def for_display(self, verbose: bool) -> str:
         return (
-            f"Failed to import '{self.name}'."
-            + verbose * f"\nDue to {self.exc!r}"
+            f"Failed to import '{self.failure.module}'."
+            + verbose * f"\nDue to {self.failure.exc!r}"
         )
 
 
@@ -369,10 +435,6 @@ class Message:
         return (_format_error if self.error else _format_note)(
             self.notice.for_display(verbose)
         )
-
-
-def any_errors(ms: Iterable[Message]) -> bool:
-    return any(m.error for m in ms)
 
 
 def slot_messages(

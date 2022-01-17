@@ -416,7 +416,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.0,<4"
-content-hash = "242eb213c93bd42ae55604f1a4b6b45309bbd0c358059074f7a67e3c0b98644f"
+content-hash = "e912704db0df1592ffb5e895cd66b7fcf35ffacee985e557abf6237f7a53caf6"
 
 [metadata.files]
 atomicwrites = [

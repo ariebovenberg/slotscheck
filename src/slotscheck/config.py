@@ -1,27 +1,100 @@
+"Logic for gathering and managing the configuration settings"
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from itertools import chain
 from pathlib import Path
 from typing import Any, ClassVar, Collection, Mapping, Type, TypeVar
 
 import tomli
 
-T = TypeVar("T")
+from .common import add_slots
 
 RegexStr = str
 "A regex string in Python's verbose syntax"
-
 DEFAULT_MODULE_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
+_T = TypeVar("_T")
 
 
-def collect(cli_kwargs: Mapping[str, Any], cwd: Path) -> Options:
+def collect(cli_kwargs: Mapping[str, Any], cwd: Path) -> Config:
     tomlpath = find_pyproject_toml(cwd)
-    return (
-        Options.DEFAULT.combine(PartialOptions.from_toml(tomlpath))
-        if tomlpath
-        else Options.DEFAULT
-    ).combine(PartialOptions(**cli_kwargs))
+    toml_conf = (
+        PartialConfig.from_toml(tomlpath) if tomlpath else PartialConfig.EMPTY
+    )
+    return Config.DEFAULT.apply(toml_conf).apply(PartialConfig(**cli_kwargs))
+
+
+def find_pyproject_toml(path: Path) -> Path | None:
+    for p in chain((path,), path.parents):
+        if (p / "pyproject.toml").is_file():
+            return p / "pyproject.toml"
+    else:
+        return None
+
+
+@add_slots
+@dataclass(frozen=True)
+class PartialConfig:
+    "Options given by user. Some may be missing."
+    strict_imports: bool | None
+    require_subclass: bool | None
+    require_superclass: bool | None
+    include_modules: RegexStr | None
+    exclude_modules: RegexStr | None
+    include_classes: RegexStr | None
+    exclude_classes: RegexStr | None
+
+    EMPTY: ClassVar[PartialConfig]
+
+    @staticmethod
+    def from_toml(p: Path) -> PartialConfig:
+        "May raise TOMLDecodeError or ValidationError. File must exist."
+        with p.open("rb") as rfile:
+            root = tomli.load(rfile)
+
+        conf = root.get("tool", {}).get("slotscheck", {})
+        if not conf.keys() <= _ALLOWED_KEYS.keys():
+            raise InvalidKeys(conf.keys() - _ALLOWED_KEYS)
+
+        return PartialConfig(
+            **{
+                key.replace("-", "_"): _extract_value(conf, key, expect_type)
+                for key, expect_type in _ALLOWED_KEYS.items()
+            },
+        )
+
+
+PartialConfig.EMPTY = PartialConfig(None, None, None, None, None, None, None)
+
+
+@dataclass(frozen=True)
+class Config(PartialConfig):
+    __slots__ = ()
+    strict_imports: bool
+    require_subclass: bool
+    require_superclass: bool
+    exclude_modules: RegexStr
+
+    DEFAULT: ClassVar[Config]
+
+    def apply(self, other: PartialConfig) -> Config:
+        return Config(
+            **{
+                f.name: _none_or(getattr(other, f.name), getattr(self, f.name))
+                for f in fields(PartialConfig)
+            }
+        )
+
+
+Config.DEFAULT = Config(
+    strict_imports=False,
+    require_subclass=False,
+    require_superclass=True,
+    include_modules=None,
+    exclude_modules=DEFAULT_MODULE_EXCLUDE_RE,
+    include_classes=None,
+    exclude_classes=None,
+)
 
 
 class InvalidKeys(Exception):
@@ -44,81 +117,13 @@ class InvalidValueType(Exception):
         return f"Invalid value type for '{self.key}'."
 
 
-@dataclass(frozen=True)
-class PartialOptions:
-    "Options given by user. Some may be missing"
-    __slots__ = (
-        "strict_imports",
-        "require_subclass",
-        "require_superclass",
-        "include_modules",
-        "exclude_modules",
-        "include_classes",
-        "exclude_classes",
-    )
-    strict_imports: bool | None
-    require_subclass: bool | None
-    require_superclass: bool | None
-    include_modules: RegexStr | None
-    exclude_modules: RegexStr | None
-    include_classes: RegexStr | None
-    exclude_classes: RegexStr | None
-
-    @staticmethod
-    def from_toml(p: Path) -> PartialOptions:
-        "May raise TOMLDecodeError or ValidationError"
-        with p.open("rb") as rfile:
-            root = tomli.load(rfile)
-
-        conf = root.get("tool", {}).get("slotscheck", {})
-        if not conf.keys() <= _ALLOWED_KEYS.keys():
-            raise InvalidKeys(conf.keys() - _ALLOWED_KEYS)
-
-        return PartialOptions(
-            **{
-                key.replace("-", "_"): _extract_value(conf, key, expect_type)
-                for key, expect_type in _ALLOWED_KEYS.items()
-            },
-        )
-
-
-@dataclass(frozen=True)
-class Options(PartialOptions):
-    __slots__ = ()
-    strict_imports: bool
-    require_subclass: bool
-    require_superclass: bool
-    exclude_modules: RegexStr
-
-    DEFAULT: ClassVar[Options]
-
-    def combine(self, other: PartialOptions) -> Options:
-        return Options(
-            **{
-                n: _none_or(getattr(other, n), getattr(self, n))
-                for n in PartialOptions.__dataclass_fields__
-            }
-        )
-
-
-Options.DEFAULT = Options(
-    strict_imports=False,
-    require_subclass=False,
-    require_superclass=True,
-    include_modules=None,
-    exclude_modules=DEFAULT_MODULE_EXCLUDE_RE,
-    include_classes=None,
-    exclude_classes=None,
-)
-
-
-def _none_or(a: T | None, b: T) -> T:
+def _none_or(a: _T | None, b: _T) -> _T:
     return b if a is None else a
 
 
 def _extract_value(
-    c: Mapping[str, object], key: str, expect_type: Type[T]
-) -> T | None:
+    c: Mapping[str, object], key: str, expect_type: Type[_T]
+) -> _T | None:
     try:
         raw_value = c[key]
     except KeyError:
@@ -139,11 +144,3 @@ _ALLOWED_KEYS = {
     "include-classes": str,
     "exclude-classes": str,
 }
-
-
-def find_pyproject_toml(path: Path) -> Path | None:
-    for p in chain((path,), path.parents):
-        if (p / "pyproject.toml").is_file():
-            return p / "pyproject.toml"
-    else:
-        return None

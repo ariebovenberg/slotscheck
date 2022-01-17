@@ -12,13 +12,13 @@ clean:
 	find . | grep -E "(__pycache__|docs_.*$$|\.pyc|\.pyo$$)" | xargs rm -rf
 
 isort:
-	isort src tests
+	isort src tests/src/
 
 isort-check:
 	isort . --check-only --diff
 
 format:
-	black src tests
+	black src tests/src
 
 format-check:
 	black --check --diff .
@@ -29,7 +29,7 @@ lint:
 	flake8 --exclude=.tox,build
 
 type-check:
-	mypy --pretty src tests
+	mypy --pretty src tests/src
 
 check: lint isort-check format-check type-check
 

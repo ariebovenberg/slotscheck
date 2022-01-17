@@ -1,26 +1,57 @@
+"Tools to discover and inspect modules, packages, and classes"
 from __future__ import annotations
 
 import importlib
 import importlib.abc
 import pkgutil
 from dataclasses import dataclass, field, replace
-from functools import partial
+from functools import partial, reduce
 from inspect import isclass
+from itertools import chain, takewhile
 from pathlib import Path
 from textwrap import indent
 from types import ModuleType
-from typing import Any, Callable, FrozenSet, Iterable, Iterator, Union
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    FrozenSet,
+    Iterable,
+    Iterator,
+    Union,
+)
 
 from .common import add_slots, flatten, unique
 
 ModuleName = str
 "The full, dotted name of a module"
 
+ModuleNamePart = str
+"Part of a module name -- no dots"
+
+
+def consolidate(trees: Iterable[ModuleTree]) -> Collection[ModuleTree]:
+    "Deduplicate and merge module trees"
+    seen: Dict[ModuleNamePart, ModuleTree] = {}
+    for t in trees:
+        try:
+            overlap = seen[t.name]
+        except KeyError:
+            seen[t.name] = t
+        else:
+            seen[t.name] = overlap.merge(t)
+
+    return seen.values()
+
 
 @add_slots
 @dataclass(frozen=True)
 class Module:
-    name: str
+    name: ModuleNamePart
+
+    def __post_init__(self) -> None:
+        assert "." not in self.name
 
     def display(self) -> str:
         return self.name
@@ -33,15 +64,24 @@ class Module:
 
     def filtername(
         self, __pred: Callable[[ModuleName], bool], *, prefix: str = ""
-    ) -> ModuleTree:
-        return self
+    ) -> ModuleTree | None:
+        return self if __pred(prefix + self.name) else None
+
+    def merge(self, other: ModuleTree) -> ModuleTree:
+        "Merge along shared components. Raises if no shared components."
+        if other.name == self.name:
+            return other
+        raise ValueError("Cannot merge modules without shared components.")
 
 
 @add_slots
 @dataclass(frozen=True)
 class Package:
-    name: str
+    name: ModuleNamePart
     content: FrozenSet[ModuleTree]
+
+    def __post_init__(self) -> None:
+        assert "." not in self.name
 
     def display(self) -> str:
         return (
@@ -64,37 +104,66 @@ class Package:
 
     def filtername(
         self, __pred: Callable[[ModuleName], bool], *, prefix: str = ""
-    ) -> ModuleTree:
+    ) -> ModuleTree | None:
+        if not __pred(prefix + self.name):
+            return None
+
         new_prefix = f"{prefix}{self.name}."
         return replace(
             self,
             content=frozenset(
-                sub.filtername(__pred, prefix=new_prefix)
-                for sub in self.content
-                if __pred(new_prefix + sub.name)
+                filter(
+                    None,
+                    (
+                        sub.filtername(__pred, prefix=new_prefix)
+                        for sub in self.content
+                    ),
+                )
             ),
         )
+
+    def merge(self, other: ModuleTree) -> ModuleTree:
+        "Merge along shared components. Raises if no shared components."
+        if self.name != other.name:
+            raise ValueError("Cannot merge modules without shared components.")
+        if isinstance(other, Module):
+            return self
+        else:
+            return Package(
+                self.name,
+                frozenset(consolidate(chain(self.content, other.content))),
+            )
 
 
 ModuleTree = Union[Module, Package]
 
 
 class ModuleNotPurePython(Exception):
-    pass
+    def __init__(self, name: str) -> None:
+        self.name = name
 
 
-def module_tree(module: str) -> ModuleTree:
+def module_tree(module: ModuleName) -> ModuleTree:
     "May raise ModuleNotFound or ModuleNotPurePython"
     loader = pkgutil.get_loader(module)
     if loader is None:
-        raise ModuleNotFoundError(name=module)
+        raise ModuleNotFoundError(f"No module named '{module}'", name=module)
     elif not isinstance(loader, importlib.abc.FileLoader):
-        raise ModuleNotPurePython()
-    elif loader.is_package(module):
+        raise ModuleNotPurePython(module)
+
+    *namespaces, name = module.split(".")
+
+    if loader.is_package(module):
         assert isinstance(loader.path, str)
-        return _package(module, Path(loader.path).parent)
+        tree: ModuleTree = _package(name, Path(loader.path).parent)
     else:
-        return Module(module)
+        tree = Module(name)
+
+    return reduce(_add_namespace, reversed(namespaces), tree)
+
+
+def _add_namespace(tree: ModuleTree, name: ModuleNamePart) -> ModuleTree:
+    return Package(name, frozenset([tree]))
 
 
 def _submodule(m: pkgutil.ModuleInfo) -> ModuleTree:
@@ -111,9 +180,9 @@ def _is_submodule(m: pkgutil.ModuleInfo, path: Path) -> bool:
     return getattr(m.module_finder, "path", "").startswith(str(path))
 
 
-def _package(module: str, path: Path) -> Package:
+def _package(name: ModuleNamePart, path: Path) -> Package:
     return Package(
-        module,
+        name,
         frozenset(
             map(
                 _submodule,
@@ -199,3 +268,34 @@ def _is_nested_class(obj: Any, parent: type) -> bool:
     except Exception:
         # Some rare objects crash on introspection. It's best to exclude them.
         return False
+
+
+_INIT_PY = "__init__.py"
+
+
+@add_slots
+@dataclass(frozen=True)
+class FoundModule:
+    name: ModuleName
+    location: Path
+
+
+def _is_module(p: Path) -> bool:
+    return (p.is_file() and p.suffixes == [".py"]) or _is_package(p)
+
+
+def _is_package(p: Path) -> bool:
+    return p.is_dir() and (p / _INIT_PY).is_file()
+
+
+def find_modules(p: Path) -> Iterable[FoundModule]:
+    "Recursively find modules at given Path. Nonexistent Path is ignored"
+    if p.name == _INIT_PY:
+        yield from find_modules(p.resolve().parent)
+    elif _is_module(p):
+        parents = [p] + list(takewhile(_is_package, p.resolve().parents))
+        yield FoundModule(
+            ".".join(p.stem for p in reversed(parents)), parents[-1].parent
+        )
+    elif p.is_dir():
+        yield from flatten(map(find_modules, p.iterdir()))
