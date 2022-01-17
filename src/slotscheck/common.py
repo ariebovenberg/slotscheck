@@ -10,10 +10,8 @@ from typing import (
     Iterable,
     Iterator,
     Mapping,
-    Protocol,
     Set,
     Tuple,
-    TypeGuard,
     TypeVar,
 )
 
@@ -80,7 +78,7 @@ def map_optional(
     return filterfalse(_is_none, map(f, it))  # type: ignore
 
 
-def _is_none(x: object) -> TypeGuard[None]:
+def _is_none(x: object) -> bool:
     return x is None
 
 
