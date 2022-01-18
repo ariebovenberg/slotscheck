@@ -100,7 +100,7 @@ from .discovery import (
     "--include-classes",
     help="A regular expression that matches classes to include. "
     "Use ``:`` to separate module and class paths. "
-    "For example: ``app\\.config:.*Settings``, ``.*:.*(Foo|Bar)``. "
+    "For example: ``app\\.config:.*Settings``, ``:(Foo|Bar)``. "
     "Exclusions are determined first, then inclusions. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
 )
@@ -108,7 +108,7 @@ from .discovery import (
     "--exclude-classes",
     help="A regular expression that matches classes to exclude. "
     "Use ``:`` to separate module and class paths. "
-    "For example: ``app\\.config:Settings``, ``.*:.*(Exception|Error)``. "
+    "For example: ``app\\.config:Settings``, ``:.*(Exception|Error)``. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     show_default="^$",
 )
