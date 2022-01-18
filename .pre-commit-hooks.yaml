@@ -1,7 +1,7 @@
 - id: slotscheck
   name: slotscheck
   description: "Slotscheck: Ensure your __slots__ are working properly."
-  entry: slotscheck -v
+  entry: python -m slotscheck -v
   language: python
   minimum_pre_commit_version: 2.9.2
   require_serial: true

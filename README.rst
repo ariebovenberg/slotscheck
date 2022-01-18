@@ -41,8 +41,7 @@ Usage is quick from the command line:
 
 .. code-block:: bash
 
-   slotscheck [FILES] [-m [MODULE]]
-
+   python -m slotscheck [FILES]... # or -m [MODULE]...
 
 For example:
 
