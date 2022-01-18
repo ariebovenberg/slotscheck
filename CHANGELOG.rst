@@ -7,7 +7,7 @@ Changelog
 **Breaking changes**
 
 - Strict imports are now the default
-- Include/exclude Regex patterns now use partial patch (like mypy, isort do).
+- Include/exclude regex patterns now use partial patch (like mypy, isort do).
 
 **Adjustments**
 
