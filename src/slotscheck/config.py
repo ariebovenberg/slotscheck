@@ -12,7 +12,7 @@ from .common import add_slots
 
 RegexStr = str
 "A regex string in Python's verbose syntax"
-DEFAULT_MODULE_EXCLUDE_RE = r"(\w*\.)*__main__(\.\w*)*"
+DEFAULT_MODULE_EXCLUDE_RE = r"(^|\.)__main__(\.|$)"
 _T = TypeVar("_T")
 
 

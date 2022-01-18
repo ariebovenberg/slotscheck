@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.7.0 (2022-01-18)
+------------------
+
+**Breaking changes**
+
+- Strict imports are now the default
+- Include/exclude Regex patterns now use partial patch (like mypy, isort do).
+
+- Clarifications in documentation
+
 0.6.0 (2022-01-17)
 ------------------
 

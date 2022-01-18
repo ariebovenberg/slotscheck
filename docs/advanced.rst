@@ -9,7 +9,7 @@ Use the following configuration:
 
 .. warning::
 
-   Slotscheck imports files to check them. 
+   Slotscheck imports files to check them.
    Be sure to specify ``exclude``
    to prevent slotscheck from importing scripts unintentionally.
 
@@ -20,7 +20,11 @@ Use the following configuration:
      rev: v0.6.0
      hooks:
      - id: slotscheck
-       exclude: "^$"  # add files you don't want slotscheck to import
+       # Add files you don't want slotscheck to import.
+       # For example, "^(?!src/)" ensures slotscheck will only run on
+       # files in the "src" directory.
+       exclude: "^$"
+
 
 Namespace packages
 ------------------
