@@ -234,7 +234,7 @@ Scanned 4 module(s), 26 class(es).
 def test_errors_with_exclude_classes(runner: CliRunner):
     result = runner.invoke(
         cli,
-        ["-m", "module_not_ok", "--exclude-classes", "(.*?foo:U|.*:(W|S))"],
+        ["-m", "module_not_ok", "--exclude-classes", "(foo:U$|:(W|S))"],
     )
     assert result.exit_code == 1
     assert (
@@ -253,7 +253,7 @@ Scanned 4 module(s), 26 class(es).
 def test_errors_with_include_classes(runner: CliRunner):
     result = runner.invoke(
         cli,
-        ["-m", "module_not_ok", "--include-classes", "(.*?foo:.*a|.*:(W|S))"],
+        ["-m", "module_not_ok", "--include-classes", "(foo:.*a|:(W|S))"],
     )
     assert result.exit_code == 1
     assert (
@@ -275,7 +275,7 @@ def test_errors_with_include_modules(runner: CliRunner):
             "-m",
             "module_not_ok",
             "--include-modules",
-            "(module_not_ok | .*a.*)",
+            "(module_not_ok$ | a)",
         ],
     )
     assert result.exit_code == 1
@@ -347,7 +347,11 @@ stats:
 
 
 def test_module_misc(runner: CliRunner):
-    result = runner.invoke(cli, ["-m", "module_misc"], catch_exceptions=False)
+    result = runner.invoke(
+        cli,
+        ["-m", "module_misc", "--no-strict-imports"],
+        catch_exceptions=False,
+    )
     assert result.exit_code == 0
     assert (
         result.output
@@ -362,7 +366,13 @@ Scanned 18 module(s), 8 class(es).
 def test_module_exclude(runner: CliRunner):
     result = runner.invoke(
         cli,
-        ["-m", "module_misc", "--exclude-modules", ".* evil .*"],
+        [
+            "-m",
+            "module_misc",
+            "--exclude-modules",
+            "evil",
+            "--no-strict-imports",
+        ],
         catch_exceptions=False,
     )
     assert result.exit_code == 0
@@ -388,6 +398,19 @@ def test_module_disallow_import_failures(runner: CliRunner):
         == """\
 ERROR: Failed to import 'module_misc.a.evil'.
 Oh no, found some problems!
+Scanned 18 module(s), 8 class(es).
+"""
+    )
+
+
+def test_module_allow_import_failures(runner: CliRunner):
+    result = runner.invoke(cli, ["-m", "module_misc", "--no-strict-imports"])
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+NOTE:  Failed to import 'module_misc.a.evil'.
+All OK!
 Scanned 18 module(s), 8 class(es).
 """
     )

@@ -166,4 +166,4 @@ include-modules = false
     ],
 )
 def test_default_exclude(string, expect):
-    assert bool(re.fullmatch(DEFAULT_MODULE_EXCLUDE_RE, string)) is expect
+    assert bool(re.search(DEFAULT_MODULE_EXCLUDE_RE, string)) is expect

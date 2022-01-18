@@ -1,6 +1,19 @@
 Changelog
 =========
 
+0.7.0 (2022-01-18)
+------------------
+
+**Breaking changes**
+
+- Strict imports are now the default
+- Include/exclude regex patterns now use partial patch (like mypy, isort do).
+
+**Adjustments**
+
+- Clarifications in documentation
+- Pre-commit hook uses verbose mode by default
+
 0.6.0 (2022-01-17)
 ------------------
 

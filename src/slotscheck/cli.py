@@ -66,8 +66,8 @@ from .discovery import (
 @click.option(
     "--strict-imports/--no-strict-imports",
     help="Treat failed imports as errors.",
-    default=None,
-    show_default="not strict",
+    default=True,
+    show_default="strict",
 )
 @click.option(
     "--require-superclass/--no-require-superclass",
@@ -100,7 +100,7 @@ from .discovery import (
     "--include-classes",
     help="A regular expression that matches classes to include. "
     "Use ``:`` to separate module and class paths. "
-    "For example: ``app\\.config:.*Settings``, ``.*:.*(Foo|Bar)``. "
+    "For example: ``app\\.config:.*Settings``, ``:(Foo|Bar)``. "
     "Exclusions are determined first, then inclusions. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
 )
@@ -108,8 +108,9 @@ from .discovery import (
     "--exclude-classes",
     help="A regular expression that matches classes to exclude. "
     "Use ``:`` to separate module and class paths. "
-    "For example: ``app\\.config:Settings``, ``.*:.*(Exception|Error)``. "
+    "For example: ``app\\.config:Settings``, ``:.*(Exception|Error)``. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
+    show_default="^$",
 )
 @click.option(
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
@@ -209,12 +210,12 @@ def _collect(
 
 def _create_filter(include: str | None, exclude: str) -> Predicate[str]:
     excluder: Predicate[str] = compose(
-        not_, re.compile(exclude, flags=re.VERBOSE).fullmatch
+        not_, re.compile(exclude, flags=re.VERBOSE).search
     )
     return (
         excluder
         if include is None
-        else both(excluder, re.compile(include, flags=re.VERBOSE).fullmatch)
+        else both(excluder, re.compile(include, flags=re.VERBOSE).search)
     )
 
 
@@ -329,7 +330,7 @@ def _class_excludes(
         filter(
             compose(
                 not_,
-                re.compile(exclude, flags=re.VERBOSE).fullmatch,
+                re.compile(exclude, flags=re.VERBOSE).search,
                 _class_fullname,
             ),
             classes,
@@ -345,7 +346,7 @@ def _class_includes(
     return (
         filter(
             compose(
-                re.compile(include, flags=re.VERBOSE).fullmatch,
+                re.compile(include, flags=re.VERBOSE).search,
                 _class_fullname,
             ),
             classes,
