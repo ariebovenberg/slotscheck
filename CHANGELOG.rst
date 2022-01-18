@@ -9,7 +9,10 @@ Changelog
 - Strict imports are now the default
 - Include/exclude Regex patterns now use partial patch (like mypy, isort do).
 
+**Adjustments**
+
 - Clarifications in documentation
+- Pre-commit hook uses verbose mode by default
 
 0.6.0 (2022-01-17)
 ------------------
