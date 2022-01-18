@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.7.2 (2022-01-18)
+------------------
+
+- Recommend running as ``python -m slotscheck`` when checking files.
+  Update pre-commit hook to reflect this.
+
 0.7.1 (2022-01-18)
 ------------------
 
