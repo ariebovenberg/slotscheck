@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import re
 import sys
 from dataclasses import dataclass
@@ -14,6 +12,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Optional,
     Sequence,
     Tuple,
     Union,
@@ -188,174 +187,6 @@ def root(
         exit(1)
 
 
-def _collect(
-    files: Collection[Path],
-    modules: Collection[ModuleName],
-    conf: config.Config,
-) -> Tuple[Collection[type], ModulesReport]:
-    modulefilter = _create_filter(conf.include_modules, conf.exclude_modules)
-    modules_all = consolidate(
-        map(module_tree, filter(modulefilter, _as_modules(files, modules)))
-    )
-    modules_filtered: Collection[ModuleTree] = list(
-        map_optional(methodcaller("filtername", modulefilter), modules_all)
-    )
-    classes, modules_skipped = _collect_classes(modules_filtered)
-    return classes, ModulesReport(
-        modules_all,
-        modules_filtered,
-        modules_skipped,
-    )
-
-
-def _create_filter(include: str | None, exclude: str) -> Predicate[str]:
-    excluder: Predicate[str] = compose(
-        not_, re.compile(exclude, flags=re.VERBOSE).search
-    )
-    return (
-        excluder
-        if include is None
-        else both(excluder, re.compile(include, flags=re.VERBOSE).search)
-    )
-
-
-def _as_modules(
-    files: Collection[Path], names: Collection[ModuleName]
-) -> Collection[ModuleName]:
-    if files and names:
-        print(
-            _format_error(
-                "Specify either FILES argument or `-m/--module` "
-                "option, not both."
-            ),
-            file=sys.stderr,
-        )
-        exit(2)
-    elif files:
-        return [m.name for m in flatten(map(find_modules, files))]
-    else:
-        return names
-
-
-def _collect_classes(
-    trees: Collection[ModuleTree],
-) -> Tuple[Collection[type], Collection[ModuleSkipped]]:
-    classes: List[type] = []
-    skipped: List[ModuleSkipped] = []
-    for result in flatten(map(walk_classes, trees)):
-        if isinstance(result, FailedImport):
-            skipped.append(ModuleSkipped(result))
-        else:
-            classes.extend(result)
-    return classes, skipped
-
-
-def _print_report(
-    modules: ModulesReport,
-    classes: Collection[type],
-) -> None:
-    classes_by_status = groupby(
-        classes,
-        key=lambda c: None
-        if not is_purepython_class(c)
-        else True
-        if has_slots(c)
-        else False,
-    )
-    print(
-        """\
-stats:
-  modules:     {}
-    checked:   {}
-    excluded:  {}
-    skipped:   {}
-
-  classes:     {}
-    has slots: {}
-    no slots:  {}
-    n/a:       {}""".format(
-            sum(map(len, modules.all)),
-            sum(map(len, modules.filtered)),
-            sum(map(len, modules.all)) - sum(map(len, modules.filtered)),
-            len(modules.skipped),
-            len(classes),
-            len(classes_by_status[True]),
-            len(classes_by_status[False]),
-            len(classes_by_status[None]),
-        ),
-        file=sys.stderr,
-    )
-
-
-@add_slots
-@dataclass(frozen=True)
-class ModulesReport:
-    all: Collection[ModuleTree]
-    filtered: Collection[ModuleTree]
-    skipped: Collection[ModuleSkipped]
-
-
-def _check_classes(
-    classes: Iterable[type],
-    require_superclass: bool,
-    include: str | None,
-    exclude: str | None,
-    require_subclass: bool,
-) -> Iterator[Message]:
-    return map(
-        partial(Message, error=True),
-        flatten(
-            map(
-                partial(
-                    slot_messages,
-                    require_subclass=require_subclass,
-                    require_superclass=require_superclass,
-                ),
-                sorted(
-                    _class_includes(
-                        _class_excludes(classes, exclude),
-                        include,
-                    ),
-                    key=_class_fullname,
-                ),
-            )
-        ),
-    )
-
-
-def _class_excludes(
-    classes: Iterable[type], exclude: str | None
-) -> Iterable[type]:
-    return (
-        filter(
-            compose(
-                not_,
-                re.compile(exclude, flags=re.VERBOSE).search,
-                _class_fullname,
-            ),
-            classes,
-        )
-        if exclude
-        else classes
-    )
-
-
-def _class_includes(
-    classes: Iterable[type], include: str | None
-) -> Iterable[type]:
-    return (
-        filter(
-            compose(
-                re.compile(include, flags=re.VERBOSE).search,
-                _class_fullname,
-            ),
-            classes,
-        )
-        if include
-        else classes
-    )
-
-
 @add_slots
 @dataclass(frozen=True)
 class ModuleSkipped:
@@ -436,6 +267,174 @@ class Message:
         return (_format_error if self.error else _format_note)(
             self.notice.for_display(verbose)
         )
+
+
+@add_slots
+@dataclass(frozen=True)
+class ModulesReport:
+    all: Collection[ModuleTree]
+    filtered: Collection[ModuleTree]
+    skipped: Collection[ModuleSkipped]
+
+
+def _collect(
+    files: Collection[Path],
+    modules: Collection[ModuleName],
+    conf: config.Config,
+) -> Tuple[Collection[type], ModulesReport]:
+    modulefilter = _create_filter(conf.include_modules, conf.exclude_modules)
+    modules_all = consolidate(
+        map(module_tree, filter(modulefilter, _as_modules(files, modules)))
+    )
+    modules_filtered: Collection[ModuleTree] = list(
+        map_optional(methodcaller("filtername", modulefilter), modules_all)
+    )
+    classes, modules_skipped = _collect_classes(modules_filtered)
+    return classes, ModulesReport(
+        modules_all,
+        modules_filtered,
+        modules_skipped,
+    )
+
+
+def _create_filter(include: Optional[str], exclude: str) -> Predicate[str]:
+    excluder: Predicate[str] = compose(
+        not_, re.compile(exclude, flags=re.VERBOSE).search
+    )
+    return (
+        excluder
+        if include is None
+        else both(excluder, re.compile(include, flags=re.VERBOSE).search)
+    )
+
+
+def _as_modules(
+    files: Collection[Path], names: Collection[ModuleName]
+) -> Collection[ModuleName]:
+    if files and names:
+        print(
+            _format_error(
+                "Specify either FILES argument or `-m/--module` "
+                "option, not both."
+            ),
+            file=sys.stderr,
+        )
+        exit(2)
+    elif files:
+        return [m.name for m in flatten(map(find_modules, files))]
+    else:
+        return names
+
+
+def _collect_classes(
+    trees: Collection[ModuleTree],
+) -> Tuple[Collection[type], Collection[ModuleSkipped]]:
+    classes: List[type] = []
+    skipped: List[ModuleSkipped] = []
+    for result in flatten(map(walk_classes, trees)):
+        if isinstance(result, FailedImport):
+            skipped.append(ModuleSkipped(result))
+        else:
+            classes.extend(result)
+    return classes, skipped
+
+
+def _print_report(
+    modules: ModulesReport,
+    classes: Collection[type],
+) -> None:
+    classes_by_status = groupby(
+        classes,
+        key=lambda c: None
+        if not is_purepython_class(c)
+        else True
+        if has_slots(c)
+        else False,
+    )
+    print(
+        """\
+stats:
+  modules:     {}
+    checked:   {}
+    excluded:  {}
+    skipped:   {}
+
+  classes:     {}
+    has slots: {}
+    no slots:  {}
+    n/a:       {}""".format(
+            sum(map(len, modules.all)),
+            sum(map(len, modules.filtered)),
+            sum(map(len, modules.all)) - sum(map(len, modules.filtered)),
+            len(modules.skipped),
+            len(classes),
+            len(classes_by_status[True]),
+            len(classes_by_status[False]),
+            len(classes_by_status[None]),
+        ),
+        file=sys.stderr,
+    )
+
+
+def _check_classes(
+    classes: Iterable[type],
+    require_superclass: bool,
+    include: Optional[str],
+    exclude: Optional[str],
+    require_subclass: bool,
+) -> Iterator[Message]:
+    return map(
+        partial(Message, error=True),
+        flatten(
+            map(
+                partial(
+                    slot_messages,
+                    require_subclass=require_subclass,
+                    require_superclass=require_superclass,
+                ),
+                sorted(
+                    _class_includes(
+                        _class_excludes(classes, exclude),
+                        include,
+                    ),
+                    key=_class_fullname,
+                ),
+            )
+        ),
+    )
+
+
+def _class_excludes(
+    classes: Iterable[type], exclude: Optional[str]
+) -> Iterable[type]:
+    return (
+        filter(
+            compose(
+                not_,
+                re.compile(exclude, flags=re.VERBOSE).search,
+                _class_fullname,
+            ),
+            classes,
+        )
+        if exclude
+        else classes
+    )
+
+
+def _class_includes(
+    classes: Iterable[type], include: Optional[str]
+) -> Iterable[type]:
+    return (
+        filter(
+            compose(
+                re.compile(include, flags=re.VERBOSE).search,
+                _class_fullname,
+            ),
+            classes,
+        )
+        if include
+        else classes
+    )
 
 
 def slot_messages(

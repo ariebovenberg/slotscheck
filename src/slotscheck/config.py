@@ -1,10 +1,9 @@
 "Logic for gathering and managing the configuration settings"
-from __future__ import annotations
 
 from dataclasses import dataclass, fields
 from itertools import chain
 from pathlib import Path
-from typing import Any, ClassVar, Collection, Mapping, Type, TypeVar
+from typing import Any, ClassVar, Collection, Mapping, Optional, Type, TypeVar
 
 import tomli
 
@@ -16,38 +15,22 @@ DEFAULT_MODULE_EXCLUDE_RE = r"(^|\.)__main__(\.|$)"
 _T = TypeVar("_T")
 
 
-def collect(cli_kwargs: Mapping[str, Any], cwd: Path) -> Config:
-    tomlpath = find_pyproject_toml(cwd)
-    toml_conf = (
-        PartialConfig.from_toml(tomlpath) if tomlpath else PartialConfig.EMPTY
-    )
-    return Config.DEFAULT.apply(toml_conf).apply(PartialConfig(**cli_kwargs))
-
-
-def find_pyproject_toml(path: Path) -> Path | None:
-    for p in chain((path,), path.parents):
-        if (p / "pyproject.toml").is_file():
-            return p / "pyproject.toml"
-    else:
-        return None
-
-
 @add_slots
 @dataclass(frozen=True)
 class PartialConfig:
     "Options given by user. Some may be missing."
-    strict_imports: bool | None
-    require_subclass: bool | None
-    require_superclass: bool | None
-    include_modules: RegexStr | None
-    exclude_modules: RegexStr | None
-    include_classes: RegexStr | None
-    exclude_classes: RegexStr | None
+    strict_imports: Optional[bool]
+    require_subclass: Optional[bool]
+    require_superclass: Optional[bool]
+    include_modules: Optional[RegexStr]
+    exclude_modules: Optional[RegexStr]
+    include_classes: Optional[RegexStr]
+    exclude_classes: Optional[RegexStr]
 
-    EMPTY: ClassVar[PartialConfig]
+    EMPTY: ClassVar["PartialConfig"]
 
     @staticmethod
-    def from_toml(p: Path) -> PartialConfig:
+    def from_toml(p: Path) -> "PartialConfig":
         "May raise TOMLDecodeError or ValidationError. File must exist."
         with p.open("rb") as rfile:
             root = tomli.load(rfile)
@@ -75,9 +58,9 @@ class Config(PartialConfig):
     require_superclass: bool
     exclude_modules: RegexStr
 
-    DEFAULT: ClassVar[Config]
+    DEFAULT: ClassVar["Config"]
 
-    def apply(self, other: PartialConfig) -> Config:
+    def apply(self, other: PartialConfig) -> "Config":
         return Config(
             **{
                 f.name: _none_or(getattr(other, f.name), getattr(self, f.name))
@@ -95,6 +78,22 @@ Config.DEFAULT = Config(
     include_classes=None,
     exclude_classes=None,
 )
+
+
+def collect(cli_kwargs: Mapping[str, Any], cwd: Path) -> Config:
+    tomlpath = find_pyproject_toml(cwd)
+    toml_conf = (
+        PartialConfig.from_toml(tomlpath) if tomlpath else PartialConfig.EMPTY
+    )
+    return Config.DEFAULT.apply(toml_conf).apply(PartialConfig(**cli_kwargs))
+
+
+def find_pyproject_toml(path: Path) -> Optional[Path]:
+    for p in chain((path,), path.parents):
+        if (p / "pyproject.toml").is_file():
+            return p / "pyproject.toml"
+    else:
+        return None
 
 
 class InvalidKeys(Exception):
@@ -117,13 +116,13 @@ class InvalidValueType(Exception):
         return f"Invalid value type for '{self.key}'."
 
 
-def _none_or(a: _T | None, b: _T) -> _T:
+def _none_or(a: Optional[_T], b: _T) -> _T:
     return b if a is None else a
 
 
 def _extract_value(
     c: Mapping[str, object], key: str, expect_type: Type[_T]
-) -> _T | None:
+) -> Optional[_T]:
     try:
         raw_value = c[key]
     except KeyError:

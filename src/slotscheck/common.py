@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import defaultdict
 from dataclasses import dataclass, fields
 from itertools import chain, filterfalse
@@ -10,6 +8,7 @@ from typing import (
     Iterable,
     Iterator,
     Mapping,
+    Optional,
     Set,
     Tuple,
     TypeVar,
@@ -73,7 +72,7 @@ def both(__a: Predicate[_T1], __b: Predicate[_T1]) -> Predicate[_T1]:
 
 
 def map_optional(
-    f: Callable[[_T1], _T2 | None], it: Iterable[_T1]
+    f: Callable[[_T1], Optional[_T2]], it: Iterable[_T1]
 ) -> Iterator[_T2]:
     return filterfalse(_is_none, map(f, it))  # type: ignore
 

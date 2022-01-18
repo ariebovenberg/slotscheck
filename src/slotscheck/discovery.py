@@ -1,5 +1,4 @@
 "Tools to discover and inspect modules, packages, and classes"
-from __future__ import annotations
 
 import importlib
 import importlib.abc
@@ -19,6 +18,7 @@ from typing import (
     FrozenSet,
     Iterable,
     Iterator,
+    Optional,
     Union,
 )
 
@@ -29,6 +29,8 @@ ModuleName = str
 
 ModuleNamePart = str
 "Part of a module name -- no dots"
+
+ModuleTree = Union["Module", "Package"]
 
 
 def consolidate(trees: Iterable[ModuleTree]) -> Collection[ModuleTree]:
@@ -64,7 +66,7 @@ class Module:
 
     def filtername(
         self, __pred: Callable[[ModuleName], bool], *, prefix: str = ""
-    ) -> ModuleTree | None:
+    ) -> Optional[ModuleTree]:
         return self if __pred(prefix + self.name) else None
 
     def merge(self, other: ModuleTree) -> ModuleTree:
@@ -104,7 +106,7 @@ class Package:
 
     def filtername(
         self, __pred: Callable[[ModuleName], bool], *, prefix: str = ""
-    ) -> ModuleTree | None:
+    ) -> Optional[ModuleTree]:
         if not __pred(prefix + self.name):
             return None
 
@@ -133,9 +135,6 @@ class Package:
                 self.name,
                 frozenset(consolidate(chain(self.content, other.content))),
             )
-
-
-ModuleTree = Union[Module, Package]
 
 
 class ModuleNotPurePython(Exception):
@@ -195,9 +194,16 @@ def _package(name: ModuleNamePart, path: Path) -> Package:
     )
 
 
+@add_slots
+@dataclass(frozen=True)
+class FailedImport:
+    module: str
+    exc: BaseException = field(compare=False, hash=False)
+
+
 def walk_classes(
     n: ModuleTree, prefix: str = ""
-) -> Iterator[FailedImport | FrozenSet[type]]:
+) -> Iterator[Union[FailedImport, FrozenSet[type]]]:
     fullname = prefix + n.name
     try:
         module = importlib.import_module(fullname)
@@ -216,13 +222,6 @@ def walk_classes(
             yield from flatten(
                 map(partial(walk_classes, prefix=fullname + "."), n.content)
             )
-
-
-@add_slots
-@dataclass(frozen=True)
-class FailedImport:
-    module: str
-    exc: BaseException = field(compare=False, hash=False)
 
 
 def _classes_in_module(module: ModuleType) -> Iterable[type]:

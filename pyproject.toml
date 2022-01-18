@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.7.0"
+version = "0.7.1"
 description = "Ensure your __slots__ are working properly."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -8,6 +8,7 @@ classifiers = [
     "Typing :: Typed",
     "Topic :: Software Development :: Quality Assurance",
     "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -22,8 +23,9 @@ repository = "https://github.com/ariebovenberg/slotscheck"
 homepage = "https://github.com/ariebovenberg/slotscheck"
 
 [tool.poetry.dependencies]
-python = ">=3.7.0,<4"
+python = ">=3.6.2,<4"
 importlib-metadata = {version = ">=1,<5", python = "<3.8"}
+dataclasses = {version = ">=0.6", python = "<3.7"}
 click = "^8.0"
 tomli = ">=0.2.6,<3.0.0"
 
@@ -36,6 +38,7 @@ tox = "^3.24.1"
 black = "^21.12b0"
 pytest-cov = "^3.0.0"
 pytest-mock = "^3.6.1"
+types-dataclasses = "^0.6.4"
 
 [tool.poetry.scripts]
 slotscheck = "slotscheck.cli:root"
