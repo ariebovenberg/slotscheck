@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.8.0 (2022-01-21)
+------------------
+
+- Extension modules are now traversed.
+- Small tweaks to documentation.
+
 0.7.2 (2022-01-18)
 ------------------
 

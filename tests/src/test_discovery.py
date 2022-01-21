@@ -9,7 +9,6 @@ from slotscheck.discovery import (
     FailedImport,
     FoundModule,
     Module,
-    ModuleNotPurePython,
     ModuleTree,
     Package,
     consolidate,
@@ -225,9 +224,13 @@ module_misc
             make_pkg("module", Module("foo"), Module("bla")),
         )
 
-    def test_not_inspectable(self):
-        with pytest.raises(ModuleNotPurePython):
-            module_tree("builtins")
+    def test_builtin(self):
+        assert module_tree("builtins") == Module("builtins", pure_python=False)
+
+    def test_extension(self):
+        assert module_tree("_elementtree") == Module(
+            "_elementtree", pure_python=False
+        )
 
     def test_does_not_exist(self):
         with pytest.raises(ModuleNotFoundError):

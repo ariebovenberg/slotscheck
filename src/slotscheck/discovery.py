@@ -2,6 +2,7 @@
 
 import importlib
 import importlib.abc
+import importlib.machinery
 import pkgutil
 from dataclasses import dataclass, field, replace
 from functools import partial, reduce
@@ -51,6 +52,7 @@ def consolidate(trees: Iterable[ModuleTree]) -> Collection[ModuleTree]:
 @dataclass(frozen=True)
 class Module:
     name: ModuleNamePart
+    pure_python: bool = True
 
     def __post_init__(self) -> None:
         assert "." not in self.name
@@ -137,26 +139,35 @@ class Package:
             )
 
 
-class ModuleNotPurePython(Exception):
+class CannotLoadModule(Exception):
     def __init__(self, name: str) -> None:
         self.name = name
 
 
 def module_tree(module: ModuleName) -> ModuleTree:
-    "May raise ModuleNotFound or ModuleNotPurePython"
+    "May raise ModuleNotFound or CannotLoadModule"
     loader = pkgutil.get_loader(module)
     if loader is None:
         raise ModuleNotFoundError(f"No module named '{module}'", name=module)
-    elif not isinstance(loader, importlib.abc.FileLoader):
-        raise ModuleNotPurePython(module)
+    elif isinstance(loader, importlib.abc.FileLoader):
+        pure_python = True
+    elif isinstance(loader, importlib.machinery.ExtensionFileLoader):
+        pure_python = False
+    elif module == "builtins":
+        return Module(module, pure_python=False)
+    else:
+        raise NotImplementedError(f"Unsupported module loader type: {loader}")
 
     *namespaces, name = module.split(".")
 
     if loader.is_package(module):
+        assert isinstance(loader, importlib.abc.FileLoader)
         assert isinstance(loader.path, str)
+        if not pure_python:
+            raise NotImplementedError("Extension packages not supported.")
         tree: ModuleTree = _package(name, Path(loader.path).parent)
     else:
-        tree = Module(name)
+        tree = Module(name, pure_python=pure_python)
 
     return reduce(_add_namespace, reversed(namespaces), tree)
 

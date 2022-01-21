@@ -39,7 +39,6 @@ from .common import (
 from .discovery import (
     FailedImport,
     ModuleName,
-    ModuleNotPurePython,
     ModuleTree,
     consolidate,
     find_modules,
@@ -131,14 +130,6 @@ def root(
         classes, modules = _collect(files, module, conf)
     except ModuleNotFoundError as e:
         print(_format_error(f"Module '{e.name}' not found."))
-        exit(1)
-    except ModuleNotPurePython as e:
-        print(
-            _format_error(
-                f"Module '{e.name}' cannot be inspected. "
-                "Is it an extension module?"
-            )
-        )
         exit(1)
 
     if not modules.filtered:
