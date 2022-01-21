@@ -57,10 +57,11 @@ For example:
 
 Now get to fixing —
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
-See [here](https://github.com/Instagram/LibCST/pull/615) and
-[here](https://github.com/dry-python/returns/pull/1233) for examples.
+See `here <https://github.com/Instagram/LibCST/pull/615>`_ and
+`here <https://github.com/dry-python/returns/pull/1233>`_ for examples.
 
-[Pre-commit](https://slotscheck.rtfd.io/en/latest/advanced.html#pre-commit-hook) is supported!
+`Pre-commit <https://slotscheck.rtfd.io/en/latest/advanced.html#pre-commit-hook>`_:
+is supported!
 See `the documentation <https://slotscheck.rtfd.io>`_ for more details
 and configuration options.
 
