@@ -63,11 +63,13 @@ def test_single_file_module(runner: CliRunner):
 
 def test_builtins(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "builtins"])
-    assert result.exit_code == 1
-    assert result.output == (
-        "ERROR: Module 'builtins' cannot be inspected. "
-        "Is it an extension module?\n"
-    )
+    assert result.exit_code == 0
+
+
+def test_extension(runner: CliRunner):
+    result = runner.invoke(cli, ["-m", "_pickle"])
+    assert result.exit_code == 0
+    assert result.output == ("All OK!\nScanned 1 module(s), 5 class(es).\n")
 
 
 def test_success_verbose(runner: CliRunner):
@@ -176,11 +178,11 @@ def test_errors_require_slots_subclass(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:A' has no slots but superclass does.
+ERROR: 'module_not_ok.a.b:A' has no slots, but it could have.
 ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:A' has no slots but superclass does.
-ERROR: 'module_not_ok.foo:C' has no slots but superclass does.
-ERROR: 'module_not_ok.foo:R' has no slots but superclass does.
+ERROR: 'module_not_ok.foo:A' has no slots, but it could have.
+ERROR: 'module_not_ok.foo:C' has no slots, but it could have.
+ERROR: 'module_not_ok.foo:R' has no slots, but it could have.
 ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U' has slots but superclass does not.

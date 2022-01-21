@@ -17,12 +17,12 @@ Use the following configuration:
 
    repos:
    - repo: https://github.com/ariebovenberg/slotscheck
-     rev: v0.7.2
+     rev: v0.8.0
      hooks:
      - id: slotscheck
        # Add files you don't want slotscheck to import.
-       # For example, "^(?!src/)" ensures slotscheck will only run on
-       # files in the "src" directory.
+       # For example, "^(?!foo/)" ensures slotscheck will only run on
+       # files in the "foo" directory.
        exclude: "^$"
 
 
@@ -33,9 +33,12 @@ Namespace packages come in `different flavors <https://packaging.python.org/en/l
 When using the ``-m/--module`` flag in the CLI, all these flavors are supported.
 When specifying file paths, *native* namespace packages are not supported.
 
-``python -m slotscheck`` vs ``slotscheck``
-------------------------------------------
+``python -m slotscheck`` and resolving imports
+----------------------------------------------
 
 Running as ``python -m slotscheck`` allows slotscheck to import files
 from your current working directory. Running bare ``slotscheck`` will
-most likely import the *installed* version of the code, which may be different!
+import the *installed* version of the code, which may be different!
+
+Therefore, when developing a module it is recommended to have it installed
+in editable mode.
