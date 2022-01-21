@@ -41,7 +41,9 @@ Usage is quick from the command line:
 
 .. code-block:: bash
 
-   python -m slotscheck [FILES]... # or -m [MODULE]...
+   python -m slotscheck [FILES]...
+   # or
+   slotscheck -m [MODULES]...
 
 For example:
 
@@ -55,6 +57,8 @@ For example:
 
 Now get to fixing —
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
+See [here](https://github.com/Instagram/LibCST/pull/615) and
+[here](https://github.com/dry-python/returns/pull/1233) for examples.
 
 See `the documentation <https://slotscheck.rtfd.io>`_ for more details.
 
