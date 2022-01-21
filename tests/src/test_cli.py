@@ -178,11 +178,11 @@ def test_errors_require_slots_subclass(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:A' has no slots but superclass does.
+ERROR: 'module_not_ok.a.b:A' has no slots, but it could have.
 ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:A' has no slots but superclass does.
-ERROR: 'module_not_ok.foo:C' has no slots but superclass does.
-ERROR: 'module_not_ok.foo:R' has no slots but superclass does.
+ERROR: 'module_not_ok.foo:A' has no slots, but it could have.
+ERROR: 'module_not_ok.foo:C' has no slots, but it could have.
+ERROR: 'module_not_ok.foo:R' has no slots, but it could have.
 ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U' has slots but superclass does not.

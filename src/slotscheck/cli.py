@@ -239,7 +239,10 @@ class ShouldHaveSlots:
 
     def for_display(self, verbose: bool) -> str:
         return (
-            f"'{_class_fullname(self.cls)}' has no slots but superclass does."
+            f"'{_class_fullname(self.cls)}' has no slots, but it could have."
+            + verbose
+            * "\nThis is flagged because the strict `require-subclass` "
+            "setting is active."
         )
 
 
