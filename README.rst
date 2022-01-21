@@ -57,11 +57,17 @@ For example:
 
 Now get to fixing —
 and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
-See `here <https://github.com/Instagram/LibCST/pull/615>`_ and
-`here <https://github.com/dry-python/returns/pull/1233>`_ for examples.
+See `here <https://github.com/Instagram/LibCST/pull/615>`__ and
+`here <https://github.com/dry-python/returns/pull/1233>`__ for examples.
 
-`Pre-commit <https://slotscheck.rtfd.io/en/latest/advanced.html#pre-commit-hook>`_:
-is supported!
+Features
+--------
+
+- Detect broken slots inheritance
+- Detect overlapping slots
+- `Pre-commit <https://slotscheck.rtfd.io/en/latest/advanced.html#pre-commit-hook>`_ hook
+- (Optionally) enforce the use of slots
+
 See `the documentation <https://slotscheck.rtfd.io>`_ for more details
 and configuration options.
 
