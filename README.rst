@@ -60,8 +60,9 @@ and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in 
 See [here](https://github.com/Instagram/LibCST/pull/615) and
 [here](https://github.com/dry-python/returns/pull/1233) for examples.
 
-See `the documentation <https://slotscheck.rtfd.io>`_ for more details.
-
+[Pre-commit](https://slotscheck.rtfd.io/en/latest/advanced.html#pre-commit-hook) is supported!
+See `the documentation <https://slotscheck.rtfd.io>`_ for more details
+and configuration options.
 
 Why not a flake8 plugin?
 ------------------------
