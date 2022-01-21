@@ -64,7 +64,6 @@ def test_single_file_module(runner: CliRunner):
 def test_builtins(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "builtins"])
     assert result.exit_code == 0
-    assert result.output == ("All OK!\nScanned 1 module(s), 91 class(es).\n")
 
 
 def test_extension(runner: CliRunner):
