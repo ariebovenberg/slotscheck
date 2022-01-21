@@ -139,13 +139,8 @@ class Package:
             )
 
 
-class CannotLoadModule(Exception):
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-
 def module_tree(module: ModuleName) -> ModuleTree:
-    "May raise ModuleNotFound or CannotLoadModule"
+    "May raise ModuleNotFoundError"
     loader = pkgutil.get_loader(module)
     if loader is None:
         raise ModuleNotFoundError(f"No module named '{module}'", name=module)
