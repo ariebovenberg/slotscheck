@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.9.0 (2022-01-25)
+------------------
+
+- Support specifying the location of settings file with ``--settings`` option.
+- Improved verbose error messages.
+
 0.8.0 (2022-01-21)
 ------------------
 

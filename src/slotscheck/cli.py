@@ -113,15 +113,22 @@ from .discovery import (
 @click.option(
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
 )
+@click.option(
+    "--settings",
+    type=click.Path(
+        path_type=Path, exists=True, resolve_path=True, dir_okay=False
+    ),
+)
 @click.version_option()
 def root(
     files: Sequence[Path],
     module: Sequence[str],
     verbose: bool,
+    settings: Optional[Path],
     **kwargs: Any,
 ) -> None:
     "Check whether your __slots__ are working properly."
-    conf = config.collect(kwargs, Path.cwd())
+    conf = config.collect(kwargs, Path.cwd(), settings)
     if not (files or module):
         print("No files or modules given. Nothing to do!")
         exit(0)
@@ -202,7 +209,7 @@ class OverlappingSlots:
             * (
                 "\n"
                 + _bulletlist(
-                    f"{name} ({_class_fullname(base)})"
+                    f"'{name}' is also defined in '{_class_fullname(base)}'"
                     for name, base in sorted(
                         _overlapping_slots(self.cls), key=itemgetter(0)
                     )
@@ -228,7 +235,18 @@ class BadSlotInheritance:
             f"'{_class_fullname(self.cls)}' has slots "
             "but superclass does not."
             + verbose
-            * ("\n" + _class_bulletlist(_slotless_superclasses(self.cls)))
+            * (
+                "\n"
+                + _bulletlist(
+                    map(
+                        compose(
+                            "'{}' superclass has no slots.".format,
+                            _class_fullname,
+                        ),
+                        _slotless_superclasses(self.cls),
+                    )
+                )
+            )
         )
 
 

@@ -80,8 +80,10 @@ Config.DEFAULT = Config(
 )
 
 
-def collect(cli_kwargs: Mapping[str, Any], cwd: Path) -> Config:
-    tomlpath = find_pyproject_toml(cwd)
+def collect(
+    cli_kwargs: Mapping[str, Any], cwd: Path, config: Optional[Path]
+) -> Config:
+    tomlpath = config or find_pyproject_toml(cwd)
     toml_conf = (
         PartialConfig.from_toml(tomlpath) if tomlpath else PartialConfig.EMPTY
     )

@@ -316,23 +316,23 @@ def test_module_not_ok_verbose(runner: CliRunner):
         result.output
         == """\
 ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
-       - module_not_ok.a.b:A
+       - 'module_not_ok.a.b:A' superclass has no slots.
 ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
-       - module_not_ok.foo:R
+       - 'module_not_ok.foo:R' superclass has no slots.
 ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
-       - module_not_ok.foo:A
+       - 'module_not_ok.foo:A' superclass has no slots.
 ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
-       - module_not_ok.foo:L
-       - module_not_ok.foo:D
-       - module_not_ok.foo:C
+       - 'module_not_ok.foo:L' superclass has no slots.
+       - 'module_not_ok.foo:D' superclass has no slots.
+       - 'module_not_ok.foo:C' superclass has no slots.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
-       - w (module_not_ok.foo:Q)
+       - 'w' is also defined in 'module_not_ok.foo:Q'
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
-       - w (module_not_ok.foo:U.Ua)
-       - w (module_not_ok.foo:Q)
+       - 'w' is also defined in 'module_not_ok.foo:U.Ua'
+       - 'w' is also defined in 'module_not_ok.foo:Q'
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
-       - p (module_not_ok.foo:U)
-       - v (module_not_ok.foo:V)
+       - 'p' is also defined in 'module_not_ok.foo:U'
+       - 'v' is also defined in 'module_not_ok.foo:V'
 Oh no, found some problems!
 stats:
   modules:     4
@@ -418,7 +418,7 @@ Scanned 18 module(s), 8 class(es).
     )
 
 
-def test_errors_use_toml(runner: CliRunner, mocker, tmpdir):
+def test_finds_config(runner: CliRunner, mocker, tmpdir):
     (tmpdir / "myconf.toml").write_binary(
         b"""
 [tool.slotscheck]
@@ -430,6 +430,30 @@ require-superclass = false
         return_value=Path(tmpdir / "myconf.toml"),
     )
     result = runner.invoke(cli, ["-m", "module_not_ok"])
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
+ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+Oh no, found some problems!
+Scanned 4 module(s), 26 class(es).
+"""
+    )
+
+
+def test_given_config(runner: CliRunner, mocker, tmpdir):
+    my_config = tmpdir / "myconf.toml"
+    my_config.write_binary(
+        b"""
+[tool.slotscheck]
+require-superclass = false
+"""
+    )
+    result = runner.invoke(
+        cli, ["-m", "module_not_ok", "--settings", str(my_config)]
+    )
     assert result.exit_code == 1
     assert (
         result.output
