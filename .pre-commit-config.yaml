@@ -1,0 +1,13 @@
+# Note: don't use this configuration for your own projects.
+# Instead, see https://slotscheck.rtfd.io/en/latest/advanced.html#pre-commit-hook
+repos:
+- repo: local
+  hooks:
+    - id: slotscheck
+      name: slotscheck
+      language: system
+      entry: "python -m slotscheck -v"
+      minimum_pre_commit_version: 2.9.2
+      require_serial: true
+      types_or: [python]
+      exclude: "^(?!src/)"
