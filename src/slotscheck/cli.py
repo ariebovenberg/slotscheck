@@ -482,10 +482,6 @@ def _class_fullname(k: type) -> str:
     return f"{k.__module__}:{k.__qualname__}"
 
 
-def _class_bulletlist(cs: Iterable[type]) -> str:
-    return _bulletlist(map(_class_fullname, cs))
-
-
 def _bulletlist(s: Iterable[str]) -> str:
     return "\n".join(map("- {}".format, s))
 
