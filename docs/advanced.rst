@@ -13,17 +13,35 @@ Use the following configuration:
    Be sure to specify ``exclude``
    to prevent slotscheck from importing scripts unintentionally.
 
+
 .. code-block:: yaml
 
    repos:
    - repo: https://github.com/ariebovenberg/slotscheck
-     rev: v0.9.0
+     rev: v0.10.0
      hooks:
      - id: slotscheck
        # Add files you don't want slotscheck to import.
-       # For example, "^(?!foo/)" ensures slotscheck will only run on
+       # The example below ensures slotscheck will only run on
        # files in the "foo" directory.
-       exclude: "^$"
+       #
+       # exclude: "^(?!foo/)"
+
+       # For slotscheck to be able to import the code,
+       # it needs access to the same dependencies.
+       # One way is to use `additional_dependencies`.
+       # These will then be added to the isolated slotscheck pre-commit env.
+       # An example set of requirements is given below.
+       #
+       # additional_dependencies:
+       # - requests==2.26
+       # - click~=8.0
+
+       # Instead of additional_dependencies, you can reuse the currently
+       # active environment by setting language to `system`.
+       # This requires `slotscheck` to be installed in that environment.
+       #
+       # language: system
 
 
 Namespace packages
