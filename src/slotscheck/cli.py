@@ -1,5 +1,6 @@
 import re
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from functools import partial
 from itertools import chain, filterfalse
@@ -22,6 +23,7 @@ import click
 
 from . import config
 from .checks import (
+    has_duplicate_slots,
     has_slotless_base,
     has_slots,
     is_purepython_class,
@@ -77,7 +79,8 @@ from .discovery import (
 @click.option(
     "--require-subclass/--no-require-subclass",
     help="Report an error when a non-slotted class inherits from "
-    "a slotted class.",
+    "a slotted class. In effect, this option enforces the use of slots "
+    "wherever possible.",
     default=None,
     show_default="not required",
 )
@@ -115,6 +118,7 @@ from .discovery import (
 )
 @click.option(
     "--settings",
+    help="Path to the configuration TOML file to use.",
     type=click.Path(
         path_type=Path, exists=True, resolve_path=True, dir_okay=False
     ),
@@ -227,6 +231,29 @@ def _overlapping_slots(c: type) -> Iterable[Tuple[str, type]]:
 
 @add_slots
 @dataclass(frozen=True)
+class DuplicateSlots:
+    cls: type
+
+    def for_display(self, verbose: bool) -> str:
+        return f"'{_class_fullname(self.cls)}' has duplicate slots." + (
+            verbose
+            * (
+                "\nThese duplicate slot names are:\n"
+                + _bulletlist(map("'{}'".format, _duplicate_slots(self.cls)))
+            )
+        )
+
+
+def _duplicate_slots(c: type) -> Iterable[str]:
+    return (  # type: ignore
+        slot
+        for slot, count in Counter(c.__dict__.get("__slots__", ())).items()
+        if count > 1
+    )
+
+
+@add_slots
+@dataclass(frozen=True)
 class BadSlotInheritance:
     cls: type
 
@@ -265,7 +292,11 @@ class ShouldHaveSlots:
 
 
 Notice = Union[
-    ModuleSkipped, OverlappingSlots, BadSlotInheritance, ShouldHaveSlots
+    ModuleSkipped,
+    OverlappingSlots,
+    BadSlotInheritance,
+    ShouldHaveSlots,
+    DuplicateSlots,
 ]
 
 
@@ -454,6 +485,8 @@ def slot_messages(
 ) -> Iterable[Notice]:
     if slots_overlap(c):
         yield OverlappingSlots(c)
+    if has_duplicate_slots(c):
+        yield DuplicateSlots(c)
     if require_superclass and has_slots(c) and has_slotless_base(c):
         yield BadSlotInheritance(c)
     elif require_subclass and not has_slots(c) and not has_slotless_base(c):

@@ -90,3 +90,11 @@ class W(V):
 
 class X(RuntimeError):
     pass
+
+
+class Z:
+    __slots__ = ('a', 'b', 'c', 'b', 'b', 'c')
+
+
+class Za(Z):
+    __slots__ = ('b', 'c')

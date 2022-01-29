@@ -29,6 +29,11 @@ def slots_overlap(c: type) -> bool:
     return False
 
 
+def has_duplicate_slots(c: type) -> bool:
+    slots = c.__dict__.get("__slots__", ())
+    return len(set(slots)) != len(list(slots))
+
+
 _SLOTTED_BUILTINS = {
     obj
     for obj in builtins.__dict__.values()

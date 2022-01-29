@@ -166,8 +166,10 @@ ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:Z' has duplicate slots.
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 26 class(es).
+Scanned 4 module(s), 28 class(es).
 """
     )
 
@@ -189,8 +191,10 @@ ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:Z' has duplicate slots.
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 26 class(es).
+Scanned 4 module(s), 28 class(es).
 """
     )
 
@@ -210,8 +214,10 @@ ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:Z' has duplicate slots.
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 26 class(es).
+Scanned 4 module(s), 28 class(es).
 """
     )
 
@@ -227,8 +233,10 @@ def test_errors_no_require_superclass(runner: CliRunner):
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:Z' has duplicate slots.
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 26 class(es).
+Scanned 4 module(s), 28 class(es).
 """
     )
 
@@ -246,8 +254,10 @@ ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
+ERROR: 'module_not_ok.foo:Z' has duplicate slots.
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 26 class(es).
+Scanned 4 module(s), 28 class(es).
 """
     )
 
@@ -264,8 +274,9 @@ def test_errors_with_include_classes(runner: CliRunner):
 ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 26 class(es).
+Scanned 4 module(s), 28 class(es).
 """
     )
 
@@ -333,6 +344,13 @@ ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
        - 'p' is also defined in 'module_not_ok.foo:U'
        - 'v' is also defined in 'module_not_ok.foo:V'
+ERROR: 'module_not_ok.foo:Z' has duplicate slots.
+       These duplicate slot names are:
+       - 'b'
+       - 'c'
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
+       - 'b' is also defined in 'module_not_ok.foo:Z'
+       - 'c' is also defined in 'module_not_ok.foo:Z'
 Oh no, found some problems!
 stats:
   modules:     4
@@ -340,8 +358,8 @@ stats:
     excluded:  0
     skipped:   0
 
-  classes:     26
-    has slots: 19
+  classes:     28
+    has slots: 21
     no slots:  7
     n/a:       0
 """
@@ -437,8 +455,10 @@ require-superclass = false
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:Z' has duplicate slots.
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 26 class(es).
+Scanned 4 module(s), 28 class(es).
 """
     )
 
@@ -461,7 +481,9 @@ require-superclass = false
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:Z' has duplicate slots.
+ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 26 class(es).
+Scanned 4 module(s), 28 class(es).
 """
     )
