@@ -6,6 +6,7 @@ Changelog
 
 - Detect duplicate slots (#21).
 - Improvements to docs.
+- Clarify pre-commit usage (#45).
 
 0.9.0 (2022-01-25)
 ------------------
