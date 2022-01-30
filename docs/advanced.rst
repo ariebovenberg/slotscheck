@@ -18,7 +18,7 @@ Use the following configuration:
 
    repos:
    - repo: https://github.com/ariebovenberg/slotscheck
-     rev: v0.10.1
+     rev: v0.10.2
      hooks:
      - id: slotscheck
        # Add files you don't want slotscheck to import.

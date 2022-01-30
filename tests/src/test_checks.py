@@ -47,6 +47,10 @@ class _UnsettableClass(metaclass=_RestrictiveMeta):
     pass
 
 
+class OneStringSlot(HasSlots):
+    __slots__ = "baz"
+
+
 class TestHasSlots:
     @pytest.mark.parametrize(
         "klass",
@@ -57,7 +61,14 @@ class TestHasSlots:
 
     @pytest.mark.parametrize(
         "klass",
-        [Fraction, HasSlots, GoodInherit, BadInherit, BadOverlaps],
+        [
+            Fraction,
+            HasSlots,
+            GoodInherit,
+            BadInherit,
+            BadOverlaps,
+            OneStringSlot,
+        ],
     )
     def test_slots(self, klass):
         assert has_slots(klass)
@@ -90,7 +101,7 @@ class TestSlotsOverlap:
         assert not slots_overlap(klass)
 
     @pytest.mark.parametrize(
-        "klass", [Fraction, HasSlots, GoodInherit, BadInherit]
+        "klass", [Fraction, HasSlots, GoodInherit, BadInherit, OneStringSlot]
     )
     def test_slots_ok(self, klass):
         assert not slots_overlap(klass)
@@ -115,7 +126,7 @@ class TestHasSlotlessBase:
         assert not has_slotless_base(klass)
 
     @pytest.mark.parametrize(
-        "klass", [Fraction, HasSlots, GoodInherit, BadOverlaps]
+        "klass", [Fraction, HasSlots, GoodInherit, BadOverlaps, OneStringSlot]
     )
     def test_slots_ok(self, klass):
         assert not has_slotless_base(klass)

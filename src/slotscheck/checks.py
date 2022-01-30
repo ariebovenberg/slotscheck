@@ -1,6 +1,21 @@
+"Slots-related checks and inspection tools"
 import builtins
 import sys
 from functools import lru_cache
+from typing import Collection, Iterator, Optional
+
+
+def slots(c: type) -> Optional[Collection[str]]:
+    try:
+        slots_raw = c.__dict__["__slots__"]
+    except KeyError:
+        return None
+    if isinstance(slots_raw, str):
+        return (slots_raw,)
+    elif isinstance(slots_raw, Iterator):
+        raise NotImplementedError("Iterator __slots__ not supported. See #22")
+    else:
+        return slots_raw
 
 
 def has_slots(c: type) -> bool:
@@ -19,19 +34,19 @@ def has_slotless_base(c: type) -> bool:
 
 
 def slots_overlap(c: type) -> bool:
-    try:
-        slots = set(c.__dict__["__slots__"])
-    except KeyError:
+    maybe_slots = slots(c)
+    if maybe_slots is None:
         return False
+    slots_ = set(maybe_slots)
     for ancestor in c.mro()[1:]:
-        if not slots.isdisjoint(ancestor.__dict__.get("__slots__", ())):
+        if not slots_.isdisjoint(slots(ancestor) or ()):
             return True
     return False
 
 
 def has_duplicate_slots(c: type) -> bool:
-    slots = c.__dict__.get("__slots__", ())
-    return len(set(slots)) != len(list(slots))
+    slots_ = slots(c) or ()
+    return len(set(slots_)) != len(list(slots_))
 
 
 _SLOTTED_BUILTINS = {

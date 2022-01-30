@@ -27,6 +27,7 @@ from .checks import (
     has_slotless_base,
     has_slots,
     is_purepython_class,
+    slots,
     slots_overlap,
 )
 from .common import (
@@ -223,9 +224,11 @@ class OverlappingSlots:
 
 
 def _overlapping_slots(c: type) -> Iterable[Tuple[str, type]]:
-    slots = set(c.__dict__["__slots__"])
+    maybe_slots = slots(c)
+    assert maybe_slots is not None
+    slots_ = set(maybe_slots)
     for base in c.mro()[1:]:
-        for overlap in slots.intersection(base.__dict__.get("__slots__", ())):
+        for overlap in slots_.intersection(slots(base) or ()):
             yield (overlap, base)
 
 
@@ -245,10 +248,8 @@ class DuplicateSlots:
 
 
 def _duplicate_slots(c: type) -> Iterable[str]:
-    return (  # type: ignore
-        slot
-        for slot, count in Counter(c.__dict__.get("__slots__", ())).items()
-        if count > 1
+    return (
+        slot for slot, count in Counter(slots(c) or ()).items() if count > 1
     )
 
 
