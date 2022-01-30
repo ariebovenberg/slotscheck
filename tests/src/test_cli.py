@@ -327,30 +327,38 @@ def test_module_not_ok_verbose(runner: CliRunner):
         result.output
         == """\
 ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
-       - 'module_not_ok.a.b:A' superclass has no slots.
+       Superclasses without slots:
+       - 'module_not_ok.a.b:A'
 ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
-       - 'module_not_ok.foo:R' superclass has no slots.
+       Superclasses without slots:
+       - 'module_not_ok.foo:R'
 ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
-       - 'module_not_ok.foo:A' superclass has no slots.
+       Superclasses without slots:
+       - 'module_not_ok.foo:A'
 ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
-       - 'module_not_ok.foo:L' superclass has no slots.
-       - 'module_not_ok.foo:D' superclass has no slots.
-       - 'module_not_ok.foo:C' superclass has no slots.
+       Superclasses without slots:
+       - 'module_not_ok.foo:L'
+       - 'module_not_ok.foo:D'
+       - 'module_not_ok.foo:C'
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
-       - 'w' is also defined in 'module_not_ok.foo:Q'
+       Slots already defined in superclass:
+       - 'w' (module_not_ok.foo:Q)
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
-       - 'w' is also defined in 'module_not_ok.foo:U.Ua'
-       - 'w' is also defined in 'module_not_ok.foo:Q'
+       Slots already defined in superclass:
+       - 'w' (module_not_ok.foo:U.Ua)
+       - 'w' (module_not_ok.foo:Q)
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
-       - 'p' is also defined in 'module_not_ok.foo:U'
-       - 'v' is also defined in 'module_not_ok.foo:V'
+       Slots already defined in superclass:
+       - 'p' (module_not_ok.foo:U)
+       - 'v' (module_not_ok.foo:V)
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
-       These duplicate slot names are:
+       Duplicate slot names:
        - 'b'
        - 'c'
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
-       - 'b' is also defined in 'module_not_ok.foo:Z'
-       - 'c' is also defined in 'module_not_ok.foo:Z'
+       Slots already defined in superclass:
+       - 'b' (module_not_ok.foo:Z)
+       - 'c' (module_not_ok.foo:Z)
 Oh no, found some problems!
 stats:
   modules:     4

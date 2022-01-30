@@ -211,9 +211,9 @@ class OverlappingSlots:
             f"'{_class_fullname(self.cls)}' defines overlapping slots."
             + verbose
             * (
-                "\n"
+                "\nSlots already defined in superclass:\n"
                 + _bulletlist(
-                    f"'{name}' is also defined in '{_class_fullname(base)}'"
+                    f"'{name}' ({_class_fullname(base)})"
                     for name, base in sorted(
                         _overlapping_slots(self.cls), key=itemgetter(0)
                     )
@@ -238,7 +238,7 @@ class DuplicateSlots:
         return f"'{_class_fullname(self.cls)}' has duplicate slots." + (
             verbose
             * (
-                "\nThese duplicate slot names are:\n"
+                "\nDuplicate slot names:\n"
                 + _bulletlist(map("'{}'".format, _duplicate_slots(self.cls)))
             )
         )
@@ -263,11 +263,11 @@ class BadSlotInheritance:
             "but superclass does not."
             + verbose
             * (
-                "\n"
+                "\nSuperclasses without slots:\n"
                 + _bulletlist(
                     map(
                         compose(
-                            "'{}' superclass has no slots.".format,
+                            "'{}'".format,
                             _class_fullname,
                         ),
                         _slotless_superclasses(self.cls),

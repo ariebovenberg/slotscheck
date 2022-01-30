@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.10.1 (2022-01-30)
+-------------------
+
+- Small improvements to verbose error messages.
+
 0.10.0 (2022-01-29)
 -------------------
 
