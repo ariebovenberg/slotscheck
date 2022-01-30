@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.10.2 (2022-01-30)
+-------------------
+
+- Correctly handle case when ``__slots__`` is defined as a single string (#47).
+
 0.10.1 (2022-01-30)
 -------------------
 
