@@ -22,9 +22,8 @@ See the :ref:`CLI docs <cli>`. An example TOML configuration:
    strict-imports = true
    exclude-modules = '''
    (
-     .*\.test\..*  # ignore any test code
-     |__main__
-     |some\.specific\.module  # this specific module has bad slots
+     (^|\.)test_  # ignore any tests
+     |^some\.specific\.module  # do not check his module
    )
    '''
    require-superclass = false

@@ -60,3 +60,7 @@ import the *installed* version of the code, which may be different!
 
 Therefore, when developing a module it is recommended to have it installed
 in editable mode.
+
+If the module to check is not importable from the current
+working directory, you may need to use the ``PYTHONPATH`` environment variable
+to manually adjust Python's import path.
