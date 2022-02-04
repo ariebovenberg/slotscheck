@@ -1,4 +1,3 @@
-import pkgutil
 import re
 import sys
 from collections import Counter

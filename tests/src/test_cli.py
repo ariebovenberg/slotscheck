@@ -533,7 +533,7 @@ for more information on why this happens and how to resolve it.
 def test_ambiguous_import_excluded(runner: CliRunner):
     result = runner.invoke(
         cli,
-        ["quacks/foo/bar", "--exclude-modules", "quacks"],
+        ["other/module_misc/a/b/c.py", "--exclude-modules", "module_misc"],
         catch_exceptions=False,
     )
     assert result.exit_code == 0
