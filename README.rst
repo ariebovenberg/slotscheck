@@ -65,6 +65,7 @@ Features
 
 - Detect broken slots inheritance
 - Detect overlapping slots
+- Detect duplicate slots
 - `Pre-commit <https://slotscheck.rtfd.io/en/latest/advanced.html#pre-commit-hook>`_ hook
 - (Optionally) enforce the use of slots
 

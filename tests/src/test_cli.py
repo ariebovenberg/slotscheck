@@ -1,4 +1,5 @@
 import os
+import pkgutil
 from pathlib import Path
 
 import pytest
@@ -471,7 +472,7 @@ Scanned 4 module(s), 28 class(es).
     )
 
 
-def test_given_config(runner: CliRunner, mocker, tmpdir):
+def test_given_config(runner: CliRunner, tmpdir):
     my_config = tmpdir / "myconf.toml"
     my_config.write_binary(
         b"""
@@ -480,7 +481,9 @@ require-superclass = false
 """
     )
     result = runner.invoke(
-        cli, ["-m", "module_not_ok", "--settings", str(my_config)]
+        cli,
+        ["-m", "module_not_ok", "--settings", str(my_config)],
+        catch_exceptions=False,
     )
     assert result.exit_code == 1
     assert (
@@ -493,5 +496,50 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
 Scanned 4 module(s), 28 class(es).
+"""
+    )
+
+
+def test_ambiguous_import(runner: CliRunner):
+    prev_cwd = Path.cwd()
+    try:
+        os.chdir(EXAMPLES_DIR / "other/module_misc/a")
+        result = runner.invoke(cli, ["b/c.py"], catch_exceptions=False)
+    finally:
+        os.chdir(prev_cwd)
+    # breakpoint()
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+Cannot scan due to import ambiguity!
+The given files do not correspond with what would be imported.
+
+'import module_misc.a.b.c' would load from:
+{}
+instead of:
+{}
+
+Have you tried running with 'python -m'?
+See slotscheck.rtfd.io/en/latest/advanced.html#resolving-imports
+for more information on why this happens and how to resolve it.
+""".format(
+            pkgutil.get_loader("module_misc.a.b.c").path,
+            EXAMPLES_DIR / "other/module_misc/a/b/c.py",
+        )
+    )
+
+
+def test_ambiguous_import_excluded(runner: CliRunner):
+    result = runner.invoke(
+        cli,
+        ["quacks/foo/bar", "--exclude-modules", "quacks"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+Files or modules given, but filtered out by exclude/include. Nothing to do!
 """
     )

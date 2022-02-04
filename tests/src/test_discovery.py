@@ -11,6 +11,7 @@ from slotscheck.discovery import (
     Module,
     ModuleTree,
     Package,
+    UnexpectedImportLocation,
     consolidate,
     find_modules,
     module_tree,
@@ -126,7 +127,7 @@ class TestWalkClasses:
 
 class TestModuleTree:
     def test_package(self):
-        tree = module_tree("module_misc")
+        tree = module_tree("module_misc", None)
         assert tree == Package(
             "module_misc",
             fset(
@@ -172,7 +173,7 @@ class TestModuleTree:
         assert len(list(tree)) == len(tree) == 20
 
     def test_subpackage(self):
-        tree = module_tree("module_misc.a.b")
+        tree = module_tree("module_misc.a.b", None)
         assert tree == make_pkg(
             "module_misc",
             make_pkg(
@@ -207,37 +208,51 @@ module_misc
         )
 
     def test_submodule(self):
-        tree = module_tree("module_misc.a.b.c")
+        tree = module_tree("module_misc.a.b.c", None)
         assert tree == make_pkg(
             "module_misc",
             make_pkg("a", make_pkg("b", Module("c"))),
         )
 
     def test_namespaced(self):
-        assert module_tree("namespaced.module") == make_pkg(
+        assert module_tree("namespaced.module", None) == make_pkg(
             "namespaced", make_pkg("module", Module("foo"), Module("bla"))
         )
 
     def test_implicitly_namspaced(self):
-        assert module_tree("implicitly_namespaced.module") == make_pkg(
+        assert module_tree("implicitly_namespaced.module", None) == make_pkg(
             "implicitly_namespaced",
             make_pkg("module", Module("foo"), Module("bla")),
         )
 
     def test_builtin(self):
-        assert module_tree("builtins") == Module("builtins", pure_python=False)
+        assert module_tree("builtins", None) == Module("builtins")
 
     def test_extension(self):
-        assert module_tree("_elementtree") == Module(
-            "_elementtree", pure_python=False
-        )
+        assert module_tree("_elementtree", None) == Module("_elementtree")
 
     def test_does_not_exist(self):
         with pytest.raises(ModuleNotFoundError):
-            module_tree("doesnt_exist")
+            module_tree("doesnt_exist", None)
 
     def test_module(self):
-        assert module_tree("module_singular") == Module("module_singular")
+        assert module_tree(
+            "module_singular",
+            expected_location=EXAMPLES_DIR / "module_singular.py",
+        ) == Module("module_singular")
+
+    def test_unexpected_location(self):
+        with pytest.raises(UnexpectedImportLocation) as exc:
+            module_tree(
+                "module_misc.a.b.c",
+                expected_location=EXAMPLES_DIR / "other/module_misc/a/b/c.py",
+            )
+
+        assert exc.value == UnexpectedImportLocation(
+            "module_misc.a.b.c",
+            EXAMPLES_DIR / "other/module_misc/a/b/c.py",
+            EXAMPLES_DIR / "module_misc/a/b/c.py",
+        )
 
 
 class TestFilterName:
@@ -305,14 +320,6 @@ class TestFilterName:
         assert package.filtername(lambda _: False) is None
 
 
-def _import(m: FoundModule):
-    sys.path.insert(0, str(m.location))
-    try:
-        import_module(m.name)
-    finally:
-        sys.path.remove(str(m.location))
-
-
 class TestFindModules:
     def test_given_directory_without_python(self):
         assert list(find_modules(EXAMPLES_DIR / "files/another")) == []
@@ -323,58 +330,49 @@ class TestFindModules:
     def test_given_python_file(self):
         location = EXAMPLES_DIR / "files/subdir/some_module/../myfile.py"
         result = list(find_modules(location))
-        assert result == [FoundModule("myfile", location.parent)]
-        for m in result:
-            _import(m)
+        assert result == [FoundModule("myfile", location.resolve())]
 
     def test_given_python_root_module(self):
         location = EXAMPLES_DIR / "files/subdir/some_module/"
         result = list(find_modules(location))
-        assert result == [FoundModule("some_module", location.parent)]
-        for m in result:
-            _import(m)
+        assert result == [FoundModule("some_module", location / "__init__.py")]
 
     def test_given_dir_containing_python_files(self):
         location = EXAMPLES_DIR / "files/my_scripts/sub/.."
         result = list(find_modules(location))
         assert len(result) == 4
         assert set(result) == {
-            FoundModule("bla", location),
-            FoundModule("foo", location),
-            FoundModule("foo", location / "sub"),
-            FoundModule("mymodule", location),
+            FoundModule("bla", location.resolve() / "bla.py"),
+            FoundModule("foo", location.resolve() / "foo.py"),
+            FoundModule("foo", location.resolve() / "sub/foo.py"),
+            FoundModule(
+                "mymodule", location.resolve() / "mymodule/__init__.py"
+            ),
         }
-        for m in result:
-            _import(m)
 
     def test_given_file_within_module(self):
         location = EXAMPLES_DIR / "files/subdir/some_module/sub/foo.py"
         result = list(find_modules(location))
         assert result == [
-            FoundModule("some_module.sub.foo", EXAMPLES_DIR / "files/subdir")
+            FoundModule(
+                "some_module.sub.foo",
+                EXAMPLES_DIR / "files/subdir/some_module/sub/foo.py",
+            )
         ]
-        for m in result:
-            _import(m)
 
     def test_given_submodule(self):
         location = EXAMPLES_DIR / "files/subdir/some_module/sub/../sub"
         result = list(find_modules(location))
         assert result == [
-            FoundModule("some_module.sub", location.resolve().parents[1])
+            FoundModule("some_module.sub", location.resolve() / "__init__.py")
         ]
-        for m in result:
-            _import(m)
 
     def test_given_init_py(self):
         location = (
             EXAMPLES_DIR / "files/subdir/some_module/sub/../sub/__init__.py"
         )
         result = list(find_modules(location))
-        assert result == [
-            FoundModule("some_module.sub", location.resolve().parents[2])
-        ]
-        for m in result:
-            _import(m)
+        assert result == [FoundModule("some_module.sub", location.resolve())]
 
 
 class TestConsolidate:

@@ -19,6 +19,7 @@ from typing import (
     FrozenSet,
     Iterable,
     Iterator,
+    NamedTuple,
     Optional,
     Union,
 )
@@ -52,7 +53,6 @@ def consolidate(trees: Iterable[ModuleTree]) -> Collection[ModuleTree]:
 @dataclass(frozen=True)
 class Module:
     name: ModuleNamePart
-    pure_python: bool = True
 
     def __post_init__(self) -> None:
         assert "." not in self.name
@@ -139,7 +139,16 @@ class Package:
             )
 
 
-def module_tree(module: ModuleName) -> ModuleTree:
+@dataclass(frozen=True)
+class UnexpectedImportLocation(Exception):
+    module: ModuleName
+    expected: Path
+    actual: Path
+
+
+def module_tree(
+    module: ModuleName, expected_location: Optional[Path]
+) -> ModuleTree:
     "May raise ModuleNotFoundError"
     loader = pkgutil.get_loader(module)
     if loader is None:
@@ -149,20 +158,28 @@ def module_tree(module: ModuleName) -> ModuleTree:
     elif isinstance(loader, importlib.machinery.ExtensionFileLoader):
         pure_python = False
     elif module == "builtins":
-        return Module(module, pure_python=False)
+        return Module(module)
     else:
         raise NotImplementedError(f"Unsupported module loader type: {loader}")
 
-    *namespaces, name = module.split(".")
+    location = Path(loader.path)  # type: ignore[attr-defined]
+    if expected_location and location != expected_location:
+        raise UnexpectedImportLocation(
+            module,
+            expected_location,
+            location,
+        )
 
+    *namespaces, name = module.split(".")
     if loader.is_package(module):
-        assert isinstance(loader, importlib.abc.FileLoader)
-        assert isinstance(loader.path, str)
         if not pure_python:
-            raise NotImplementedError("Extension packages not supported.")
-        tree: ModuleTree = _package(name, Path(loader.path).parent)
+            raise NotImplementedError(
+                "Extension packages not supported. "
+                "Please report this occurence on the issue tracker."
+            )
+        tree: ModuleTree = _package(name, location.parent)
     else:
-        tree = Module(name, pure_python=pure_python)
+        tree = Module(name)
 
     return reduce(_add_namespace, reversed(namespaces), tree)
 
@@ -278,11 +295,9 @@ def _is_nested_class(obj: Any, parent: type) -> bool:
 _INIT_PY = "__init__.py"
 
 
-@add_slots
-@dataclass(frozen=True)
-class FoundModule:
+class FoundModule(NamedTuple):
     name: ModuleName
-    location: Path
+    expected_location: Optional[Path]
 
 
 def _is_module(p: Path) -> bool:
@@ -300,7 +315,8 @@ def find_modules(p: Path) -> Iterable[FoundModule]:
     elif _is_module(p):
         parents = [p] + list(takewhile(_is_package, p.resolve().parents))
         yield FoundModule(
-            ".".join(p.stem for p in reversed(parents)), parents[-1].parent
+            ".".join(p.stem for p in reversed(parents)),
+            (p / "__init__.py" if _is_package(p) else p).resolve(),
         )
     elif p.is_dir():
         yield from flatten(map(find_modules, p.iterdir()))
