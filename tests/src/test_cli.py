@@ -501,12 +501,11 @@ Scanned 4 module(s), 28 class(es).
 
 
 def test_ambiguous_import(runner: CliRunner):
-    prev_cwd = Path.cwd()
-    try:
-        os.chdir(EXAMPLES_DIR / "other/module_misc/a")
-        result = runner.invoke(cli, ["b/c.py"], catch_exceptions=False)
-    finally:
-        os.chdir(prev_cwd)
+    result = runner.invoke(
+        cli,
+        [str(EXAMPLES_DIR / "other/module_misc/a/b/c.py")],
+        catch_exceptions=False,
+    )
     assert result.exit_code == 1
     assert (
         result.output
