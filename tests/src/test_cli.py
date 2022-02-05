@@ -507,24 +507,27 @@ def test_ambiguous_import(runner: CliRunner):
         result = runner.invoke(cli, ["b/c.py"], catch_exceptions=False)
     finally:
         os.chdir(prev_cwd)
-    # breakpoint()
     assert result.exit_code == 1
     assert (
         result.output
         == """\
-Cannot scan due to import ambiguity!
-The given files do not correspond with what would be imported.
+Cannot check due to import ambiguity.
+The given files do not correspond with what would be imported:
 
-'import module_misc.a.b.c' would load from:
-{}
-instead of:
-{}
+  'import module_misc.a.b.c' would load from:
+  {}
+  instead of:
+  {}
 
-Have you tried running with 'python -m'?
-See slotscheck.rtfd.io/en/latest/advanced.html#resolving-imports
+You may need to define $PYTHONPATH or run as 'python -m slotscheck'
+to ensure the correct files can be imported.
+
+See slotscheck.rtfd.io/en/latest/discovery.html
 for more information on why this happens and how to resolve it.
 """.format(
-            pkgutil.get_loader("module_misc.a.b.c").path,
+            pkgutil.get_loader(
+                "module_misc.a.b.c"
+            ).path,  # type: ignore[attr-defined]
             EXAMPLES_DIR / "other/module_misc/a/b/c.py",
         )
     )

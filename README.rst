@@ -22,7 +22,7 @@
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
 
-Adding ``__slots__`` to a class in Python is a great way to reduce memory usage.
+Adding ``__slots__`` to a class in Python is a great way to improve performance.
 But to work properly, all base classes need to implement it — without overlap!
 It's easy to get wrong, and what's worse: there is nothing warning you that you messed up.
 
@@ -56,7 +56,9 @@ For example:
    Scanned 72 module(s), 111 class(es).
 
 Now get to fixing —
-and add ``slotscheck`` to your CI pipeline to prevent mistakes from creeping in again!
+and add ``slotscheck`` to your CI pipeline or
+`pre-commit <https://slotscheck.rtfd.io/en/latest/advanced.html#pre-commit-hook>`_
+to prevent mistakes from creeping in again!
 See `here <https://github.com/Instagram/LibCST/pull/615>`__ and
 `here <https://github.com/dry-python/returns/pull/1233>`__ for examples.
 

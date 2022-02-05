@@ -5,8 +5,8 @@ import pytest
 
 from slotscheck.discovery import (
     FailedImport,
-    FoundModule,
     Module,
+    ModuleLocated,
     ModuleTree,
     Package,
     UnexpectedImportLocation,
@@ -326,51 +326,49 @@ class TestFindModules:
         assert list(find_modules(EXAMPLES_DIR / "files/foo")) == []
 
     def test_given_python_file(self):
-        location = EXAMPLES_DIR / "files/subdir/some_module/../myfile.py"
+        location = EXAMPLES_DIR / "files/subdir/myfile.py"
         result = list(find_modules(location))
-        assert result == [FoundModule("myfile", location.resolve())]
+        assert result == [ModuleLocated("myfile", location)]
 
     def test_given_python_root_module(self):
         location = EXAMPLES_DIR / "files/subdir/some_module/"
         result = list(find_modules(location))
-        assert result == [FoundModule("some_module", location / "__init__.py")]
+        assert result == [
+            ModuleLocated("some_module", location / "__init__.py")
+        ]
 
     def test_given_dir_containing_python_files(self):
-        location = EXAMPLES_DIR / "files/my_scripts/sub/.."
+        location = EXAMPLES_DIR / "files/my_scripts/"
         result = list(find_modules(location))
         assert len(result) == 4
         assert set(result) == {
-            FoundModule("bla", location.resolve() / "bla.py"),
-            FoundModule("foo", location.resolve() / "foo.py"),
-            FoundModule("foo", location.resolve() / "sub/foo.py"),
-            FoundModule(
-                "mymodule", location.resolve() / "mymodule/__init__.py"
-            ),
+            ModuleLocated("bla", location / "bla.py"),
+            ModuleLocated("foo", location / "foo.py"),
+            ModuleLocated("foo", location / "sub/foo.py"),
+            ModuleLocated("mymodule", location / "mymodule/__init__.py"),
         }
 
     def test_given_file_within_module(self):
         location = EXAMPLES_DIR / "files/subdir/some_module/sub/foo.py"
         result = list(find_modules(location))
         assert result == [
-            FoundModule(
+            ModuleLocated(
                 "some_module.sub.foo",
                 EXAMPLES_DIR / "files/subdir/some_module/sub/foo.py",
             )
         ]
 
     def test_given_submodule(self):
-        location = EXAMPLES_DIR / "files/subdir/some_module/sub/../sub"
+        location = EXAMPLES_DIR / "files/subdir/some_module/sub"
         result = list(find_modules(location))
         assert result == [
-            FoundModule("some_module.sub", location.resolve() / "__init__.py")
+            ModuleLocated("some_module.sub", location / "__init__.py")
         ]
 
     def test_given_init_py(self):
-        location = (
-            EXAMPLES_DIR / "files/subdir/some_module/sub/../sub/__init__.py"
-        )
+        location = EXAMPLES_DIR / "files/subdir/some_module/sub/__init__.py"
         result = list(find_modules(location))
-        assert result == [FoundModule("some_module.sub", location.resolve())]
+        assert result == [ModuleLocated("some_module.sub", location)]
 
 
 class TestConsolidate:

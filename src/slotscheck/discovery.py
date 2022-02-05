@@ -34,6 +34,9 @@ ModuleNamePart = str
 
 ModuleTree = Union["Module", "Package"]
 
+AbsPath = Path
+"A resolved filepath. Contains no '..'."
+
 
 def consolidate(trees: Iterable[ModuleTree]) -> Collection[ModuleTree]:
     "Deduplicate and merge module trees"
@@ -142,12 +145,12 @@ class Package:
 @dataclass(frozen=True)
 class UnexpectedImportLocation(Exception):
     module: ModuleName
-    expected: Path
-    actual: Path
+    expected: AbsPath
+    actual: AbsPath
 
 
 def module_tree(
-    module: ModuleName, expected_location: Optional[Path]
+    module: ModuleName, expected_location: Optional[AbsPath]
 ) -> ModuleTree:
     "May raise ModuleNotFoundError"
     loader = pkgutil.get_loader(module)
@@ -162,7 +165,7 @@ def module_tree(
     else:
         raise NotImplementedError(f"Unsupported module loader type: {loader}")
 
-    location = Path(loader.path)  # type: ignore[attr-defined]
+    location: AbsPath = Path(loader.path)  # type: ignore[attr-defined]
     if expected_location and location != expected_location:
         raise UnexpectedImportLocation(
             module,
@@ -198,11 +201,11 @@ def _submodule(m: pkgutil.ModuleInfo) -> ModuleTree:
         return Module(m.name)
 
 
-def _is_submodule(m: pkgutil.ModuleInfo, path: Path) -> bool:
+def _is_submodule(m: pkgutil.ModuleInfo, path: AbsPath) -> bool:
     return getattr(m.module_finder, "path", "").startswith(str(path))
 
 
-def _package(name: ModuleNamePart, path: Path) -> Package:
+def _package(name: ModuleNamePart, path: AbsPath) -> Package:
     return Package(
         name,
         frozenset(
@@ -295,28 +298,28 @@ def _is_nested_class(obj: Any, parent: type) -> bool:
 _INIT_PY = "__init__.py"
 
 
-class FoundModule(NamedTuple):
+class ModuleLocated(NamedTuple):
     name: ModuleName
-    expected_location: Optional[Path]
+    expected_location: Optional[AbsPath]
 
 
-def _is_module(p: Path) -> bool:
+def _is_module(p: AbsPath) -> bool:
     return (p.is_file() and p.suffixes == [".py"]) or _is_package(p)
 
 
-def _is_package(p: Path) -> bool:
+def _is_package(p: AbsPath) -> bool:
     return p.is_dir() and (p / _INIT_PY).is_file()
 
 
-def find_modules(p: Path) -> Iterable[FoundModule]:
-    "Recursively find modules at given Path. Nonexistent Path is ignored"
+def find_modules(p: AbsPath) -> Iterable[ModuleLocated]:
+    "Recursively find modules at given path. Nonexistent Path is ignored"
     if p.name == _INIT_PY:
-        yield from find_modules(p.resolve().parent)
+        yield from find_modules(p.parent)
     elif _is_module(p):
-        parents = [p] + list(takewhile(_is_package, p.resolve().parents))
-        yield FoundModule(
+        parents = [p] + list(takewhile(_is_package, p.parents))
+        yield ModuleLocated(
             ".".join(p.stem for p in reversed(parents)),
-            (p / "__init__.py" if _is_package(p) else p).resolve(),
+            (p / "__init__.py" if _is_package(p) else p),
         )
     elif p.is_dir():
         yield from flatten(map(find_modules, p.iterdir()))

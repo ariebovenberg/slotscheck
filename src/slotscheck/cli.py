@@ -40,8 +40,9 @@ from .common import (
     map_optional,
 )
 from .discovery import (
+    AbsPath,
     FailedImport,
-    FoundModule,
+    ModuleLocated,
     ModuleName,
     ModuleTree,
     UnexpectedImportLocation,
@@ -128,10 +129,10 @@ from .discovery import (
 )
 @click.version_option()
 def root(
-    files: Sequence[Path],
+    files: Sequence[AbsPath],
     module: Sequence[str],
     verbose: bool,
-    settings: Optional[Path],
+    settings: Optional[AbsPath],
     **kwargs: Any,
 ) -> None:
     "Check whether your __slots__ are working properly."
@@ -148,16 +149,18 @@ def root(
     except UnexpectedImportLocation as e:
         print(
             """\
-Cannot scan due to import ambiguity!
-The given files do not correspond with what would be imported.
+Cannot check due to import ambiguity.
+The given files do not correspond with what would be imported:
 
-'import {0.module}' would load from:
-{0.actual}
-instead of:
-{0.expected}
+  'import {0.module}' would load from:
+  {0.actual}
+  instead of:
+  {0.expected}
 
-Have you tried running with 'python -m'?
-See slotscheck.rtfd.io/en/latest/advanced.html#resolving-imports
+You may need to define $PYTHONPATH or run as 'python -m slotscheck'
+to ensure the correct files can be imported.
+
+See slotscheck.rtfd.io/en/latest/discovery.html
 for more information on why this happens and how to resolve it.""".format(
                 e
             )
@@ -342,7 +345,7 @@ class ModulesReport:
 
 
 def _collect(
-    files: Collection[Path],
+    files: Collection[AbsPath],
     modules: Collection[ModuleName],
     conf: config.Config,
 ) -> Tuple[Collection[type], ModulesReport]:
@@ -379,8 +382,8 @@ def _create_filter(include: Optional[str], exclude: str) -> Predicate[str]:
 
 
 def _as_modules(
-    files: Collection[Path], names: Iterable[ModuleName]
-) -> Iterable[FoundModule]:
+    files: Collection[AbsPath], names: Iterable[ModuleName]
+) -> Iterable[ModuleLocated]:
     if files and names:
         print(
             _format_error(
@@ -393,7 +396,7 @@ def _as_modules(
     elif files:
         return flatten(map(find_modules, files))
     else:
-        return map(partial(FoundModule, expected_location=None), names)
+        return map(partial(ModuleLocated, expected_location=None), names)
 
 
 def _collect_classes(
