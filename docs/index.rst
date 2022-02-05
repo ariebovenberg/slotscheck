@@ -9,6 +9,7 @@ Contents
    cli.rst
    configuration.rst
    errors.rst
+   discovery.rst
    advanced.rst
 
 

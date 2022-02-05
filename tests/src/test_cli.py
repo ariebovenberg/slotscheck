@@ -1,4 +1,5 @@
 import os
+import pkgutil
 from pathlib import Path
 
 import pytest
@@ -471,7 +472,7 @@ Scanned 4 module(s), 28 class(es).
     )
 
 
-def test_given_config(runner: CliRunner, mocker, tmpdir):
+def test_given_config(runner: CliRunner, tmpdir):
     my_config = tmpdir / "myconf.toml"
     my_config.write_binary(
         b"""
@@ -480,7 +481,9 @@ require-superclass = false
 """
     )
     result = runner.invoke(
-        cli, ["-m", "module_not_ok", "--settings", str(my_config)]
+        cli,
+        ["-m", "module_not_ok", "--settings", str(my_config)],
+        catch_exceptions=False,
     )
     assert result.exit_code == 1
     assert (
@@ -493,5 +496,52 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
 Scanned 4 module(s), 28 class(es).
+"""
+    )
+
+
+def test_ambiguous_import(runner: CliRunner):
+    result = runner.invoke(
+        cli,
+        [str(EXAMPLES_DIR / "other/module_misc/a/b/c.py")],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == """\
+Cannot check due to import ambiguity.
+The given files do not correspond with what would be imported:
+
+  'import module_misc.a.b.c' would load from:
+  {}
+  instead of:
+  {}
+
+You may need to define $PYTHONPATH or run as 'python -m slotscheck'
+to ensure the correct files can be imported.
+
+See slotscheck.rtfd.io/en/latest/discovery.html
+for more information on why this happens and how to resolve it.
+""".format(
+            pkgutil.get_loader(
+                "module_misc.a.b.c"
+            ).path,  # type: ignore[attr-defined]
+            EXAMPLES_DIR / "other/module_misc/a/b/c.py",
+        )
+    )
+
+
+def test_ambiguous_import_excluded(runner: CliRunner):
+    result = runner.invoke(
+        cli,
+        ["other/module_misc/a/b/c.py", "--exclude-modules", "module_misc"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+Files or modules given, but filtered out by exclude/include. Nothing to do!
 """
     )

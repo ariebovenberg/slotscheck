@@ -3,7 +3,7 @@ import sys
 from collections import Counter
 from dataclasses import dataclass
 from functools import partial
-from itertools import chain, filterfalse
+from itertools import chain, filterfalse, starmap
 from operator import attrgetter, itemgetter, methodcaller, not_
 from pathlib import Path
 from textwrap import indent
@@ -40,9 +40,12 @@ from .common import (
     map_optional,
 )
 from .discovery import (
+    AbsPath,
     FailedImport,
+    ModuleLocated,
     ModuleName,
     ModuleTree,
+    UnexpectedImportLocation,
     consolidate,
     find_modules,
     module_tree,
@@ -126,10 +129,10 @@ from .discovery import (
 )
 @click.version_option()
 def root(
-    files: Sequence[Path],
+    files: Sequence[AbsPath],
     module: Sequence[str],
     verbose: bool,
-    settings: Optional[Path],
+    settings: Optional[AbsPath],
     **kwargs: Any,
 ) -> None:
     "Check whether your __slots__ are working properly."
@@ -142,6 +145,26 @@ def root(
         classes, modules = _collect(files, module, conf)
     except ModuleNotFoundError as e:
         print(_format_error(f"Module '{e.name}' not found."))
+        exit(1)
+    except UnexpectedImportLocation as e:
+        print(
+            """\
+Cannot check due to import ambiguity.
+The given files do not correspond with what would be imported:
+
+  'import {0.module}' would load from:
+  {0.actual}
+  instead of:
+  {0.expected}
+
+You may need to define $PYTHONPATH or run as 'python -m slotscheck'
+to ensure the correct files can be imported.
+
+See slotscheck.rtfd.io/en/latest/discovery.html
+for more information on why this happens and how to resolve it.""".format(
+                e
+            )
+        )
         exit(1)
 
     if not modules.filtered:
@@ -322,13 +345,19 @@ class ModulesReport:
 
 
 def _collect(
-    files: Collection[Path],
+    files: Collection[AbsPath],
     modules: Collection[ModuleName],
     conf: config.Config,
 ) -> Tuple[Collection[type], ModulesReport]:
     modulefilter = _create_filter(conf.include_modules, conf.exclude_modules)
     modules_all = consolidate(
-        map(module_tree, filter(modulefilter, _as_modules(files, modules)))
+        starmap(
+            module_tree,
+            filter(
+                compose(modulefilter, attrgetter("name")),
+                _as_modules(files, modules),
+            ),
+        )
     )
     modules_filtered: Collection[ModuleTree] = list(
         map_optional(methodcaller("filtername", modulefilter), modules_all)
@@ -353,8 +382,8 @@ def _create_filter(include: Optional[str], exclude: str) -> Predicate[str]:
 
 
 def _as_modules(
-    files: Collection[Path], names: Collection[ModuleName]
-) -> Collection[ModuleName]:
+    files: Collection[AbsPath], names: Iterable[ModuleName]
+) -> Iterable[ModuleLocated]:
     if files and names:
         print(
             _format_error(
@@ -365,9 +394,9 @@ def _as_modules(
         )
         exit(2)
     elif files:
-        return [m.name for m in flatten(map(find_modules, files))]
+        return flatten(map(find_modules, files))
     else:
-        return names
+        return map(partial(ModuleLocated, expected_location=None), names)
 
 
 def _collect_classes(

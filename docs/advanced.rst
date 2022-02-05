@@ -18,26 +18,35 @@ Use the following configuration:
 
    repos:
    - repo: https://github.com/ariebovenberg/slotscheck
-     rev: v0.10.2
+     rev: v0.11.0
      hooks:
      - id: slotscheck
+       # If your Python files are not importable from the project root,
+       # (for example if they're in a "src" directory)
+       # you will need to add this directory to Python's import path.
+       # See slotscheck.rtfd.io/en/latest/discovery.html for more info.
+       # Below is what you need to add if you're code isn't importable
+       # from the project root, in a "src" directory:
+       #
+       # entry: env PYTHONPATH=src slotscheck --verbose
+
        # Add files you don't want slotscheck to import.
        # The example below ensures slotscheck will only run on
-       # files in the "foo" directory.
+       # files in the "src/foo" directory:
        #
-       # exclude: "^(?!foo/)"
+       # exclude: "^(?!src/foo/)"
 
        # For slotscheck to be able to import the code,
        # it needs access to the same dependencies.
        # One way is to use `additional_dependencies`.
        # These will then be added to the isolated slotscheck pre-commit env.
-       # An example set of requirements is given below.
+       # An example set of requirements is given below:
        #
        # additional_dependencies:
        # - requests==2.26
        # - click~=8.0
 
-       # Instead of additional_dependencies, you can reuse the currently
+       # Instead of `additional_dependencies`, you can reuse the currently
        # active environment by setting language to `system`.
        # This requires `slotscheck` to be installed in that environment.
        #
@@ -50,17 +59,3 @@ Namespace packages
 Namespace packages come in `different flavors <https://packaging.python.org/en/latest/guides/packaging-namespace-packages/>`_.
 When using the ``-m/--module`` flag in the CLI, all these flavors are supported.
 When specifying file paths, *native* namespace packages are not supported.
-
-``python -m slotscheck`` and resolving imports
-----------------------------------------------
-
-Running as ``python -m slotscheck`` allows slotscheck to import files
-from your current working directory. Running bare ``slotscheck`` will
-import the *installed* version of the code, which may be different!
-
-Therefore, when developing a module it is recommended to have it installed
-in editable mode.
-
-If the module to check is not importable from the current
-working directory, you may need to use the ``PYTHONPATH`` environment variable
-to manually adjust Python's import path.
