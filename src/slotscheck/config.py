@@ -1,5 +1,6 @@
 "Logic for gathering and managing the configuration settings"
 
+import configparser
 from dataclasses import dataclass, fields
 from itertools import chain
 from pathlib import Path
@@ -7,7 +8,7 @@ from typing import Any, ClassVar, Collection, Mapping, Optional, Type, TypeVar
 
 import tomli
 
-from .common import add_slots
+from .common import add_slots, both
 
 RegexStr = str
 "A regex string in Python's verbose syntax"
@@ -18,7 +19,7 @@ _T = TypeVar("_T")
 @add_slots
 @dataclass(frozen=True)
 class PartialConfig:
-    "Options given by user. Some may be missing."
+    "Configuration options where not all options may be defined."
     strict_imports: Optional[bool]
     require_subclass: Optional[bool]
     require_superclass: Optional[bool]
@@ -29,19 +30,47 @@ class PartialConfig:
 
     EMPTY: ClassVar["PartialConfig"]
 
-    @staticmethod
-    def from_toml(p: Path) -> "PartialConfig":
-        "May raise TOMLDecodeError or ValidationError. File must exist."
-        with p.open("rb") as rfile:
-            root = tomli.load(rfile)
+    @classmethod
+    def load(cls, p: Path) -> "PartialConfig":
+        "May raise various exceptions on parse problems. File must exist."
+        if p.suffix == ".toml":
+            return cls._load_toml(p)
+        elif p.suffix in (".ini", ".cfg"):
+            return cls._load_ini(p)
+        else:
+            raise ValueError(
+                "Settings file with invalid extension. "
+                "Expected .toml, .ini, or .cfg"
+            )
 
-        conf = root.get("tool", {}).get("slotscheck", {})
-        if not conf.keys() <= _ALLOWED_KEYS.keys():
-            raise InvalidKeys(conf.keys() - _ALLOWED_KEYS)
+    @classmethod
+    def _load_toml(cls, p: Path) -> "PartialConfig":
+        with p.open("rb") as rfile:
+            return cls._load_confmap(
+                tomli.load(rfile).get("tool", {}).get("slotscheck", {})
+            )
+
+    @classmethod
+    def _load_ini(cls, p: Path) -> "PartialConfig":
+        cfg = configparser.ConfigParser()
+        cfg.read(p, encoding="utf-8")
+        return cls._load_confmap(
+            {
+                k: cfg.BOOLEAN_STATES.get(v, v)
+                for k, v in cfg.items("slotscheck")
+            }
+            if cfg.has_section("slotscheck")
+            else {}
+        )
+
+    @classmethod
+    def _load_confmap(cls, m: Mapping[str, object]) -> "PartialConfig":
+        if not m.keys() <= _ALLOWED_KEYS.keys():
+            raise InvalidKeys(m.keys() - _ALLOWED_KEYS)
 
         return PartialConfig(
             **{
-                key.replace("-", "_"): _extract_value(conf, key, expect_type)
+                key.replace("-", "_"): _extract_value(m, key, expect_type)
                 for key, expect_type in _ALLOWED_KEYS.items()
             },
         )
@@ -52,6 +81,7 @@ PartialConfig.EMPTY = PartialConfig(None, None, None, None, None, None, None)
 
 @dataclass(frozen=True)
 class Config(PartialConfig):
+    "A full set of options"
     __slots__ = ()
     strict_imports: bool
     require_subclass: bool
@@ -83,19 +113,43 @@ Config.DEFAULT = Config(
 def collect(
     cli_kwargs: Mapping[str, Any], cwd: Path, config: Optional[Path]
 ) -> Config:
-    tomlpath = config or find_pyproject_toml(cwd)
-    toml_conf = (
-        PartialConfig.from_toml(tomlpath) if tomlpath else PartialConfig.EMPTY
+    "Gather and combine configuration options from the available sources"
+    confpath = config or find_config_file(cwd)
+    conf = PartialConfig.load(confpath) if confpath else PartialConfig.EMPTY
+    return Config.DEFAULT.apply(conf).apply(PartialConfig(**cli_kwargs))
+
+
+_CONFIG_FILENAMES = ("pyproject.toml", "setup.cfg")
+
+
+def find_config_file(path: Path) -> Optional[Path]:
+    "Find a configuration file in the given directory or its parents"
+    candidates = (
+        directory / name
+        for directory in chain((path,), path.parents)
+        for name in _CONFIG_FILENAMES
     )
-    return Config.DEFAULT.apply(toml_conf).apply(PartialConfig(**cli_kwargs))
+    return next(
+        filter(
+            both(
+                Path.is_file,  # type: ignore[arg-type]
+                _has_slotscheck_section,  # type: ignore[arg-type]
+            ),
+            candidates,
+        ),
+        None,
+    )
 
 
-def find_pyproject_toml(path: Path) -> Optional[Path]:
-    for p in chain((path,), path.parents):
-        if (p / "pyproject.toml").is_file():
-            return p / "pyproject.toml"
-    else:
-        return None
+def _has_slotscheck_section(p: Path) -> bool:
+    with p.open("rb") as rfile:
+        if p.suffix == ".toml":
+            return "slotscheck" in tomli.load(rfile).get("tool", {})
+        else:
+            assert p.suffix == ".cfg"
+            cfg = configparser.ConfigParser()
+            cfg.read(p, encoding="utf-8")
+            return cfg.has_section("slotscheck")
 
 
 class InvalidKeys(Exception):
