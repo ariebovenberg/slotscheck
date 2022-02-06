@@ -1,5 +1,6 @@
 "Logic for gathering and managing the configuration settings"
 
+import configparser
 from dataclasses import dataclass, fields
 from itertools import chain
 from pathlib import Path
@@ -36,6 +37,30 @@ class PartialConfig:
             root = tomli.load(rfile)
 
         conf = root.get("tool", {}).get("slotscheck", {})
+        if not conf.keys() <= _ALLOWED_KEYS.keys():
+            raise InvalidKeys(conf.keys() - _ALLOWED_KEYS)
+
+        return PartialConfig(
+            **{
+                key.replace("-", "_"): _extract_value(conf, key, expect_type)
+                for key, expect_type in _ALLOWED_KEYS.items()
+            },
+        )
+
+    @staticmethod
+    def from_ini(p: Path) -> "PartialConfig":
+        cfg = configparser.ConfigParser()
+        cfg.read(p, encoding="utf-8")
+
+        conf = (
+            {
+                k: cfg.BOOLEAN_STATES.get(v, v)
+                for k, v in cfg.items("slotscheck")
+            }
+            if cfg.has_section("slotscheck")
+            else {}
+        )
+
         if not conf.keys() <= _ALLOWED_KEYS.keys():
             raise InvalidKeys(conf.keys() - _ALLOWED_KEYS)
 
@@ -84,16 +109,29 @@ def collect(
     cli_kwargs: Mapping[str, Any], cwd: Path, config: Optional[Path]
 ) -> Config:
     tomlpath = config or find_pyproject_toml(cwd)
-    toml_conf = (
+    conf = (
         PartialConfig.from_toml(tomlpath) if tomlpath else PartialConfig.EMPTY
     )
-    return Config.DEFAULT.apply(toml_conf).apply(PartialConfig(**cli_kwargs))
+
+    if conf == PartialConfig.EMPTY:
+        inipath = find_ini_file(cwd)
+        if inipath:
+            conf = PartialConfig.from_ini(inipath)
+    return Config.DEFAULT.apply(conf).apply(PartialConfig(**cli_kwargs))
 
 
 def find_pyproject_toml(path: Path) -> Optional[Path]:
     for p in chain((path,), path.parents):
         if (p / "pyproject.toml").is_file():
             return p / "pyproject.toml"
+    else:
+        return None
+
+
+def find_ini_file(path: Path) -> Optional[Path]:
+    for p in chain((path,), path.parents):
+        if (p / "setup.cfg").is_file():
+            return p / "setup.cfg"
     else:
         return None
 
