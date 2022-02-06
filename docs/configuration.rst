@@ -47,7 +47,7 @@ section in the current working directory. If not found, it will try to find a
 Until a file is found, this search will be repeated for each parent directory.
 
 Alternatively, you can manually specify the config file to be used with the
-``--settings`` config option.
+``--settings`` CLI option.
 
 Note that CLI options have precedence over a config file.
 Thus, you can always override what's configured there.
