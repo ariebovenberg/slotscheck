@@ -1,5 +1,6 @@
 import re
 import sys
+from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from functools import partial
@@ -16,7 +17,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Union,
 )
 
 import click
@@ -68,12 +68,6 @@ from .discovery import (
     multiple=True,
 )
 @click.option(
-    "--strict-imports/--no-strict-imports",
-    help="Treat failed imports as errors.",
-    default=True,
-    show_default="strict",
-)
-@click.option(
     "--require-superclass/--no-require-superclass",
     help="Report an error when a slots class inherits from "
     "a non-slotted class.",
@@ -118,11 +112,18 @@ from .discovery import (
     show_default="``^$``",
 )
 @click.option(
+    "--strict-imports/--no-strict-imports",
+    help="Treat failed imports as errors.",
+    default=True,
+    show_default="strict",
+)
+@click.option(
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
 )
 @click.option(
     "--settings",
-    help="Path to the configuration TOML file to use.",
+    help="Path to the configuration file to use. "
+    "Allowed extensions are toml, cfg, ini.",
     type=click.Path(
         path_type=Path, exists=True, resolve_path=True, dir_okay=False
     ),
@@ -213,9 +214,19 @@ for more information on why this happens and how to resolve it.""".format(
         exit(1)
 
 
+class Notice(ABC):
+    "Base class for notices to be displayed"
+    __slots__ = ()
+
+    @abstractmethod
+    def for_display(self, verbose: bool) -> str:
+        raise NotImplementedError()
+
+
 @add_slots
 @dataclass(frozen=True)
-class ModuleSkipped:
+class ModuleSkipped(Notice):
+    "Notice that a module has been skipped due to an import failure."
     failure: FailedImport
 
     def for_display(self, verbose: bool) -> str:
@@ -227,7 +238,8 @@ class ModuleSkipped:
 
 @add_slots
 @dataclass(frozen=True)
-class OverlappingSlots:
+class OverlappingSlots(Notice):
+    "Notice that slots on a class overlap with its superclass(es)."
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -257,7 +269,8 @@ def _overlapping_slots(c: type) -> Iterable[Tuple[str, type]]:
 
 @add_slots
 @dataclass(frozen=True)
-class DuplicateSlots:
+class DuplicateSlots(Notice):
+    "Notice that a class defines duplicate slots."
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -278,7 +291,8 @@ def _duplicate_slots(c: type) -> Iterable[str]:
 
 @add_slots
 @dataclass(frozen=True)
-class BadSlotInheritance:
+class BadSlotInheritance(Notice):
+    "Notice that a class has slots, but some of its superclasses do not."
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -303,7 +317,8 @@ class BadSlotInheritance:
 
 @add_slots
 @dataclass(frozen=True)
-class ShouldHaveSlots:
+class ShouldHaveSlots(Notice):
+    "Notice that a class should have slots, but doesn't."
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -315,18 +330,10 @@ class ShouldHaveSlots:
         )
 
 
-Notice = Union[
-    ModuleSkipped,
-    OverlappingSlots,
-    BadSlotInheritance,
-    ShouldHaveSlots,
-    DuplicateSlots,
-]
-
-
 @add_slots
 @dataclass(frozen=True)
 class Message:
+    "A notice with error level."
     notice: Notice
     error: bool
 
@@ -339,6 +346,7 @@ class Message:
 @add_slots
 @dataclass(frozen=True)
 class ModulesReport:
+    "Report with data on modules excluded or skipped."
     all: Collection[ModuleTree]
     filtered: Collection[ModuleTree]
     skipped: Collection[ModuleSkipped]

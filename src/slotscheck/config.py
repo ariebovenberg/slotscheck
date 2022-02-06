@@ -19,7 +19,7 @@ _T = TypeVar("_T")
 @add_slots
 @dataclass(frozen=True)
 class PartialConfig:
-    "Options given by user. Some may be missing."
+    "Configuration options where not all options may be defined."
     strict_imports: Optional[bool]
     require_subclass: Optional[bool]
     require_superclass: Optional[bool]
@@ -81,6 +81,7 @@ PartialConfig.EMPTY = PartialConfig(None, None, None, None, None, None, None)
 
 @dataclass(frozen=True)
 class Config(PartialConfig):
+    "A full set of options"
     __slots__ = ()
     strict_imports: bool
     require_subclass: bool
@@ -112,6 +113,7 @@ Config.DEFAULT = Config(
 def collect(
     cli_kwargs: Mapping[str, Any], cwd: Path, config: Optional[Path]
 ) -> Config:
+    "Gather and combine configuration options from the available sources"
     confpath = config or find_config_file(cwd)
     conf = PartialConfig.load(confpath) if confpath else PartialConfig.EMPTY
     return Config.DEFAULT.apply(conf).apply(PartialConfig(**cli_kwargs))
@@ -121,6 +123,7 @@ _CONFIG_FILENAMES = ("pyproject.toml", "setup.cfg")
 
 
 def find_config_file(path: Path) -> Optional[Path]:
+    "Find a configuration file in the given directory or its parents"
     candidates = (
         directory / name
         for directory in chain((path,), path.parents)
