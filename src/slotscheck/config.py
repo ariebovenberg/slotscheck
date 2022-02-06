@@ -8,7 +8,7 @@ from typing import Any, ClassVar, Collection, Mapping, Optional, Type, TypeVar
 
 import tomli
 
-from .common import add_slots
+from .common import add_slots, both
 
 RegexStr = str
 "A regex string in Python's verbose syntax"
@@ -30,29 +30,31 @@ class PartialConfig:
 
     EMPTY: ClassVar["PartialConfig"]
 
-    @staticmethod
-    def from_toml(p: Path) -> "PartialConfig":
-        "May raise TOMLDecodeError or ValidationError. File must exist."
+    @classmethod
+    def load(cls, p: Path) -> "PartialConfig":
+        "May raise various exceptions on parse problems. File must exist."
+        if p.suffix == ".toml":
+            return cls._load_toml(p)
+        elif p.suffix in (".ini", ".cfg"):
+            return cls._load_ini(p)
+        else:
+            raise ValueError(
+                "Settings file with invalid extension. "
+                "Expected .toml, .ini, or .cfg"
+            )
+
+    @classmethod
+    def _load_toml(cls, p: Path) -> "PartialConfig":
         with p.open("rb") as rfile:
-            root = tomli.load(rfile)
+            return cls._load_confmap(
+                tomli.load(rfile).get("tool", {}).get("slotscheck", {})
+            )
 
-        conf = root.get("tool", {}).get("slotscheck", {})
-        if not conf.keys() <= _ALLOWED_KEYS.keys():
-            raise InvalidKeys(conf.keys() - _ALLOWED_KEYS)
-
-        return PartialConfig(
-            **{
-                key.replace("-", "_"): _extract_value(conf, key, expect_type)
-                for key, expect_type in _ALLOWED_KEYS.items()
-            },
-        )
-
-    @staticmethod
-    def from_ini(p: Path) -> "PartialConfig":
+    @classmethod
+    def _load_ini(cls, p: Path) -> "PartialConfig":
         cfg = configparser.ConfigParser()
         cfg.read(p, encoding="utf-8")
-
-        conf = (
+        return cls._load_confmap(
             {
                 k: cfg.BOOLEAN_STATES.get(v, v)
                 for k, v in cfg.items("slotscheck")
@@ -61,12 +63,14 @@ class PartialConfig:
             else {}
         )
 
-        if not conf.keys() <= _ALLOWED_KEYS.keys():
-            raise InvalidKeys(conf.keys() - _ALLOWED_KEYS)
+    @classmethod
+    def _load_confmap(cls, m: Mapping[str, object]) -> "PartialConfig":
+        if not m.keys() <= _ALLOWED_KEYS.keys():
+            raise InvalidKeys(m.keys() - _ALLOWED_KEYS)
 
         return PartialConfig(
             **{
-                key.replace("-", "_"): _extract_value(conf, key, expect_type)
+                key.replace("-", "_"): _extract_value(m, key, expect_type)
                 for key, expect_type in _ALLOWED_KEYS.items()
             },
         )
@@ -108,32 +112,41 @@ Config.DEFAULT = Config(
 def collect(
     cli_kwargs: Mapping[str, Any], cwd: Path, config: Optional[Path]
 ) -> Config:
-    tomlpath = config or find_pyproject_toml(cwd)
-    conf = (
-        PartialConfig.from_toml(tomlpath) if tomlpath else PartialConfig.EMPTY
-    )
-
-    if conf == PartialConfig.EMPTY:
-        inipath = find_ini_file(cwd)
-        if inipath:
-            conf = PartialConfig.from_ini(inipath)
+    confpath = config or find_config_file(cwd)
+    conf = PartialConfig.load(confpath) if confpath else PartialConfig.EMPTY
     return Config.DEFAULT.apply(conf).apply(PartialConfig(**cli_kwargs))
 
 
-def find_pyproject_toml(path: Path) -> Optional[Path]:
-    for p in chain((path,), path.parents):
-        if (p / "pyproject.toml").is_file():
-            return p / "pyproject.toml"
-    else:
-        return None
+_CONFIG_FILENAMES = ("pyproject.toml", "setup.cfg")
 
 
-def find_ini_file(path: Path) -> Optional[Path]:
-    for p in chain((path,), path.parents):
-        if (p / "setup.cfg").is_file():
-            return p / "setup.cfg"
-    else:
-        return None
+def find_config_file(path: Path) -> Optional[Path]:
+    candidates = (
+        directory / name
+        for directory in chain((path,), path.parents)
+        for name in _CONFIG_FILENAMES
+    )
+    return next(
+        filter(
+            both(
+                Path.is_file,  # type: ignore[arg-type]
+                _has_slotscheck_section,  # type: ignore[arg-type]
+            ),
+            candidates,
+        ),
+        None,
+    )
+
+
+def _has_slotscheck_section(p: Path) -> bool:
+    with p.open("rb") as rfile:
+        if p.suffix == ".toml":
+            return "slotscheck" in tomli.load(rfile).get("tool", {})
+        else:
+            assert p.suffix == ".cfg"
+            cfg = configparser.ConfigParser()
+            cfg.read(p, encoding="utf-8")
+            return cfg.has_section("slotscheck")
 
 
 class InvalidKeys(Exception):

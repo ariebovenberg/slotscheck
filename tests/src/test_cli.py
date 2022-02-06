@@ -453,7 +453,7 @@ require-superclass = false
 """
     )
     mocker.patch(
-        "slotscheck.config.find_pyproject_toml",
+        "slotscheck.config.find_config_file",
         return_value=Path(tmpdir / "myconf.toml"),
     )
     result = runner.invoke(cli, ["-m", "module_not_ok"])

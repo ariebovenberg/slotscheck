@@ -12,8 +12,7 @@ from slotscheck.config import (
     InvalidValueType,
     PartialConfig,
     collect,
-    find_ini_file,
-    find_pyproject_toml,
+    find_config_file,
 )
 
 EXAMPLE_TOML = b"""
@@ -47,61 +46,46 @@ require-superclass = false
 """
 
 
-def test_find_pyproject_toml(tmpdir):
-    (tmpdir.ensure_dir("foo", "bar") / "pyproject.toml").write_binary(b"5")
-    (tmpdir.ensure_dir("foo") / "pyproject.toml").write_binary(b"3")
-    (tmpdir.ensure_dir("foo", "baz") / "pyproject.toml").write_binary(b"1")
-    tmpdir.ensure_dir("foo", "qux")
-    assert (
-        find_pyproject_toml(
-            Path(tmpdir / "foo/qux")
-        ).read_text()  # type: ignore
-        == "3"
-    )
-    assert (
-        find_pyproject_toml(Path(tmpdir / "foo")).read_text()  # type: ignore
-        == "3"
-    )
-    assert (
-        find_pyproject_toml(
-            Path(tmpdir / "foo/bar")
-        ).read_text()  # type: ignore
-        == "5"
-    )
-    assert (
-        find_pyproject_toml(
-            Path(tmpdir / "foo/baz")
-        ).read_text()  # type: ignore
-        == "1"
-    )
-    assert find_pyproject_toml(Path(tmpdir)) is None
+class TestFindConfigFile:
+    def test_working_directory_toml(self, tmpdir):
+        workdir, parentdir = tmpdir.ensure_dir("foo"), tmpdir
+        (parentdir / "pyproject.toml").write_binary(EXAMPLE_TOML)
+        (parentdir / "setup.cfg").write_binary(EXAMPLE_INI.encode())
+        (workdir / "pyproject.toml").write_binary(EXAMPLE_TOML)
+        (workdir / "setup.cfg").write_binary(EXAMPLE_INI.encode())
+        assert find_config_file(Path(workdir)) == Path(
+            workdir / "pyproject.toml"
+        )
 
+    def test_working_directory_cfg(self, tmpdir):
+        workdir, parentdir = tmpdir.ensure_dir("foo"), tmpdir
+        (parentdir / "pyproject.toml").write_binary(EXAMPLE_TOML)
+        (parentdir / "setup.cfg").write_binary(EXAMPLE_INI.encode())
+        (workdir / "pyproject.toml").write_binary(b"[foo]\nbar = 5")
+        (workdir / "setup.cfg").write_binary(EXAMPLE_INI.encode())
+        assert find_config_file(Path(workdir)) == Path(workdir / "setup.cfg")
 
-def test_find_setup_cfg(tmpdir):
-    (tmpdir.ensure_dir("foo", "bar") / "setup.cfg").write_text(
-        "5", encoding="utf-8"
-    )
-    (tmpdir.ensure_dir("foo") / "setup.cfg").write_text("3", encoding="utf-8")
-    (tmpdir.ensure_dir("foo", "baz") / "setup.cfg").write_text(
-        "1", encoding="utf-8"
-    )
-    tmpdir.ensure_dir("foo", "qux")
-    assert (
-        find_ini_file(Path(tmpdir / "foo/qux")).read_text()  # type: ignore
-        == "3"
-    )
-    assert (
-        find_ini_file(Path(tmpdir / "foo")).read_text() == "3"  # type: ignore
-    )
-    assert (
-        find_ini_file(Path(tmpdir / "foo/bar")).read_text()  # type: ignore
-        == "5"
-    )
-    assert (
-        find_ini_file(Path(tmpdir / "foo/baz")).read_text()  # type: ignore
-        == "1"
-    )
-    assert find_ini_file(Path(tmpdir)) is None
+    def test_not_found(self, tmpdir):
+        (tmpdir / "pyproject.toml").write_binary(b"[foo]\nbar = 5")
+        (tmpdir / "setup.cfg").write_binary(b"[foo]\nbar = 5")
+        assert find_config_file(Path(tmpdir)) is None
+
+    def test_parent_directory_toml(self, tmpdir):
+        workdir, parentdir = tmpdir.ensure_dir("foo"), tmpdir
+        (parentdir / "pyproject.toml").write_binary(EXAMPLE_TOML)
+        (parentdir / "setup.cfg").write_binary(EXAMPLE_INI.encode())
+        (workdir / "pyproject.toml").write_binary(b"[foo]\nbar = 5")
+        (workdir / "setup.cfg").write_binary(b"[foo]\nbar = 5")
+        assert find_config_file(Path(workdir)) == Path(
+            parentdir / "pyproject.toml"
+        )
+
+    def test_parent_directory_cfg(self, tmpdir):
+        workdir, parentdir = tmpdir.ensure_dir("foo"), tmpdir
+        (parentdir / "setup.cfg").write_binary(EXAMPLE_INI.encode())
+        (workdir / "pyproject.toml").write_binary(b"[foo]\nbar = 5")
+        (workdir / "setup.cfg").write_binary(b"[foo]\nbar = 5")
+        assert find_config_file(Path(workdir)) == Path(parentdir / "setup.cfg")
 
 
 def test_collect(tmpdir):
@@ -127,7 +111,7 @@ class TestOptionsApply:
 class TestPartialOptionsFromToml:
     def test_options_from_toml(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(EXAMPLE_TOML)
-        Config = PartialConfig.from_toml(Path(tmpdir / "myconf.toml"))
+        Config = PartialConfig.load(Path(tmpdir / "myconf.toml"))
         assert Config == PartialConfig(
             strict_imports=None,
             require_subclass=True,
@@ -147,7 +131,7 @@ class TestPartialOptionsFromToml:
     def test_invalid_toml(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(b"[foo inv]alid")
         with pytest.raises(tomli.TOMLDecodeError):
-            PartialConfig.from_toml(Path(tmpdir / "myconf.toml"))
+            PartialConfig.load(Path(tmpdir / "myconf.toml"))
 
     def test_no_slotscheck_section(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(
@@ -156,7 +140,7 @@ class TestPartialOptionsFromToml:
 k = 5
 """
         )
-        assert PartialConfig.from_toml(
+        assert PartialConfig.load(
             Path(tmpdir / "myconf.toml")
         ) == PartialConfig(None, None, None, None, None, None, None)
 
@@ -166,13 +150,13 @@ k = 5
 [tool.slotscheck]
 """
         )
-        assert PartialConfig.from_toml(
+        assert PartialConfig.load(
             Path(tmpdir / "myconf.toml")
         ) == PartialConfig(None, None, None, None, None, None, None)
 
     def test_empty(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(b"")
-        assert PartialConfig.from_toml(
+        assert PartialConfig.load(
             Path(tmpdir / "myconf.toml")
         ) == PartialConfig(None, None, None, None, None, None, None)
 
@@ -189,7 +173,7 @@ foo = 4
             InvalidKeys,
             match=re.escape("Invalid configuration key(s): 'foo', 'k'."),
         ):
-            PartialConfig.from_toml(Path(tmpdir / "myconf.toml"))
+            PartialConfig.load(Path(tmpdir / "myconf.toml"))
 
     def test_invalid_types(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(
@@ -203,13 +187,13 @@ include-modules = false
             InvalidValueType,
             match=re.escape("Invalid value type for 'include-modules'."),
         ):
-            PartialConfig.from_toml(Path(tmpdir / "myconf.toml"))
+            PartialConfig.load(Path(tmpdir / "myconf.toml"))
 
 
 class TestPartialOptionsFromIni:
     def test_options_from_ini(self, tmpdir):
         (tmpdir / "setup.cfg").write_text(EXAMPLE_INI, encoding="utf-8")
-        Config = PartialConfig.from_ini(Path(tmpdir / "setup.cfg"))
+        Config = PartialConfig.load(Path(tmpdir / "setup.cfg"))
         assert Config == PartialConfig(
             strict_imports=None,
             require_subclass=False,
@@ -233,9 +217,9 @@ k = 5
 """,
             encoding="utf-8",
         )
-        assert PartialConfig.from_ini(
-            Path(tmpdir / "setup.cfg")
-        ) == PartialConfig(None, None, None, None, None, None, None)
+        assert PartialConfig.load(Path(tmpdir / "setup.cfg")) == PartialConfig(
+            None, None, None, None, None, None, None
+        )
 
     def test_empty_slotscheck_section(self, tmpdir):
         (tmpdir / "myconf.toml").write_text(
@@ -244,15 +228,15 @@ k = 5
 """,
             encoding="utf-8",
         )
-        assert PartialConfig.from_ini(
-            Path(tmpdir / "setup.cfg")
-        ) == PartialConfig(None, None, None, None, None, None, None)
+        assert PartialConfig.load(Path(tmpdir / "setup.cfg")) == PartialConfig(
+            None, None, None, None, None, None, None
+        )
 
     def test_empty(self, tmpdir):
         (tmpdir / "setup.cfg").write_text("", encoding="utf-8")
-        assert PartialConfig.from_ini(
-            Path(tmpdir / "setup.cfg")
-        ) == PartialConfig(None, None, None, None, None, None, None)
+        assert PartialConfig.load(Path(tmpdir / "setup.cfg")) == PartialConfig(
+            None, None, None, None, None, None, None
+        )
 
     def test_invalid_keys(self, tmpdir):
         (tmpdir / "setup.cfg").write_text(
@@ -268,7 +252,7 @@ foo = 4
             InvalidKeys,
             match=re.escape("Invalid configuration key(s): 'foo', 'k'."),
         ):
-            PartialConfig.from_ini(Path(tmpdir / "setup.cfg"))
+            PartialConfig.load(Path(tmpdir / "setup.cfg"))
 
     def test_invalid_types(self, tmpdir):
         (tmpdir / "setup.cfg").write_text(
@@ -283,7 +267,12 @@ include-modules = false
             InvalidValueType,
             match=re.escape("Invalid value type for 'include-modules'."),
         ):
-            PartialConfig.from_ini(Path(tmpdir / "setup.cfg"))
+            PartialConfig.load(Path(tmpdir / "setup.cfg"))
+
+
+def test_config_from_file_invalid_extension():
+    with pytest.raises(ValueError, match="extension.*toml"):
+        PartialConfig.load(Path("foo.py"))
 
 
 @pytest.mark.parametrize(

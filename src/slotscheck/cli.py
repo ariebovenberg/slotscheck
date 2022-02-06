@@ -115,7 +115,7 @@ from .discovery import (
     "Use ``:`` to separate module and class paths. "
     "For example: ``app\\.config:Settings``, ``:.*(Exception|Error)``. "
     "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
-    show_default="^$",
+    show_default="``^$``",
 )
 @click.option(
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
