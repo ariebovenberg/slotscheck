@@ -252,6 +252,11 @@ module_misc
             EXAMPLES_DIR / "module_misc/a/b/c.py",
         )
 
+    def test_pyc_file(self):
+        assert module_tree("compiled", None) == make_pkg(
+            "compiled", Module("foo"), Module("bar")
+        )
+
 
 class TestFilterName:
     def test_module(self):
