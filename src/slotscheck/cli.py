@@ -162,7 +162,11 @@ def root(
     try:
         classes, modules = _collect(files, module, conf)
     except ModuleNotFoundError as e:
-        print(_format_error(f"Module '{e.name}' not found."))
+        print(
+            f"ERROR: Module '{e.name}' not found.\n\n"
+            "See slotscheck.rtfd.io/en/latest/discovery.html\n"
+            "for help resolving common import problems."
+        )
         exit(1)
     except UnexpectedImportLocation as e:
         print(
