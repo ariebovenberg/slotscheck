@@ -1,4 +1,3 @@
-import dataclasses
 import re
 from pathlib import Path
 
@@ -91,9 +90,7 @@ class TestFindConfigFile:
 def test_collect(tmpdir):
     (tmpdir / "setup.cfg").write_text(EXAMPLE_INI, encoding="utf-8")
     (tmpdir / "pyproject.toml").write_binary(EXAMPLE_TOML)
-    assert collect(
-        dataclasses.asdict(Config.EMPTY), Path(tmpdir), None
-    ).require_subclass
+    assert collect(PartialConfig.EMPTY, Path(tmpdir), None).require_subclass
 
 
 class TestOptionsApply:

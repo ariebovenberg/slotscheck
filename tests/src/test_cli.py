@@ -31,7 +31,11 @@ def test_no_inputs(runner: CliRunner):
 def test_module_doesnt_exist(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "foo"])
     assert result.exit_code == 1
-    assert result.output == "ERROR: Module 'foo' not found.\n"
+    assert result.output == (
+        "ERROR: Module 'foo' not found.\n\n"
+        "See slotscheck.rtfd.io/en/latest/discovery.html\n"
+        "for help resolving common import problems.\n"
+    )
 
 
 def test_path_doesnt_exist(runner: CliRunner):

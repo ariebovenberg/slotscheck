@@ -4,7 +4,7 @@ import configparser
 from dataclasses import dataclass, fields
 from itertools import chain
 from pathlib import Path
-from typing import Any, ClassVar, Collection, Mapping, Optional, Type, TypeVar
+from typing import ClassVar, Collection, Mapping, Optional, Type, TypeVar
 
 import tomli
 
@@ -111,12 +111,12 @@ Config.DEFAULT = Config(
 
 
 def collect(
-    cli_kwargs: Mapping[str, Any], cwd: Path, config: Optional[Path]
+    from_cli: PartialConfig, cwd: Path, config: Optional[Path]
 ) -> Config:
     "Gather and combine configuration options from the available sources"
     confpath = config or find_config_file(cwd)
     conf = PartialConfig.load(confpath) if confpath else PartialConfig.EMPTY
-    return Config.DEFAULT.apply(conf).apply(PartialConfig(**cli_kwargs))
+    return Config.DEFAULT.apply(conf).apply(from_cli)
 
 
 _CONFIG_FILENAMES = ("pyproject.toml", "setup.cfg")

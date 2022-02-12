@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.12.0"
+version = "0.12.1"
 description = "Ensure your __slots__ are working properly."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"

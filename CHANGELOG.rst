@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.12.1 (2022-02-12)
+-------------------
+
+- Add helpful link to 'failed to find module' message.
+
 0.12.0 (2022-02-06)
 -------------------
 

@@ -1,10 +1,9 @@
 Module discovery
 ================
 
-To check files, slotscheck needs to import them. 
-The process if importing files usually behaves as you would expect.
-However, there are some complications that you may 
-need to be aware of.
+Slotscheck needs to import files in order to check them.
+This process usually behaves as you would expect.
+However, there are some complications that you may need to be aware of.
 
 .. admonition:: Summary
 
@@ -17,17 +16,18 @@ need to be aware of.
 
 Whether you run ``python -m slotscheck`` or just ``slotscheck`` has an impact
 on which files will be imported and checked.
-This is not a choice by ``slotscheck``, but simply the way entry points work
-in Python. When running ``python -m slotscheck``, the current working
+This is not a choice by ``slotscheck``, but simply the way Python works.
+When running ``python -m slotscheck``, the current working
 directory is added to ``sys.path``, so any modules in the current directory
-can be imported. This is not the case when running just ``slotscheck``.
+can be imported. This is not the case when running bare ``slotscheck``.
+
 So if you run ``slotscheck foo.py``, ``foo`` will not be importable.
 In fact, if ``foo`` happens to be the name of an installed module,
 ``import foo`` will import that instead!
 In that case ``slotscheck`` will refuse to run,
 and print an informative message.
 An alternative way to ensure the correct files can be imported is with the
-``PYTHONPATH`` environment variable.
+``$PYTHONPATH`` environment variable.
 
 To illustrate all this, imagine the following file tree::
 

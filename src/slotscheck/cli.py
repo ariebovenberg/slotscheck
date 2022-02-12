@@ -9,7 +9,6 @@ from operator import attrgetter, itemgetter, methodcaller, not_
 from pathlib import Path
 from textwrap import indent
 from typing import (
-    Any,
     Collection,
     Iterable,
     Iterator,
@@ -114,7 +113,7 @@ from .discovery import (
 @click.option(
     "--strict-imports/--no-strict-imports",
     help="Treat failed imports as errors.",
-    default=True,
+    default=None,
     show_default="strict",
 )
 @click.option(
@@ -134,10 +133,28 @@ def root(
     module: Sequence[str],
     verbose: bool,
     settings: Optional[AbsPath],
-    **kwargs: Any,
+    require_superclass: Optional[bool],
+    require_subclass: Optional[bool],
+    strict_imports: Optional[bool],
+    exclude_classes: Optional[config.RegexStr],
+    include_classes: Optional[config.RegexStr],
+    exclude_modules: Optional[config.RegexStr],
+    include_modules: Optional[config.RegexStr],
 ) -> None:
     "Check whether your __slots__ are working properly."
-    conf = config.collect(kwargs, Path.cwd(), settings)
+    conf = config.collect(
+        config.PartialConfig(
+            strict_imports=strict_imports,
+            require_superclass=require_superclass,
+            require_subclass=require_subclass,
+            exclude_classes=exclude_classes,
+            include_classes=include_classes,
+            exclude_modules=exclude_modules,
+            include_modules=include_modules,
+        ),
+        Path.cwd(),
+        settings,
+    )
     if not (files or module):
         print("No files or modules given. Nothing to do!")
         exit(0)
@@ -145,7 +162,11 @@ def root(
     try:
         classes, modules = _collect(files, module, conf)
     except ModuleNotFoundError as e:
-        print(_format_error(f"Module '{e.name}' not found."))
+        print(
+            f"ERROR: Module '{e.name}' not found.\n\n"
+            "See slotscheck.rtfd.io/en/latest/discovery.html\n"
+            "for help resolving common import problems."
+        )
         exit(1)
     except UnexpectedImportLocation as e:
         print(
