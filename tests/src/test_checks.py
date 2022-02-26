@@ -87,9 +87,8 @@ class TestHasSlots:
     def test_no_slots(self, klass):
         assert not has_slots(klass)
 
-    def test_opaque_class(self):
-        with pytest.raises(TypeError, match="BOOM!"):
-            assert not has_slots(_UnsettableClass)
+    def test_immutable_class(self):
+        assert not has_slots(_UnsettableClass)
 
 
 class TestSlotsOverlap:

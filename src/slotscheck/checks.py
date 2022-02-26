@@ -1,7 +1,5 @@
 "Slots-related checks and inspection tools"
-import builtins
-import sys
-from functools import lru_cache
+import platform
 from typing import Collection, Iterator, Optional
 
 
@@ -19,13 +17,8 @@ def slots(c: type) -> Optional[Collection[str]]:
 
 
 def has_slots(c: type) -> bool:
-    return (
-        "__slots__" in c.__dict__
-        or c in _SLOTTED_BUILTINS
-        or (
-            not issubclass(c, BaseException)
-            and not is_purepython_class(c)  # type: ignore
-        )
+    return "__slots__" in c.__dict__ or not (
+        issubclass(c, BaseException) or is_pure_python(c)
     )
 
 
@@ -49,33 +42,25 @@ def has_duplicate_slots(c: type) -> bool:
     return len(set(slots_)) != len(list(slots_))
 
 
-_SLOTTED_BUILTINS = {
-    obj
-    for obj in builtins.__dict__.values()
-    if type(obj) is type and not issubclass(obj, BaseException)
-}
+# The 'is a pure python class' logic below is adapted
+# from https://stackoverflow.com/a/41012823/
+
+# If the active Python interpreter is the official CPython interpreter,
+# prefer a more reliable CPython-specific solution guaranteed to succeed.
+if platform.python_implementation() == "CPython":
+    # Magic number defined by the Python codebase at "Include/object.h".
+    Py_TPFLAGS_HEAPTYPE = 1 << 9
+
+    def is_pure_python(cls: type) -> bool:
+        "Whether the class is pure-Python or C-based"
+        return bool(cls.__flags__ & Py_TPFLAGS_HEAPTYPE)
 
 
-_UNSETTABLE_ATTRITUBE_MSG = (
-    "cannot set '_SLOTSCHECK_POKE' attribute of immutable type"
-    if sys.version_info > (3, 10)
-    else "can't set attributes of built-in/extension type"
-)
+# Else, fallback to a CPython-agnostic solution typically but *NOT*
+# necessarily succeeding. For all real-world objects of interest, this is
+# effectively successful. Edge cases exist but are suitably rare.
+else:  # pragma: no cover
 
-
-@lru_cache(maxsize=None)
-def is_purepython_class(t: type) -> bool:
-    "Whether a class is defined in Python, or an extension/C module"
-    # AFIAK there is no _easy_ way to check if a class is pure Python.
-    # One symptom of a non-native class is that it is not possible to
-    # set attributes on it.
-    # Let's use that as an easy proxy for now.
-    try:
-        t._SLOTSCHECK_POKE = 1  # type: ignore
-    except TypeError as e:
-        if e.args[0].startswith(_UNSETTABLE_ATTRITUBE_MSG):
-            return False
-        raise  # some other error we may want to know about
-    else:
-        del t._SLOTSCHECK_POKE  # type: ignore
-        return True
+    def is_pure_python(cls: type) -> bool:
+        "Whether the class is pure-Python or C-based"
+        return "__dict__" in dir(cls) or hasattr(cls, "__slots__")
