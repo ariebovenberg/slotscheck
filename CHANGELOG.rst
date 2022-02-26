@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.13.0 (2022-02-26)
+-------------------
+
+- Improved robustness of determining whether a class is pure Python (#65)
+
 0.12.1 (2022-02-12)
 -------------------
 

@@ -25,7 +25,7 @@ from .checks import (
     has_duplicate_slots,
     has_slotless_base,
     has_slots,
-    is_purepython_class,
+    is_pure_python,
     slots,
     slots_overlap,
 )
@@ -448,7 +448,7 @@ def _print_report(
     classes_by_status = groupby(
         classes,
         key=lambda c: None
-        if not is_purepython_class(c)
+        if not is_pure_python(c)
         else True
         if has_slots(c)
         else False,
