@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.14.0 (2022-02-27)
+-------------------
+
+- Improved robustness of importing implicitly namespaced and
+  extension packages (#64)
+
 0.13.0 (2022-02-26)
 -------------------
 

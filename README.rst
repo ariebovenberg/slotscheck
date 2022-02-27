@@ -96,8 +96,6 @@ Notes
   (i.e. attribute access speed and *some* memory savings).
   However, in most cases this is unintentional.
   ``slotscheck`` allows you to ignore specific cases.
-- Non pure-Python classes are currently assumed to have slots.
-  This is not necessarily the case, but it is nontrivial to determine.
 
 Installation
 ------------
