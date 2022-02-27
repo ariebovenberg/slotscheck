@@ -62,8 +62,6 @@ class compose:
 # but mypy won't allow `object` to be recognized as such.
 # So let's just go with object.
 SupportsBool = object
-
-
 Predicate = Callable[[_T1], SupportsBool]
 
 

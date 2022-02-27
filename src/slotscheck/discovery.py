@@ -1,18 +1,20 @@
 "Tools to discover and inspect modules, packages, and classes"
 
 import importlib
-import importlib.abc
-import importlib.machinery
 import pkgutil
 from dataclasses import dataclass, field, replace
 from functools import partial, reduce
+from importlib._bootstrap_external import (  # type: ignore[import]
+    _NamespaceLoader,
+)
+from importlib.abc import FileLoader
+from importlib.machinery import ExtensionFileLoader
 from inspect import isclass
 from itertools import chain, takewhile
 from pathlib import Path
 from textwrap import indent
 from types import ModuleType
 from typing import (
-    Any,
     Callable,
     Collection,
     Dict,
@@ -152,37 +154,32 @@ class UnexpectedImportLocation(Exception):
 def module_tree(
     module: ModuleName, expected_location: Optional[AbsPath]
 ) -> ModuleTree:
-    "May raise ModuleNotFoundError"
+    "May raise ModuleNotFoundError or UnexpectedImportLocation"
     loader = pkgutil.get_loader(module)
-    if loader is None:
+    *namespaces, name = module.split(".")
+    location: AbsPath
+    tree: ModuleTree
+    if isinstance(loader, (FileLoader, ExtensionFileLoader)):
+        assert isinstance(loader.path, str)  # type: ignore[union-attr]
+        location = Path(loader.path)  # type: ignore[union-attr]
+        tree = (
+            _package(name, location.parent)
+            if loader.is_package(module)
+            else Module(name)
+        )
+    elif isinstance(loader, _NamespaceLoader):
+        assert len(loader._path._path) == 1
+        location = Path(loader._path._path[0])
+        tree = _package(name, location)
+    elif loader is None:
         raise ModuleNotFoundError(f"No module named '{module}'", name=module)
-    elif isinstance(loader, importlib.abc.FileLoader):
-        pure_python = True
-    elif isinstance(loader, importlib.machinery.ExtensionFileLoader):
-        pure_python = False
     elif module == "builtins":
         return Module(module)
     else:
         raise NotImplementedError(f"Unsupported module loader type: {loader}")
 
-    location: AbsPath = Path(loader.path)  # type: ignore[attr-defined]
     if expected_location and location != expected_location:
-        raise UnexpectedImportLocation(
-            module,
-            expected_location,
-            location,
-        )
-
-    *namespaces, name = module.split(".")
-    if loader.is_package(module):
-        if not pure_python:
-            raise NotImplementedError(
-                "Extension packages not supported. "
-                "Please report this occurence on the issue tracker."
-            )
-        tree: ModuleTree = _package(name, location.parent)
-    else:
-        tree = Module(name)
+        raise UnexpectedImportLocation(module, expected_location, location)
 
     return reduce(_add_namespace, reversed(namespaces), tree)
 
@@ -234,10 +231,10 @@ def walk_classes(
     try:
         module = importlib.import_module(fullname)
     except BaseException as e:
-        # sometimes packages make it impossible to import
+        # Sometimes packages make it impossible to import
         # certain modules directly or out of order, or without
         # some system or dependency requirement.
-        # The Exceptions can be quite exotic,
+        # The exceptions can be quite exotic,
         # inheriting from BaseException in some cases!
         if isinstance(e, KeyboardInterrupt):
             raise
@@ -264,7 +261,7 @@ def _classes_in_module(module: ModuleType) -> Iterable[type]:
     )
 
 
-def _is_module_class(obj: Any, module: ModuleType) -> bool:
+def _is_module_class(obj: object, module: ModuleType) -> bool:
     try:
         return isclass(obj) and obj.__module__ == module.__name__
     except Exception:
@@ -283,7 +280,7 @@ def _nested_classes(c: type) -> Iterable[type]:
     )
 
 
-def _is_nested_class(obj: Any, parent: type) -> bool:
+def _is_nested_class(obj: object, parent: type) -> bool:
     try:
         return (
             isclass(obj)

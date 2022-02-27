@@ -217,10 +217,20 @@ module_misc
             "namespaced", make_pkg("module", Module("foo"), Module("bla"))
         )
 
-    def test_implicitly_namspaced(self):
+    def test_implicitly_namspaced_submodule(self):
         assert module_tree("implicitly_namespaced.module", None) == make_pkg(
             "implicitly_namespaced",
             make_pkg("module", Module("foo"), Module("bla")),
+        )
+
+    def test_namespace_loader(self):
+        import implicitly_namespaced.module  # type: ignore  # noqa
+
+        assert module_tree("implicitly_namespaced", None) == make_pkg(
+            "implicitly_namespaced",
+            Module("version"),
+            make_pkg("module", Module("foo"), Module("bla")),
+            make_pkg("another", Module("foo")),
         )
 
     def test_builtin(self):
@@ -228,6 +238,36 @@ module_misc
 
     def test_extension(self):
         assert module_tree("_elementtree", None) == Module("_elementtree")
+
+    def test_extension_package(self):
+        assert module_tree("pydantic", None) == make_pkg(
+            "pydantic",
+            Module("annotated_types"),
+            Module("types"),
+            Module("schema"),
+            Module("version"),
+            Module("utils"),
+            Module("parse"),
+            Module("env_settings"),
+            Module("datetime_parse"),
+            Module("json"),
+            Module("decorator"),
+            Module("class_validators"),
+            Module("generics"),
+            Module("validators"),
+            Module("main"),
+            Module("errors"),
+            Module("_hypothesis_plugin"),
+            Module("dataclasses"),
+            Module("mypy"),
+            Module("typing"),
+            Module("networks"),
+            Module("error_wrappers"),
+            Module("config"),
+            Module("fields"),
+            Module("tools"),
+            Module("color"),
+        )
 
     def test_does_not_exist(self):
         with pytest.raises(ModuleNotFoundError):
