@@ -530,7 +530,7 @@ for more information on why this happens and how to resolve it.
 """.format(
             pkgutil.get_loader(
                 "module_misc.a.b.c"
-            ).path,  # type: ignore[attr-defined]
+            ).path,  # type: ignore[union-attr]
             EXAMPLES_DIR / "other/module_misc/a/b/c.py",
         )
     )

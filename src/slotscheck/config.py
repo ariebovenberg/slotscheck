@@ -133,7 +133,7 @@ def find_config_file(path: Path) -> Optional[Path]:
         filter(
             both(
                 Path.is_file,  # type: ignore[arg-type]
-                _has_slotscheck_section,  # type: ignore[arg-type]
+                _has_slotscheck_section,
             ),
             candidates,
         ),
