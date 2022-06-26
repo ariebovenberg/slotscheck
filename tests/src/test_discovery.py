@@ -269,15 +269,15 @@ module_misc
             Module("color"),
         )
 
-    def test_does_not_exist(self):
-        with pytest.raises(ModuleNotFoundError):
-            module_tree("doesnt_exist", None)
-
     def test_module(self):
         assert module_tree(
             "module_singular",
             expected_location=EXAMPLES_DIR / "module_singular.py",
         ) == Module("module_singular")
+
+    def test_does_not_exist(self):
+        with pytest.raises(ModuleNotFoundError):
+            module_tree("doesnt_exist", None)
 
     def test_unexpected_location(self):
         with pytest.raises(UnexpectedImportLocation) as exc:
@@ -291,6 +291,10 @@ module_misc
             EXAMPLES_DIR / "other/module_misc/a/b/c.py",
             EXAMPLES_DIR / "module_misc/a/b/c.py",
         )
+
+    def test_import_error(self):
+        with pytest.raises(ImportError, match="BOOM.*import broken.submodule"):
+            module_tree("broken.submodule", expected_location=None)
 
     def test_pyc_file(self):
         assert module_tree("compiled", None) == make_pkg(

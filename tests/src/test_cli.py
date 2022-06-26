@@ -31,6 +31,7 @@ def test_no_inputs(runner: CliRunner):
 def test_module_doesnt_exist(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "foo"])
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert result.output == (
         "ERROR: Module 'foo' not found.\n\n"
         "See slotscheck.rtfd.io/en/latest/discovery.html\n"
@@ -38,9 +39,21 @@ def test_module_doesnt_exist(runner: CliRunner):
     )
 
 
+def test_module_is_uninspectable(runner: CliRunner):
+    result = runner.invoke(cli, ["-m", "broken.submodule"])
+    assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
+    assert result.output == (
+        "ERROR: Couldn't inspect module 'broken.submodule' due to "
+        f"{Exception('BOOM')!r}. Run `import broken.submodule` to "
+        "reproduce this error.\n"
+    )
+
+
 def test_path_doesnt_exist(runner: CliRunner):
     result = runner.invoke(cli, ["doesnt_exist"])
     assert result.exit_code == 2
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -161,6 +174,7 @@ def test_cannot_pass_both_path_and_module(runner: CliRunner):
 def test_errors_with_default_settings(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_not_ok"])
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -182,6 +196,7 @@ Scanned 4 module(s), 28 class(es).
 def test_errors_require_slots_subclass(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_not_ok", "--require-subclass"])
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -209,6 +224,7 @@ def test_errors_disallow_nonslot_inherit(runner: CliRunner):
         cli, ["-m", "module_not_ok", "--require-superclass"]
     )
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -232,6 +248,7 @@ def test_errors_no_require_superclass(runner: CliRunner):
         cli, ["-m", "module_not_ok", "--no-require-superclass"]
     )
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -252,6 +269,7 @@ def test_errors_with_exclude_classes(runner: CliRunner):
         ["-m", "module_not_ok", "--exclude-classes", "(foo:U$|:(W|S))"],
     )
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -273,6 +291,7 @@ def test_errors_with_include_classes(runner: CliRunner):
         ["-m", "module_not_ok", "--include-classes", "(foo:.*a|:(W|S))"],
     )
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -297,6 +316,7 @@ def test_errors_with_include_modules(runner: CliRunner):
         ],
     )
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -328,6 +348,7 @@ def test_ingores_given_module_completely(runner: CliRunner):
 def test_module_not_ok_verbose(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_not_ok", "-v"])
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -426,6 +447,7 @@ Scanned 16 module(s), 9 class(es).
 def test_module_disallow_import_failures(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_misc", "--strict-imports"])
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -462,6 +484,7 @@ require-superclass = false
     )
     result = runner.invoke(cli, ["-m", "module_not_ok"])
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -490,6 +513,7 @@ require-superclass = false
         catch_exceptions=False,
     )
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\
@@ -511,6 +535,7 @@ def test_ambiguous_import(runner: CliRunner):
         catch_exceptions=False,
     )
     assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
     assert (
         result.output
         == """\

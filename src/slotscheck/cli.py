@@ -168,6 +168,9 @@ def root(
             "for help resolving common import problems."
         )
         exit(1)
+    except ImportError as e:
+        print(_format_error(str(e)))
+        exit(1)
     except UnexpectedImportLocation as e:
         print(
             """\
