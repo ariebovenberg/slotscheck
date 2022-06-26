@@ -154,8 +154,14 @@ class UnexpectedImportLocation(Exception):
 def module_tree(
     module: ModuleName, expected_location: Optional[AbsPath]
 ) -> ModuleTree:
-    "May raise ModuleNotFoundError or UnexpectedImportLocation"
-    loader = pkgutil.get_loader(module)
+    "May raise ModuleNotFoundError, ImportError or UnexpectedImportLocation"
+    try:
+        loader = pkgutil.get_loader(module)
+    except Exception as e:
+        raise ImportError(
+            f"Couldn't inspect module '{module}' due to {e!r}. "
+            f"Run `import {module}` to reproduce this error."
+        )
     *namespaces, name = module.split(".")
     location: AbsPath
     tree: ModuleTree

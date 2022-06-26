@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.14.1 (2022-06-26)
+-------------------
+
+- Gracefully handle inspection failure due to
+  unimportable parent package (#90).
+
 0.14.0 (2022-02-27)
 -------------------
 
