@@ -48,12 +48,17 @@ def has_duplicate_slots(c: type) -> bool:
 # If the active Python interpreter is the official CPython interpreter,
 # prefer a more reliable CPython-specific solution guaranteed to succeed.
 if platform.python_implementation() == "CPython":
-    # Magic number defined by the Python codebase at "Include/object.h".
+    # Magic numbers defined by the Python codebase at "Include/object.h".
+    Py_TPFLAGS_IMMUTABLETYPE = 1 << 8
     Py_TPFLAGS_HEAPTYPE = 1 << 9
 
     def is_pure_python(cls: type) -> bool:
         "Whether the class is pure-Python or C-based"
-        return bool(cls.__flags__ & Py_TPFLAGS_HEAPTYPE)
+        # Starting with CPython 3.10, `Py_TPFLAGS_HEAPTYPE` should no longer
+        # be relied on, and `!Py_TPFLAGS_IMMUTABLETYPE` should be used instead.
+        return bool(cls.__flags__ & Py_TPFLAGS_HEAPTYPE) and not bool(
+            cls.__flags__ & Py_TPFLAGS_IMMUTABLETYPE
+        )
 
 
 # Else, fallback to a CPython-agnostic solution typically but *NOT*
