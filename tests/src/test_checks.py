@@ -1,3 +1,4 @@
+from array import array
 from datetime import date
 from decimal import Decimal
 from enum import Enum
@@ -51,10 +52,14 @@ class OneStringSlot(HasSlots):
     __slots__ = "baz"
 
 
+class ArrayInherit(array):
+    __slots__ = ()
+
+
 class TestHasSlots:
     @pytest.mark.parametrize(
         "klass",
-        [type, dict, date, float, Decimal, Element],
+        [type, dict, date, float, Decimal, Element, array],
     )
     def test_not_purepython(self, klass):
         assert has_slots(klass)
@@ -68,6 +73,7 @@ class TestHasSlots:
             BadInherit,
             BadOverlaps,
             OneStringSlot,
+            ArrayInherit,
         ],
     )
     def test_slots(self, klass):
