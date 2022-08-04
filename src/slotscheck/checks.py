@@ -59,7 +59,7 @@ if platform.python_implementation() == "CPython":
 
         def is_pure_python(cls: type) -> bool:
             "Whether the class is pure-Python or C-based"
-            return not bool(cls.__flags__ & Py_TPFLAGS_IMMUTABLETYPE)
+            return not (cls.__flags__ & Py_TPFLAGS_IMMUTABLETYPE)
 
     else:
 
