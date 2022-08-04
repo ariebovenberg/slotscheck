@@ -1,5 +1,6 @@
 "Slots-related checks and inspection tools"
 import platform
+import sys
 from typing import Collection, Iterator, Optional
 
 
@@ -52,13 +53,19 @@ if platform.python_implementation() == "CPython":
     Py_TPFLAGS_IMMUTABLETYPE = 1 << 8
     Py_TPFLAGS_HEAPTYPE = 1 << 9
 
-    def is_pure_python(cls: type) -> bool:
-        "Whether the class is pure-Python or C-based"
-        # Starting with CPython 3.10, `Py_TPFLAGS_HEAPTYPE` should no longer
-        # be relied on, and `!Py_TPFLAGS_IMMUTABLETYPE` should be used instead.
-        return bool(cls.__flags__ & Py_TPFLAGS_HEAPTYPE) and not bool(
-            cls.__flags__ & Py_TPFLAGS_IMMUTABLETYPE
-        )
+    # Starting with CPython 3.10, `Py_TPFLAGS_HEAPTYPE` should no longer
+    # be relied on, and `!Py_TPFLAGS_IMMUTABLETYPE` should be used instead.
+    if sys.version_info >= (3, 10):  # pragma: no cover
+
+        def is_pure_python(cls: type) -> bool:
+            "Whether the class is pure-Python or C-based"
+            return not bool(cls.__flags__ & Py_TPFLAGS_IMMUTABLETYPE)
+
+    else:
+
+        def is_pure_python(cls: type) -> bool:
+            "Whether the class is pure-Python or C-based"
+            return bool(cls.__flags__ & Py_TPFLAGS_HEAPTYPE)
 
 
 # Else, fallback to a CPython-agnostic solution typically but *NOT*
