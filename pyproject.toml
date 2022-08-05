@@ -30,7 +30,7 @@ click = "^8.0"
 tomli = ">=0.2.6,<3.0.0"
 
 [tool.poetry.dev-dependencies]
-flake8 = "^5.0.3"
+flake8 = "^5.0.4"
 isort = "^5.7.0"
 mypy = "^0.971"
 pytest = "^7.0.1"
