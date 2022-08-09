@@ -56,6 +56,14 @@ class ArrayInherit(array):
     __slots__ = ()
 
 
+class FooMeta(type):
+    __slots__ = ()
+
+
+class Foo(metaclass=FooMeta):
+    __slots__ = ()
+
+
 class TestHasSlots:
     @pytest.mark.parametrize(
         "klass",
@@ -74,6 +82,8 @@ class TestHasSlots:
             BadOverlaps,
             OneStringSlot,
             ArrayInherit,
+            Foo,
+            FooMeta,
         ],
     )
     def test_slots(self, klass):
@@ -106,7 +116,17 @@ class TestSlotsOverlap:
         assert not slots_overlap(klass)
 
     @pytest.mark.parametrize(
-        "klass", [Fraction, HasSlots, GoodInherit, BadInherit, OneStringSlot]
+        "klass",
+        [
+            Fraction,
+            HasSlots,
+            GoodInherit,
+            BadInherit,
+            OneStringSlot,
+            Foo,
+            FooMeta,
+            ArrayInherit,
+        ],
     )
     def test_slots_ok(self, klass):
         assert not slots_overlap(klass)
