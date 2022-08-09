@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.15.0 (2022-08-09)
+-------------------
+
+- Fix error when encountering metaclass with slots (#106)
+- Improved detection of immutable classes on Python 3.10+ (#92)
+
 0.14.1 (2022-06-26)
 -------------------
 

@@ -32,7 +32,7 @@ def slots_overlap(c: type) -> bool:
     if maybe_slots is None:
         return False
     slots_ = set(maybe_slots)
-    for ancestor in c.mro()[1:]:
+    for ancestor in c.__mro__[1:]:
         if not slots_.isdisjoint(slots(ancestor) or ()):
             return True
     return False
