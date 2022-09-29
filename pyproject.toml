@@ -36,7 +36,7 @@ mypy = "^0.971"
 pytest = "^7.0.1"
 tox = "^3.25.1"
 black = "^22.8"
-pytest-cov = "^3.0.0"
+pytest-cov = "^4.0.0"
 pytest-mock = "^3.6.1"
 types-dataclasses = "^0.6.6"
 # Not actually used, but a rare library whose __init__ is an extension.
