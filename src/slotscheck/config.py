@@ -100,7 +100,7 @@ class Config(PartialConfig):
 
 
 Config.DEFAULT = Config(
-    strict_imports=False,
+    strict_imports=True,
     require_subclass=False,
     require_superclass=True,
     include_modules=None,

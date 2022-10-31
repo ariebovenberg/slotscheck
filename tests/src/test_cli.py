@@ -43,10 +43,28 @@ def test_module_is_uninspectable(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "broken.submodule"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == (
-        "ERROR: Couldn't inspect module 'broken.submodule' due to "
-        f"{Exception('BOOM')!r}. Run `import broken.submodule` to "
-        "reproduce this error.\n"
+    assert (
+        result.output
+        == """\
+ERROR: Failed to import 'broken.submodule'.
+Oh no, found some problems!
+Scanned 0 module(s), 0 class(es).
+"""
+    )
+
+
+def test_module_is_uninspectable_no_strict_imports(runner: CliRunner):
+    result = runner.invoke(
+        cli, ["-m", "broken.submodule", "--no-strict-imports"]
+    )
+    assert result.exit_code == 0
+    assert (
+        result.output
+        == """\
+NOTE:  Failed to import 'broken.submodule'.
+All OK!
+Scanned 0 module(s), 0 class(es).
+"""
     )
 
 
@@ -327,7 +345,7 @@ Scanned 3 module(s), 2 class(es).
     )
 
 
-def test_ingores_given_module_completely(runner: CliRunner):
+def test_ignores_given_module_completely(runner: CliRunner):
     result = runner.invoke(
         cli,
         [

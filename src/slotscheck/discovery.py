@@ -151,17 +151,22 @@ class UnexpectedImportLocation(Exception):
     actual: AbsPath
 
 
+@add_slots
+@dataclass(frozen=True)
+class FailedImport:
+    module: ModuleName
+    exc: BaseException = field(compare=False, hash=False)
+
+
 def module_tree(
-    module: ModuleName, expected_location: Optional[AbsPath]
-) -> ModuleTree:
-    "May raise ModuleNotFoundError, ImportError or UnexpectedImportLocation"
+    module: ModuleName,
+    expected_location: Optional[AbsPath],
+) -> Union[ModuleTree, FailedImport]:
+    """May raise ModuleNotFoundError or UnexpectedImportLocation"""
     try:
         loader = pkgutil.get_loader(module)
-    except Exception as e:
-        raise ImportError(
-            f"Couldn't inspect module '{module}' due to {e!r}. "
-            f"Run `import {module}` to reproduce this error."
-        )
+    except BaseException as e:
+        return FailedImport(module, e)
     *namespaces, name = module.split(".")
     location: AbsPath
     tree: ModuleTree
@@ -221,13 +226,6 @@ def _package(name: ModuleNamePart, path: AbsPath) -> Package:
             )
         ),
     )
-
-
-@add_slots
-@dataclass(frozen=True)
-class FailedImport:
-    module: str
-    exc: BaseException = field(compare=False, hash=False)
 
 
 def walk_classes(

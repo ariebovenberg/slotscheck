@@ -126,6 +126,7 @@ class TestWalkClasses:
 class TestModuleTree:
     def test_package(self):
         tree = module_tree("module_misc", None)
+        assert isinstance(tree, Package)
         assert tree == Package(
             "module_misc",
             fset(
@@ -172,6 +173,7 @@ class TestModuleTree:
 
     def test_subpackage(self):
         tree = module_tree("module_misc.a.b", None)
+        assert isinstance(tree, Package)
         assert tree == make_pkg(
             "module_misc",
             make_pkg(
@@ -239,6 +241,17 @@ module_misc
     def test_extension(self):
         assert module_tree("_elementtree", None) == Module("_elementtree")
 
+    def test_import_causes_base_exception_no_strict_imports(self, mocker):
+        assert module_tree(
+            "module_misc.a.evil.foo",
+            None,
+        ) == FailedImport("module_misc.a.evil.foo", mocker.ANY)
+
+    def test_import_error(self, mocker):
+        assert module_tree(
+            "broken.submodule", expected_location=None
+        ) == FailedImport("broken.submodule", mocker.ANY)
+
     def test_extension_package(self):
         assert module_tree("pydantic", None) == make_pkg(
             "pydantic",
@@ -291,10 +304,6 @@ module_misc
             EXAMPLES_DIR / "other/module_misc/a/b/c.py",
             EXAMPLES_DIR / "module_misc/a/b/c.py",
         )
-
-    def test_import_error(self):
-        with pytest.raises(ImportError, match="BOOM.*import broken.submodule"):
-            module_tree("broken.submodule", expected_location=None)
 
     def test_pyc_file(self):
         assert module_tree("compiled", None) == make_pkg(
