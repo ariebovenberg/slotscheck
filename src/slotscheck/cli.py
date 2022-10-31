@@ -168,9 +168,6 @@ def root(
             "for help resolving common import problems."
         )
         exit(1)
-    except ImportError as e:
-        print(_format_error(str(e)))
-        exit(1)
     except UnexpectedImportLocation as e:
         print(
             """\
@@ -192,7 +189,7 @@ for more information on why this happens and how to resolve it.""".format(
         )
         exit(1)
 
-    if not modules.filtered:
+    if not (modules.filtered or modules.skipped):
         print(
             "Files or modules given, but filtered out by exclude/include. "
             "Nothing to do!"
@@ -382,7 +379,7 @@ def _collect(
     conf: config.Config,
 ) -> Tuple[Collection[type], ModulesReport]:
     modulefilter = _create_filter(conf.include_modules, conf.exclude_modules)
-    modules_all = consolidate(
+    modules_inspected = list(
         starmap(
             module_tree,
             filter(
@@ -391,6 +388,9 @@ def _collect(
             ),
         )
     )
+    modules_all = consolidate(
+        m for m in modules_inspected if not isinstance(m, FailedImport)
+    )
     modules_filtered: Collection[ModuleTree] = list(
         map_optional(methodcaller("filtername", modulefilter), modules_all)
     )
@@ -398,7 +398,16 @@ def _collect(
     return classes, ModulesReport(
         modules_all,
         modules_filtered,
-        modules_skipped,
+        list(
+            chain(
+                (
+                    ModuleSkipped(m)
+                    for m in modules_inspected
+                    if isinstance(m, FailedImport)
+                ),
+                modules_skipped,
+            )
+        ),
     )
 
 

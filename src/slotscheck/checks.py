@@ -55,13 +55,13 @@ if platform.python_implementation() == "CPython":
 
     # Starting with CPython 3.10, `Py_TPFLAGS_HEAPTYPE` should no longer
     # be relied on, and `!Py_TPFLAGS_IMMUTABLETYPE` should be used instead.
-    if sys.version_info >= (3, 10):  # pragma: no cover
+    if sys.version_info >= (3, 10):
 
         def is_pure_python(cls: type) -> bool:
             "Whether the class is pure-Python or C-based"
             return not (cls.__flags__ & Py_TPFLAGS_IMMUTABLETYPE)
 
-    else:
+    else:  # pragma: no cover
 
         def is_pure_python(cls: type) -> bool:
             "Whether the class is pure-Python or C-based"

@@ -1,6 +1,26 @@
 Changelog
 =========
 
+0.16.0 (2022-11-01)
+-------------------
+
+**Breaking changes**
+
+- The "strict-imports" default value was mistakenly ``False`` in contrast to what is documented.
+  The default value is now ``True``, in line with documentation.
+  If you were relying on this permissive import behavior,
+  you will need to set this option in the CLI or settings file.
+- Drop Python 3.6 support
+
+**Bugfixes**
+
+- Disabling "strict-imports" now also gracefully handles failed imports
+  of the root module given (#113).
+
+**Features**
+
+- Add official Python 3.11 support
+
 0.15.0 (2022-08-09)
 -------------------
 
