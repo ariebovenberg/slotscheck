@@ -3,6 +3,11 @@ import platform
 import sys
 from typing import Collection, Iterator, Optional
 
+try:
+    from typing import is_typeddict
+except ImportError:  # pragma: no cover
+    from typing_extensions import is_typeddict
+
 
 def slots(c: type) -> Optional[Collection[str]]:
     try:
@@ -18,8 +23,10 @@ def slots(c: type) -> Optional[Collection[str]]:
 
 
 def has_slots(c: type) -> bool:
-    return "__slots__" in c.__dict__ or not (
-        issubclass(c, BaseException) or is_pure_python(c)
+    return (
+        "__slots__" in c.__dict__
+        or not (issubclass(c, BaseException) or is_pure_python(c))
+        or is_typeddict(c)
     )
 
 

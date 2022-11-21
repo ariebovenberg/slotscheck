@@ -10,6 +10,11 @@ import pytest
 
 from slotscheck.checks import has_slotless_base, has_slots, slots_overlap
 
+try:
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
+
 
 class HasSlots:
     __slots__ = ("a", "b")
@@ -64,6 +69,10 @@ class Foo(metaclass=FooMeta):
     __slots__ = ()
 
 
+class MyDict(TypedDict):
+    foo: str
+
+
 class TestHasSlots:
     @pytest.mark.parametrize(
         "klass",
@@ -71,6 +80,9 @@ class TestHasSlots:
     )
     def test_not_purepython(self, klass):
         assert has_slots(klass)
+
+    def test_typeddict(self):
+        assert has_slots(MyDict)
 
     @pytest.mark.parametrize(
         "klass",
