@@ -194,7 +194,7 @@ Changelog
 
 - Improve output report
 
-0.1.0 (2020-12-30)
+0.1.0 (2021-12-30)
 ------------------
 
 - Improve documentation
