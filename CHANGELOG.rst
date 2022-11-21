@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.16.1 (2022-11-21)
+-------------------
+
+- Don't flag ``TypedDict`` subclasses as missing slots (#120).
+
 0.16.0 (2022-11-01)
 -------------------
 
