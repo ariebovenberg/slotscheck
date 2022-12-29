@@ -1,3 +1,6 @@
+from typing_extensions import Protocol
+
+
 class A:
     pass
 
@@ -93,8 +96,16 @@ class X(RuntimeError):
 
 
 class Z:
-    __slots__ = ('a', 'b', 'c', 'b', 'b', 'c')
+    __slots__ = ("a", "b", "c", "b", "b", "c")
 
 
 class Za(Z):
-    __slots__ = ('b', 'c')
+    __slots__ = ("b", "c")
+
+
+class MyProto(Protocol):
+    pass
+
+
+class Zb(MyProto):
+    __slots__ = ()

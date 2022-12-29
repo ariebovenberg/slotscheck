@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.16.2 (2022-12-29)
+-------------------
+
+- Don't flag ``Protocol`` classes as needing slots if strict
+  ``require-subclass`` option is enabled.
+
 0.16.1 (2022-11-21)
 -------------------
 

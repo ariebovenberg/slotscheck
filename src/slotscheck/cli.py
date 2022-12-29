@@ -19,6 +19,7 @@ from typing import (
 )
 
 import click
+from typing_extensions import Protocol
 
 from . import config
 from .checks import (
@@ -560,7 +561,12 @@ def slot_messages(
         yield DuplicateSlots(c)
     if require_superclass and has_slots(c) and has_slotless_base(c):
         yield BadSlotInheritance(c)
-    elif require_subclass and not has_slots(c) and not has_slotless_base(c):
+    elif (
+        require_subclass
+        and not has_slots(c)
+        and not has_slotless_base(c)
+        and Protocol not in c.__bases__
+    ):
         yield ShouldHaveSlots(c)
 
 
