@@ -19,7 +19,6 @@ from typing import (
 )
 
 import click
-from typing_extensions import Protocol
 
 from . import config
 from .checks import (
@@ -51,6 +50,11 @@ from .discovery import (
     module_tree,
     walk_classes,
 )
+
+try:
+    from typing import Protocol
+except ImportError:  # pragma: no cover
+    from typing_extensions import Protocol
 
 
 @click.command("slotscheck")
