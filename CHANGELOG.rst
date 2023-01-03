@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.16.3 (2023-01-03)
+-------------------
+
+- Fix broken ``Protocol`` import due to absent ``typing_extensions``
+  on Python <3.10.
+
 0.16.2 (2022-12-29)
 -------------------
 

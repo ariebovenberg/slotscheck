@@ -54,7 +54,7 @@ from .discovery import (
 try:
     from typing import Protocol
 except ImportError:  # pragma: no cover
-    from typing_extensions import Protocol
+    from typing_extensions import Protocol  # type: ignore[assignment]
 
 
 @click.command("slotscheck")
