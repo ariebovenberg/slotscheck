@@ -1,8 +1,13 @@
 import re
+import sys
 from pathlib import Path
 
 import pytest
-import tomli
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 from slotscheck.config import (
     DEFAULT_MODULE_EXCLUDE_RE,
@@ -127,7 +132,7 @@ class TestPartialOptionsFromToml:
 
     def test_invalid_toml(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(b"[foo inv]alid")
-        with pytest.raises(tomli.TOMLDecodeError):
+        with pytest.raises(tomllib.TOMLDecodeError):
             PartialConfig.load(Path(tmpdir / "myconf.toml"))
 
     def test_no_slotscheck_section(self, tmpdir):

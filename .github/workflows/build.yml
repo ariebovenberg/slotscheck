@@ -30,7 +30,7 @@ jobs:
       run: tox
 
     - name: Upload coverage to Codecov
-      if: matrix.python-version == 3.10
+      if: matrix.python-version == 3.11
       uses: codecov/codecov-action@v2.1.0
       with:
         file: ./coverage.xml
