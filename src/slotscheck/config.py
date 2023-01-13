@@ -1,12 +1,16 @@
 "Logic for gathering and managing the configuration settings"
 
 import configparser
+import sys
 from dataclasses import dataclass, fields
 from itertools import chain
 from pathlib import Path
 from typing import ClassVar, Collection, Mapping, Optional, Type, TypeVar
 
-import tomli
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # pragma: no cover
+    import tomli as tomllib
 
 from .common import add_slots, both
 
@@ -47,7 +51,7 @@ class PartialConfig:
     def _load_toml(cls, p: Path) -> "PartialConfig":
         with p.open("rb") as rfile:
             return cls._load_confmap(
-                tomli.load(rfile).get("tool", {}).get("slotscheck", {})
+                tomllib.load(rfile).get("tool", {}).get("slotscheck", {})
             )
 
     @classmethod
@@ -144,7 +148,7 @@ def find_config_file(path: Path) -> Optional[Path]:
 def _has_slotscheck_section(p: Path) -> bool:
     with p.open("rb") as rfile:
         if p.suffix == ".toml":
-            return "slotscheck" in tomli.load(rfile).get("tool", {})
+            return "slotscheck" in tomllib.load(rfile).get("tool", {})
         else:
             assert p.suffix == ".cfg"
             cfg = configparser.ConfigParser()
