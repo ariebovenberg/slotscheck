@@ -33,7 +33,7 @@ tomli = {version = ">=0.2.6,<3.0.0", python = "<3.11"}
 flake8 = "^5.0.4"
 isort = "^5.7.0"
 mypy = "^0.991"
-pytest = "^7.0.1"
+pytest = "^7.2.1"
 tox = "^3.27.1"
 black = "^22.8"
 pytest-cov = "^4.0.0"
