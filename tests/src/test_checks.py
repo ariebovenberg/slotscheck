@@ -7,13 +7,14 @@ from random import Random
 from xml.etree.ElementTree import Element
 
 import pytest
+from typing_extensions import TypedDict as TypingExtensionsTypedDict
 
 from slotscheck.checks import has_slotless_base, has_slots, slots_overlap
 
 try:
     from typing import TypedDict
 except ImportError:
-    from typing_extensions import TypedDict
+    TypedDict = TypingExtensionsTypedDict
 
 
 class HasSlots:
@@ -73,6 +74,10 @@ class MyDict(TypedDict):
     foo: str
 
 
+class MyTypingExtensionsTypedDict(TypingExtensionsTypedDict):
+    bla: int
+
+
 class TestHasSlots:
     @pytest.mark.parametrize(
         "klass",
@@ -83,6 +88,9 @@ class TestHasSlots:
 
     def test_typeddict(self):
         assert has_slots(MyDict)
+
+    def test_typing_extensions_typeddict(self):
+        assert has_slots(MyTypingExtensionsTypedDict)
 
     @pytest.mark.parametrize(
         "klass",

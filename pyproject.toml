@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.16.4"
+version = "0.16.5"
 description = "Ensure your __slots__ are working properly."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -34,12 +34,11 @@ flake8 = "^5.0.4"
 isort = "^5.11.5"
 mypy = "^1.0"
 pytest = "^7.2.1"
-tox = "^3.27.1"
 black = "^23.1"
 pytest-cov = "^4.0.0"
 pytest-mock = "^3.6.1"
-types-dataclasses = "^0.6.6"
-# Not actually used, but a rare library whose __init__ is an extension.
+typing_extensions = ">=4.1,<5"
+# Only actually needed as an example library whose __init__ is an extension.
 pydantic = "1.9.2"
 
 [tool.poetry.scripts]
