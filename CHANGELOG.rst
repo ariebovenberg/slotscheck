@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.16.5 (2023-03-01)
+-------------------
+
+- Don't flag ``TypedDict`` from ``typing_extensions`` in Python versions
+  where ``typing`` has ``TypedDict`` itself.
+
 0.16.4 (2023-01-13)
 -------------------
 

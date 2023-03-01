@@ -12,6 +12,7 @@ from typing import (
     Set,
     Tuple,
     TypeVar,
+    overload,
 )
 
 flatten = chain.from_iterable
@@ -67,6 +68,22 @@ Predicate = Callable[[_T1], SupportsBool]
 
 def both(__a: Predicate[_T1], __b: Predicate[_T1]) -> Predicate[_T1]:
     return lambda x: __a(x) and __b(x)
+
+
+@overload
+def either(
+    __a: Callable[[_T1], bool], __b: Callable[[_T1], bool]
+) -> Callable[[_T1], bool]:
+    ...
+
+
+@overload
+def either(__a: Predicate[_T1], __b: Predicate[_T1]) -> Predicate[_T1]:
+    ...
+
+
+def either(__a: Any, __b: Any) -> Any:
+    return lambda x: __a(x) or __b(x)
 
 
 def map_optional(
