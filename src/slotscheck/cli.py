@@ -36,6 +36,7 @@ from .common import (
     compose,
     flatten,
     groupby,
+    is_protocol,
     map_optional,
 )
 from .discovery import (
@@ -50,11 +51,6 @@ from .discovery import (
     module_tree,
     walk_classes,
 )
-
-try:
-    from typing import Protocol
-except ImportError:  # pragma: no cover
-    from typing_extensions import Protocol  # type: ignore[assignment]
 
 
 @click.command("slotscheck")
@@ -569,7 +565,7 @@ def slot_messages(
         require_subclass
         and not has_slots(c)
         and not has_slotless_base(c)
-        and Protocol not in c.__bases__
+        and not is_protocol(c)
     ):
         yield ShouldHaveSlots(c)
 

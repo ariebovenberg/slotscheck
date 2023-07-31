@@ -9,10 +9,10 @@ from typing import (
     Iterator,
     Mapping,
     Optional,
+    Protocol,
     Set,
     Tuple,
     TypeVar,
-    overload,
 )
 
 flatten = chain.from_iterable
@@ -70,22 +70,6 @@ def both(__a: Predicate[_T1], __b: Predicate[_T1]) -> Predicate[_T1]:
     return lambda x: __a(x) and __b(x)
 
 
-@overload
-def either(
-    __a: Callable[[_T1], bool], __b: Callable[[_T1], bool]
-) -> Callable[[_T1], bool]:
-    ...
-
-
-@overload
-def either(__a: Predicate[_T1], __b: Predicate[_T1]) -> Predicate[_T1]:
-    ...
-
-
-def either(__a: Any, __b: Any) -> Any:
-    return lambda x: __a(x) or __b(x)
-
-
 def map_optional(
     f: Callable[[_T1], Optional[_T2]], it: Iterable[_T1]
 ) -> Iterator[_T2]:
@@ -94,6 +78,34 @@ def map_optional(
 
 def _is_none(x: object) -> bool:
     return x is None
+
+
+try:
+    from typing_extensions import is_typeddict  # noqa
+except ImportError:  # pragma: no cover
+    from typing import _TypedDictMeta  # type: ignore
+
+    def is_typeddict(tp: object) -> bool:
+        return isinstance(tp, _TypedDictMeta)
+
+
+# Note that typing.is_protocol is not available yet (CPython PR 104878)
+# The implementation below is derived from it.
+def is_protocol(t: type) -> bool:  # pragma: no cover
+    return getattr(t, "_is_protocol", False) and t != Protocol
+
+
+try:
+    from typing_extensions import Protocol as _TypingExtProtocol
+except ImportError:  # pragma: no cover
+    pass
+else:
+
+    def is_protocol(t: type) -> bool:  # noqa: F811
+        return getattr(t, "_is_protocol", False) and t not in (
+            Protocol,
+            _TypingExtProtocol,
+        )
 
 
 # From https://github.com/ericvsmith/dataclasses/blob/master/dataclass_tools.py
