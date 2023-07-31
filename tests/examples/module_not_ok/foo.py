@@ -1,8 +1,6 @@
 
-try:
-    from typing import Protocol
-except ImportError:
-    from typing_extensions import Protocol
+from typing import Protocol
+from typing_extensions import Protocol as TypingExtProtocol
 
 
 class A:
@@ -108,6 +106,10 @@ class Za(Z):
 
 
 class MyProto(Protocol):
+    pass
+
+
+class MyOtherProto(TypingExtProtocol):
     pass
 
 

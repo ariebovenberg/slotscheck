@@ -1,23 +1,9 @@
 "Slots-related checks and inspection tools"
 import platform
 import sys
-from typing import Callable, Collection, Iterator, Optional
+from typing import Collection, Iterator, Optional
 
-from .common import either
-
-is_typeddict: Callable[[type], bool]
-
-try:
-    from typing import is_typeddict
-
-    try:
-        from typing_extensions import is_typeddict as _is_typing_ext_typeddict
-    except ImportError:  # pragma: no cover
-        pass
-    else:
-        is_typeddict = either(is_typeddict, _is_typing_ext_typeddict)
-except ImportError:  # pragma: no cover
-    from typing_extensions import is_typeddict
+from .common import is_typeddict
 
 
 def slots(c: type) -> Optional[Collection[str]]:

@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.17.0 (2023-07-31)
+-------------------
+
+- Drop Python 3.7 support.
+- Remove ``typing-extensions`` and ``importlib_metadata`` dependencies.
+- More robust checks to prevent ``Protocol`` false positives.
+
 0.16.5 (2023-03-01)
 -------------------
 

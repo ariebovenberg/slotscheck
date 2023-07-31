@@ -207,7 +207,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 30 class(es).
+Scanned 4 module(s), 31 class(es).
 """
     )
 
@@ -234,7 +234,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 30 class(es).
+Scanned 4 module(s), 31 class(es).
 """
     )
 
@@ -259,7 +259,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 30 class(es).
+Scanned 4 module(s), 31 class(es).
 """
     )
 
@@ -279,7 +279,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 30 class(es).
+Scanned 4 module(s), 31 class(es).
 """
     )
 
@@ -302,7 +302,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 30 class(es).
+Scanned 4 module(s), 31 class(es).
 """
     )
 
@@ -322,7 +322,7 @@ ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 30 class(es).
+Scanned 4 module(s), 31 class(es).
 """
     )
 
@@ -417,9 +417,9 @@ stats:
     excluded:  0
     skipped:   0
 
-  classes:     30
+  classes:     31
     has slots: 22
-    no slots:  8
+    no slots:  9
     n/a:       0
 """
     )
@@ -519,7 +519,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 30 class(es).
+Scanned 4 module(s), 31 class(es).
 """
     )
 
@@ -548,7 +548,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 30 class(es).
+Scanned 4 module(s), 31 class(es).
 """
     )
 
