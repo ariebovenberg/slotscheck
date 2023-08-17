@@ -34,3 +34,7 @@ jobs:
       uses: codecov/codecov-action@v2.1.0
       with:
         file: ./coverage.xml
+    - uses: readthedocs/actions/preview@v1
+      if: matrix.python-version == 3.11
+      with:
+        project-slug: "slotscheck"
