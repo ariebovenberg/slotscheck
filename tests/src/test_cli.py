@@ -1,5 +1,5 @@
 import os
-import pkgutil
+from importlib.util import find_spec
 from pathlib import Path
 
 import pytest
@@ -207,7 +207,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 31 class(es).
+Scanned 4 module(s), 32 class(es).
 """
     )
 
@@ -234,7 +234,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 31 class(es).
+Scanned 4 module(s), 32 class(es).
 """
     )
 
@@ -259,7 +259,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 31 class(es).
+Scanned 4 module(s), 32 class(es).
 """
     )
 
@@ -279,7 +279,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 31 class(es).
+Scanned 4 module(s), 32 class(es).
 """
     )
 
@@ -302,7 +302,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 31 class(es).
+Scanned 4 module(s), 32 class(es).
 """
     )
 
@@ -322,7 +322,7 @@ ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 31 class(es).
+Scanned 4 module(s), 32 class(es).
 """
     )
 
@@ -417,8 +417,8 @@ stats:
     excluded:  0
     skipped:   0
 
-  classes:     31
-    has slots: 22
+  classes:     32
+    has slots: 23
     no slots:  9
     n/a:       0
 """
@@ -519,7 +519,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 31 class(es).
+Scanned 4 module(s), 32 class(es).
 """
     )
 
@@ -548,7 +548,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 31 class(es).
+Scanned 4 module(s), 32 class(es).
 """
     )
 
@@ -578,9 +578,9 @@ to ensure the correct files can be imported.
 See slotscheck.rtfd.io/en/latest/discovery.html
 for more information on why this happens and how to resolve it.
 """.format(
-            pkgutil.get_loader(
+            find_spec(
                 "module_misc.a.b.c"
-            ).path,  # type: ignore[union-attr]
+            ).loader.path,  # type: ignore[union-attr]
             EXAMPLES_DIR / "other/module_misc/a/b/c.py",
         )
     )

@@ -26,7 +26,7 @@ format-check:
 fix: isort format
 
 lint:
-	flake8 --exclude=.tox,build
+	flake8 src tests --exclude=.tox,build
 
 type-check:
 	mypy --pretty src tests/src

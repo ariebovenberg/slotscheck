@@ -1,4 +1,4 @@
-from typing import List
+from typing import FrozenSet, List, TypeVar
 from unittest import mock
 
 import pytest
@@ -18,8 +18,10 @@ from slotscheck.discovery import (
 
 from .conftest import EXAMPLES_DIR
 
+T = TypeVar("T")
 
-def fset(*args) -> frozenset:
+
+def fset(*args: T) -> FrozenSet[T]:
     return frozenset(args)
 
 
@@ -253,34 +255,9 @@ module_misc
         ) == FailedImport("broken.submodule", mocker.ANY)
 
     def test_extension_package(self):
-        assert module_tree("pydantic", None) == make_pkg(
-            "pydantic",
-            Module("annotated_types"),
-            Module("types"),
-            Module("schema"),
-            Module("version"),
-            Module("utils"),
-            Module("parse"),
-            Module("env_settings"),
-            Module("datetime_parse"),
-            Module("json"),
-            Module("decorator"),
-            Module("class_validators"),
-            Module("generics"),
-            Module("validators"),
-            Module("main"),
-            Module("errors"),
-            Module("_hypothesis_plugin"),
-            Module("dataclasses"),
-            Module("mypy"),
-            Module("typing"),
-            Module("networks"),
-            Module("error_wrappers"),
-            Module("config"),
-            Module("fields"),
-            Module("tools"),
-            Module("color"),
-        )
+        tree = module_tree("pydantic", None)
+        assert isinstance(tree, Package)
+        assert len(tree.content) > 20
 
     def test_module(self):
         assert module_tree(

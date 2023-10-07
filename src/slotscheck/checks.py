@@ -1,7 +1,7 @@
 "Slots-related checks and inspection tools"
 import platform
 import sys
-from typing import Collection, Iterator, Optional
+from typing import Collection, Generic, Iterator, Optional
 
 from .common import is_typeddict
 
@@ -16,7 +16,9 @@ def slots(c: type) -> Optional[Collection[str]]:
     elif isinstance(slots_raw, Iterator):
         raise NotImplementedError("Iterator __slots__ not supported. See #22")
     else:
-        return slots_raw
+        # We know it's a collection of strings now, since class creation
+        # would have failed otherwise
+        return slots_raw  # type: ignore[no-any-return]
 
 
 def has_slots(c: type) -> bool:
@@ -24,6 +26,7 @@ def has_slots(c: type) -> bool:
         "__slots__" in c.__dict__
         or not (issubclass(c, BaseException) or is_pure_python(c))
         or is_typeddict(c)
+        or c is Generic  # type: ignore[comparison-overlap]
     )
 
 
