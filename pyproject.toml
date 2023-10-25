@@ -33,7 +33,7 @@ mypy = "^1.5"
 pytest = "^7.4.3"
 black = "^23.10"
 pytest-cov = "^4.1.0"
-pytest-mock = "^3.11.1"
+pytest-mock = "^3.12.0"
 typing_extensions = ">=4.1,<5"
 # Only actually needed as an example library whose __init__ is an extension.
 pydantic = "1.9.2"
