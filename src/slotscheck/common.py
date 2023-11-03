@@ -15,6 +15,16 @@ from typing import (
     TypeVar,
 )
 
+__all__ = [
+    "both",
+    "compose",
+    "groupby",
+    "is_protocol",
+    "is_typeddict",
+    "map_optional",
+    "unique",
+]
+
 flatten = chain.from_iterable
 
 
@@ -92,7 +102,10 @@ except ImportError:  # pragma: no cover
 # Note that typing.is_protocol is not available yet (CPython PR 104878)
 # The implementation below is derived from it.
 def is_protocol(t: type) -> bool:  # pragma: no cover
-    return getattr(t, "_is_protocol", False) and t != Protocol
+    return (
+        getattr(t, "_is_protocol", False)
+        and t != Protocol  # type: ignore[comparison-overlap]
+    )
 
 
 try:

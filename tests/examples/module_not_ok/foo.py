@@ -1,5 +1,5 @@
+from typing import Generic, Protocol, TypeVar
 
-from typing import Protocol
 from typing_extensions import Protocol as TypingExtProtocol
 
 
@@ -114,4 +114,11 @@ class MyOtherProto(TypingExtProtocol):
 
 
 class Zb(MyProto):
+    __slots__ = ()
+
+
+Tvar = TypeVar("Tvar")
+
+
+class Zc(Generic[Tvar]):
     __slots__ = ()

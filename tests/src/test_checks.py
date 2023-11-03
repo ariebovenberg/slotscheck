@@ -58,7 +58,7 @@ class OneStringSlot(HasSlots):
     __slots__ = "baz"
 
 
-class ArrayInherit(array):
+class ArrayInherit(array):  # type: ignore[type-arg]
     __slots__ = ()
 
 

@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.17.1 (2023-11-03)
+-------------------
+
+- Fixed ``Generic`` false positive in Python 3.12+ (#201).
+- Remove ``pkgutil`` deprecation warning on Python 3.12+.
+- Official Python 3.12 support.
+
 0.17.0 (2023-07-31)
 -------------------
 

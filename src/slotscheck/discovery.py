@@ -4,11 +4,12 @@ import importlib
 import pkgutil
 from dataclasses import dataclass, field, replace
 from functools import partial, reduce
-from importlib._bootstrap_external import (  # type: ignore[import]
+from importlib._bootstrap_external import (  # type: ignore[import-not-found]
     _NamespaceLoader,
 )
 from importlib.abc import FileLoader
 from importlib.machinery import ExtensionFileLoader
+from importlib.util import find_spec
 from inspect import isclass
 from itertools import chain, takewhile
 from pathlib import Path
@@ -164,9 +165,12 @@ def module_tree(
 ) -> Union[ModuleTree, FailedImport]:
     """May raise ModuleNotFoundError or UnexpectedImportLocation"""
     try:
-        loader = pkgutil.get_loader(module)
+        spec = find_spec(module)
     except BaseException as e:
         return FailedImport(module, e)
+    if spec is None:
+        raise ModuleNotFoundError(f"No module named '{module}'", name=module)
+    loader = spec.loader
     *namespaces, name = module.split(".")
     location: AbsPath
     tree: ModuleTree
@@ -182,8 +186,6 @@ def module_tree(
         assert len(loader._path._path) == 1
         location = Path(loader._path._path[0])
         tree = _package(name, location)
-    elif loader is None:
-        raise ModuleNotFoundError(f"No module named '{module}'", name=module)
     elif module == "builtins":
         return Module(module)
     else:
