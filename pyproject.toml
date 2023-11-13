@@ -30,7 +30,7 @@ tomli = {version = ">=0.2.6,<3.0.0", python = "<3.11"}
 [tool.poetry.dev-dependencies]
 flake8 = "^6.1"
 isort = "^5.11.5"
-mypy = "^1.5"
+mypy = "^1.7"
 pytest = "^7.4.3"
 black = "^23.11"
 pytest-cov = "^4.1.0"
