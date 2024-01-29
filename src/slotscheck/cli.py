@@ -460,11 +460,9 @@ def _print_report(
 ) -> None:
     classes_by_status = groupby(
         classes,
-        key=lambda c: None
-        if not is_pure_python(c)
-        else True
-        if has_slots(c)
-        else False,
+        key=lambda c: (
+            None if not is_pure_python(c) else True if has_slots(c) else False
+        ),
     )
     print(
         """\
