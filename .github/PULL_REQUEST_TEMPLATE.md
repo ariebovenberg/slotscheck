@@ -15,3 +15,4 @@
 - [ ] Branch merged
 - [ ] Tag created and pushed
 - [ ] Published
+- [ ] Github release created
