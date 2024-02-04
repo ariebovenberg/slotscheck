@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.17.3 (2024-02-04)
+-------------------
+
+- Fix packaging metadata issue where README/CHANGELOG were installed to the
+  wrong location.
+
 0.17.2 (2024-02-04)
 -------------------
 

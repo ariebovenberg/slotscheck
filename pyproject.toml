@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.17.2"
+version = "0.17.3"
 description = "Ensure your __slots__ are working properly."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -18,7 +18,6 @@ packages = [
     { include = "slotscheck", from = "src" },
 ]
 readme = "README.rst"
-include = ["CHANGELOG.rst", "README.rst"]
 repository = "https://github.com/ariebovenberg/slotscheck"
 homepage = "https://github.com/ariebovenberg/slotscheck"
 
@@ -69,5 +68,5 @@ require-subclass = true
 require-superclass = true
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.9.0"]
 build-backend = "poetry.core.masonry.api"
