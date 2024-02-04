@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.17.1"
+version = "0.17.2"
 description = "Ensure your __slots__ are working properly."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -23,7 +23,7 @@ repository = "https://github.com/ariebovenberg/slotscheck"
 homepage = "https://github.com/ariebovenberg/slotscheck"
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<4"
+python = ">=3.8.1"
 click = "^8.0"
 tomli = {version = ">=0.2.6,<3.0.0", python = "<3.11"}
 
