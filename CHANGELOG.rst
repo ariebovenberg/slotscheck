@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.17.2 (2024-02-04)
+-------------------
+
+- Remove Python upper version constraint in package metadata
+
 0.17.1 (2023-11-03)
 -------------------
 
