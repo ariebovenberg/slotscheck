@@ -221,15 +221,13 @@ module_misc
             "namespaced", make_pkg("module", Module("foo"), Module("bla"))
         )
 
-    def test_implicitly_namspaced_submodule(self):
+    def test_implicitly_namespaced_submodule(self):
         assert module_tree("implicitly_namespaced.module", None) == make_pkg(
             "implicitly_namespaced",
             make_pkg("module", Module("foo"), Module("bla")),
         )
 
-    def test_namespace_loader(self):
-        import implicitly_namespaced.module  # type: ignore  # noqa
-
+    def test_implicitly_namespaced(self):
         assert module_tree("implicitly_namespaced", None) == make_pkg(
             "implicitly_namespaced",
             Module("version"),
@@ -237,11 +235,12 @@ module_misc
             make_pkg("another", Module("foo")),
         )
 
-    def test_builtin(self):
-        assert module_tree("builtins", None) == Module("builtins")
+    @pytest.mark.parametrize("module", ["_ast", "builtins", "gc", "sys"])
+    def test_builtin(self, module: str):
+        assert module_tree(module, None) == Module(module)
 
     def test_extension(self):
-        assert module_tree("_elementtree", None) == Module("_elementtree")
+        assert module_tree("ujson", None) == Module("ujson")
 
     def test_import_causes_base_exception_no_strict_imports(self, mocker):
         assert module_tree(
@@ -255,9 +254,9 @@ module_misc
         ) == FailedImport("broken.submodule", mocker.ANY)
 
     def test_extension_package(self):
-        tree = module_tree("pydantic", None)
+        tree = module_tree("mypyc", None)
         assert isinstance(tree, Package)
-        assert len(tree.content) > 20
+        assert len(tree.content) > 10
 
     def test_module(self):
         assert module_tree(
@@ -280,6 +279,14 @@ module_misc
             "module_misc.a.b.c",
             EXAMPLES_DIR / "other/module_misc/a/b/c.py",
             EXAMPLES_DIR / "module_misc/a/b/c.py",
+        )
+
+    def test_shadowed_by_builtin(self):
+        with pytest.raises(UnexpectedImportLocation) as exc:
+            module_tree("gc", expected_location=EXAMPLES_DIR / "gc.py")
+
+        assert exc.value == UnexpectedImportLocation(
+            "gc", EXAMPLES_DIR / "gc.py", None
         )
 
     def test_pyc_file(self):

@@ -4,11 +4,6 @@ import importlib
 import pkgutil
 from dataclasses import dataclass, field, replace
 from functools import partial, reduce
-from importlib._bootstrap_external import (  # type: ignore[import-not-found]
-    _NamespaceLoader,
-)
-from importlib.abc import FileLoader
-from importlib.machinery import ExtensionFileLoader
 from importlib.util import find_spec
 from inspect import isclass
 from itertools import chain, takewhile
@@ -149,7 +144,7 @@ class Package:
 class UnexpectedImportLocation(Exception):
     module: ModuleName
     expected: AbsPath
-    actual: AbsPath
+    actual: Optional[AbsPath]
 
 
 @add_slots
@@ -170,26 +165,16 @@ def module_tree(
         return FailedImport(module, e)
     if spec is None:
         raise ModuleNotFoundError(f"No module named '{module}'", name=module)
-    loader = spec.loader
     *namespaces, name = module.split(".")
-    location: AbsPath
+    location = Path(spec.origin) if spec.has_location and spec.origin else None
     tree: ModuleTree
-    if isinstance(loader, (FileLoader, ExtensionFileLoader)):
-        assert isinstance(loader.path, str)  # type: ignore[union-attr]
-        location = Path(loader.path)  # type: ignore[union-attr]
-        tree = (
-            _package(name, location.parent)
-            if loader.is_package(module)
-            else Module(name)
-        )
-    elif isinstance(loader, _NamespaceLoader):
-        assert len(loader._path._path) == 1
-        location = Path(loader._path._path[0])
-        tree = _package(name, location)
-    elif module == "builtins":
-        return Module(module)
+    if spec.submodule_search_locations is None:
+        tree = Module(name)
     else:
-        raise NotImplementedError(f"Unsupported module loader type: {loader}")
+        assert len(spec.submodule_search_locations) == 1
+        pkg_location = Path(spec.submodule_search_locations[0])
+        location = location or pkg_location
+        tree = _package(name, pkg_location)
 
     if expected_location and location != expected_location:
         raise UnexpectedImportLocation(module, expected_location, location)

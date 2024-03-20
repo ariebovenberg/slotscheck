@@ -103,9 +103,9 @@ def test_builtins(runner: CliRunner):
 
 
 def test_extension(runner: CliRunner):
-    result = runner.invoke(cli, ["-m", "_pickle"])
+    result = runner.invoke(cli, ["-m", "ujson"])
     assert result.exit_code == 0
-    assert result.output == ("All OK!\nScanned 1 module(s), 5 class(es).\n")
+    assert result.output == ("All OK!\nScanned 1 module(s), 1 class(es).\n")
 
 
 def test_success_verbose(runner: CliRunner):

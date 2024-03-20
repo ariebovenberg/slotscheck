@@ -29,14 +29,14 @@ tomli = {version = ">=0.2.6,<3.0.0", python = "<3.11"}
 [tool.poetry.dev-dependencies]
 flake8 = "^7.0"
 isort = "^5.13.2"
-mypy = "^1.9"
+mypy = {version = "^1.9", extras = ["mypyc"]}
 pytest = "^8.1.1"
 black = "^24"
 pytest-cov = "^4.1.0"
 pytest-mock = "^3.12.0"
 typing_extensions = ">=4.1,<5"
-# Only actually needed as an example library whose __init__ is an extension.
-pydantic = "<3"
+# Used as an example of an extension module.
+ujson = "^5.9.0"
 
 [tool.poetry.scripts]
 slotscheck = "slotscheck.cli:root"
