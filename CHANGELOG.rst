@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.18.0 (2024-03-21)
+-------------------
+
+- Improved robustness of importing of namespace packages and built-in modules (#227)
+
 0.17.3 (2024-02-04)
 -------------------
 

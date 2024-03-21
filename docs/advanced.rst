@@ -18,7 +18,7 @@ Use the following configuration:
 
    repos:
    - repo: https://github.com/ariebovenberg/slotscheck
-     rev: v0.17.3
+     rev: v0.18.0
      hooks:
      - id: slotscheck
        # If your Python files are not importable from the project root,
