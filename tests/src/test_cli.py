@@ -157,6 +157,16 @@ def test_multiple_modules(runner: CliRunner):
     assert result.output == "All OK!\nScanned 11 module(s), 70 class(es).\n"
 
 
+def test_implicitly_namespaced_path(runner: CliRunner):
+    result = runner.invoke(
+        cli,
+        [str(EXAMPLES_DIR / "implicitly_namespaced")],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert result.output == "All OK!\nScanned 7 module(s), 1 class(es).\n"
+
+
 def test_multiple_paths(runner: CliRunner):
     result = runner.invoke(
         cli,

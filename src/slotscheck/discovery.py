@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, replace
 from functools import partial, reduce
 from importlib.util import find_spec
 from inspect import isclass
-from itertools import chain, takewhile
+from itertools import chain
 from pathlib import Path
 from textwrap import indent
 from types import ModuleType
@@ -300,19 +300,32 @@ def _is_package(p: AbsPath) -> bool:
     return p.is_dir() and (p / _INIT_PY).is_file()
 
 
-def find_modules(
-    p: AbsPath, python_path: Optional[FrozenSet[AbsPath]] = None
+def _module_parents(
+    p: AbsPath, sys_path: FrozenSet[AbsPath]
+) -> Iterable[AbsPath]:
+    yield p
+    for pp in p.parents:
+        if pp in sys_path:
+            return
+        yield pp
+    raise ValueError(f"File {p} is outside of PYTHONPATH ({sys.path})")
+
+
+def _find_modules(
+    p: AbsPath, sys_path: FrozenSet[AbsPath]
 ) -> Iterable[ModuleLocated]:
-    "Recursively find modules at given path. Nonexistent Path is ignored"
-    if python_path is None:
-        python_path = frozenset(map(Path, sys.path))
     if p.name == _INIT_PY:
-        yield from find_modules(p.parent, python_path)
+        yield from _find_modules(p.parent, sys_path)
     elif _is_module(p):
-        parents = [p, *takewhile(lambda p: p not in python_path, p.parents)]
+        parents = list(_module_parents(p, sys_path))
         yield ModuleLocated(
             ".".join(p.stem for p in reversed(parents)),
             (p / _INIT_PY if _is_package(p) else p),
         )
     elif p.is_dir():
-        yield from flatten(find_modules(sp, python_path) for sp in p.iterdir())
+        yield from flatten(_find_modules(cp, sys_path) for cp in p.iterdir())
+
+
+def find_modules(p: AbsPath) -> Iterable[ModuleLocated]:
+    "Recursively find modules at given path. Nonexistent Path is ignored"
+    return _find_modules(p, frozenset(map(Path, sys.path)))
