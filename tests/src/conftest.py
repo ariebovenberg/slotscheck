@@ -13,9 +13,9 @@ EXAMPLE_NAMES = tuple(
 @pytest.fixture(scope="session", autouse=True)
 def add_pypath() -> Iterator[None]:
     "Add example modules to the python path"
-    sys.path.insert(0, str(EXAMPLES_DIR))
+    sys.path[:0] = [str(EXAMPLES_DIR), str(EXAMPLES_DIR / "other")]
     yield
-    sys.path.remove(str(EXAMPLES_DIR))
+    del sys.path[:2]
 
 
 @pytest.fixture(autouse=True)

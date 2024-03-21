@@ -2,6 +2,7 @@
 
 import importlib
 import pkgutil
+import sys
 from dataclasses import dataclass, field, replace
 from functools import partial, reduce
 from importlib.util import find_spec
@@ -299,15 +300,19 @@ def _is_package(p: AbsPath) -> bool:
     return p.is_dir() and (p / _INIT_PY).is_file()
 
 
-def find_modules(p: AbsPath) -> Iterable[ModuleLocated]:
+def find_modules(
+    p: AbsPath, python_path: Optional[FrozenSet[AbsPath]] = None
+) -> Iterable[ModuleLocated]:
     "Recursively find modules at given path. Nonexistent Path is ignored"
+    if python_path is None:
+        python_path = frozenset(map(Path, sys.path))
     if p.name == _INIT_PY:
-        yield from find_modules(p.parent)
+        yield from find_modules(p.parent, python_path)
     elif _is_module(p):
-        parents = [p] + list(takewhile(_is_package, p.parents))
+        parents = [p, *takewhile(lambda p: p not in python_path, p.parents)]
         yield ModuleLocated(
             ".".join(p.stem for p in reversed(parents)),
-            (p / "__init__.py" if _is_package(p) else p),
+            (p / _INIT_PY if _is_package(p) else p),
         )
     elif p.is_dir():
-        yield from flatten(map(find_modules, p.iterdir()))
+        yield from flatten(find_modules(sp, python_path) for sp in p.iterdir())
