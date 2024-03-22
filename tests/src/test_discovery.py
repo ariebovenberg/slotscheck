@@ -232,6 +232,7 @@ module_misc
     def test_implicitly_namespaced(self):
         assert module_tree("implicitly_namespaced", None) == make_pkg(
             "implicitly_namespaced",
+            Module("bar"),
             Module("version"),
             make_pkg("module", Module("foo"), Module("bla")),
             make_pkg("another", Module("foo")),
