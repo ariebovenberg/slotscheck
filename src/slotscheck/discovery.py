@@ -308,7 +308,7 @@ def _module_parents(
         if pp in sys_path:
             return
         yield pp
-    raise ValueError(f"File {p} is outside of PYTHONPATH ({sys.path})")
+    raise ModuleNotFoundError(f"No module named '{p.stem}'", name=p.stem)
 
 
 def _find_modules(

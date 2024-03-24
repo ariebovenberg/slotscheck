@@ -421,7 +421,7 @@ class TestFindModules:
     def test_given_file_not_in_sys_path(self, tmp_path):
         location = tmp_path / "foo.py"
         location.touch()
-        with pytest.raises(ValueError, match="is outside of PYTHONPATH"):
+        with pytest.raises(ModuleNotFoundError, match="foo"):
             list(find_modules(location))
 
 

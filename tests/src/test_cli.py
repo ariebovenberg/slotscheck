@@ -39,6 +39,19 @@ def test_module_doesnt_exist(runner: CliRunner):
     )
 
 
+def test_python_file_not_in_sys_path(runner: CliRunner, tmpdir):
+    file = tmpdir / "foo.py"
+    file.write_text('print("Hello, world!")', encoding="utf-8")
+    result = runner.invoke(cli, [str(file)])
+    assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
+    assert result.output == (
+        "ERROR: Module 'foo' not found.\n\n"
+        "See slotscheck.rtfd.io/en/latest/discovery.html\n"
+        "for help resolving common import problems.\n"
+    )
+
+
 def test_module_is_uninspectable(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "broken.submodule"])
     assert result.exit_code == 1
