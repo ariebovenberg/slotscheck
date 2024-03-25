@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.19.0 (2024-03-25)
+-------------------
+
+- Improved support for implicit/native namespace packages (#228, #230)
+
 0.18.0 (2024-03-21)
 -------------------
 
