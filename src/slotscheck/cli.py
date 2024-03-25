@@ -42,6 +42,7 @@ from .common import (
 from .discovery import (
     AbsPath,
     FailedImport,
+    FileNotInSysPathError,
     ModuleLocated,
     ModuleName,
     ModuleTree,
@@ -162,9 +163,9 @@ def root(
 
     try:
         classes, modules = _collect(files, module, conf)
-    except ModuleNotFoundError as e:
+    except (ModuleNotFoundError, FileNotInSysPathError) as e:
         print(
-            f"ERROR: Module '{e.name}' not found.\n\n"
+            f"ERROR: {e}.\n\n"
             "See slotscheck.rtfd.io/en/latest/discovery.html\n"
             "for help resolving common import problems."
         )

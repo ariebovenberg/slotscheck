@@ -1,4 +1,5 @@
 import os
+import re
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -33,9 +34,23 @@ def test_module_doesnt_exist(runner: CliRunner):
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
     assert result.output == (
-        "ERROR: Module 'foo' not found.\n\n"
+        "ERROR: No module named 'foo'.\n\n"
         "See slotscheck.rtfd.io/en/latest/discovery.html\n"
         "for help resolving common import problems.\n"
+    )
+
+
+def test_python_file_not_in_sys_path(runner: CliRunner, tmp_path: Path):
+    file = tmp_path / "foo.py"
+    file.write_text('print("Hello, world!")', encoding="utf-8")
+    result = runner.invoke(cli, [str(file)])
+    assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
+    assert re.fullmatch(
+        "ERROR: File '.*/foo.py' is not in PYTHONPATH.\n\n"
+        "See slotscheck.rtfd.io/en/latest/discovery.html\n"
+        "for help resolving common import problems.\n",
+        result.output,
     )
 
 
@@ -155,6 +170,16 @@ def test_multiple_modules(runner: CliRunner):
     )
     assert result.exit_code == 0
     assert result.output == "All OK!\nScanned 11 module(s), 70 class(es).\n"
+
+
+def test_implicitly_namespaced_path(runner: CliRunner):
+    result = runner.invoke(
+        cli,
+        [str(EXAMPLES_DIR / "implicitly_namespaced")],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert result.output == "All OK!\nScanned 7 module(s), 1 class(es).\n"
 
 
 def test_multiple_paths(runner: CliRunner):

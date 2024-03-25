@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import FrozenSet, List, TypeVar
 from unittest import mock
 
@@ -5,6 +6,7 @@ import pytest
 
 from slotscheck.discovery import (
     FailedImport,
+    FileNotInSysPathError,
     Module,
     ModuleLocated,
     ModuleTree,
@@ -370,13 +372,13 @@ class TestFindModules:
     def test_given_python_file(self):
         location = EXAMPLES_DIR / "files/subdir/myfile.py"
         result = list(find_modules(location))
-        assert result == [ModuleLocated("myfile", location)]
+        assert result == [ModuleLocated("files.subdir.myfile", location)]
 
     def test_given_python_root_module(self):
         location = EXAMPLES_DIR / "files/subdir/some_module/"
         result = list(find_modules(location))
         assert result == [
-            ModuleLocated("some_module", location / "__init__.py")
+            ModuleLocated("files.subdir.some_module", location / "__init__.py")
         ]
 
     def test_given_dir_containing_python_files(self):
@@ -384,10 +386,12 @@ class TestFindModules:
         result = list(find_modules(location))
         assert len(result) == 4
         assert set(result) == {
-            ModuleLocated("bla", location / "bla.py"),
-            ModuleLocated("foo", location / "foo.py"),
-            ModuleLocated("foo", location / "sub/foo.py"),
-            ModuleLocated("mymodule", location / "mymodule/__init__.py"),
+            ModuleLocated("files.my_scripts.bla", location / "bla.py"),
+            ModuleLocated("files.my_scripts.foo", location / "foo.py"),
+            ModuleLocated("files.my_scripts.sub.foo", location / "sub/foo.py"),
+            ModuleLocated(
+                "files.my_scripts.mymodule", location / "mymodule/__init__.py"
+            ),
         }
 
     def test_given_file_within_module(self):
@@ -395,7 +399,7 @@ class TestFindModules:
         result = list(find_modules(location))
         assert result == [
             ModuleLocated(
-                "some_module.sub.foo",
+                "files.subdir.some_module.sub.foo",
                 EXAMPLES_DIR / "files/subdir/some_module/sub/foo.py",
             )
         ]
@@ -404,13 +408,23 @@ class TestFindModules:
         location = EXAMPLES_DIR / "files/subdir/some_module/sub"
         result = list(find_modules(location))
         assert result == [
-            ModuleLocated("some_module.sub", location / "__init__.py")
+            ModuleLocated(
+                "files.subdir.some_module.sub", location / "__init__.py"
+            )
         ]
 
     def test_given_init_py(self):
         location = EXAMPLES_DIR / "files/subdir/some_module/sub/__init__.py"
         result = list(find_modules(location))
-        assert result == [ModuleLocated("some_module.sub", location)]
+        assert result == [
+            ModuleLocated("files.subdir.some_module.sub", location)
+        ]
+
+    def test_given_file_not_in_sys_path(self, tmp_path: Path):
+        location = tmp_path / "foo.py"
+        location.touch()
+        with pytest.raises(FileNotInSysPathError, match=r"foo\.py"):
+            list(find_modules(location))
 
 
 class TestConsolidate:

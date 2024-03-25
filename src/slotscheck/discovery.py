@@ -2,11 +2,12 @@
 
 import importlib
 import pkgutil
+import sys
 from dataclasses import dataclass, field, replace
 from functools import partial, reduce
 from importlib.util import find_spec
 from inspect import isclass
-from itertools import chain, takewhile
+from itertools import chain
 from pathlib import Path
 from textwrap import indent
 from types import ModuleType
@@ -164,7 +165,7 @@ def module_tree(
     except BaseException as e:
         return FailedImport(module, e)
     if spec is None:
-        raise ModuleNotFoundError(f"No module named '{module}'", name=module)
+        raise ModuleNotFoundError(f"No module named {module!r}", name=module)
     *namespaces, name = module.split(".")
     location = Path(spec.origin) if spec.has_location and spec.origin else None
     tree: ModuleTree
@@ -291,6 +292,12 @@ class ModuleLocated(NamedTuple):
     expected_location: Optional[AbsPath]
 
 
+class FileNotInSysPathError(Exception):
+    def __init__(self, file: Path) -> None:
+        super().__init__(f"File {str(file)!r} is not in PYTHONPATH")
+        self.file = file
+
+
 def _is_module(p: AbsPath) -> bool:
     return (p.is_file() and p.suffixes == [".py"]) or _is_package(p)
 
@@ -299,15 +306,32 @@ def _is_package(p: AbsPath) -> bool:
     return p.is_dir() and (p / _INIT_PY).is_file()
 
 
-def find_modules(p: AbsPath) -> Iterable[ModuleLocated]:
-    "Recursively find modules at given path. Nonexistent Path is ignored"
+def _module_parents(
+    p: AbsPath, sys_path: FrozenSet[AbsPath]
+) -> Iterable[AbsPath]:
+    yield p
+    for pp in p.parents:
+        if pp in sys_path:
+            return
+        yield pp
+    raise FileNotInSysPathError(p)
+
+
+def _find_modules(
+    p: AbsPath, sys_path: FrozenSet[AbsPath]
+) -> Iterable[ModuleLocated]:
     if p.name == _INIT_PY:
-        yield from find_modules(p.parent)
+        yield from _find_modules(p.parent, sys_path)
     elif _is_module(p):
-        parents = [p] + list(takewhile(_is_package, p.parents))
+        parents = list(_module_parents(p, sys_path))
         yield ModuleLocated(
             ".".join(p.stem for p in reversed(parents)),
-            (p / "__init__.py" if _is_package(p) else p),
+            (p / _INIT_PY if _is_package(p) else p),
         )
     elif p.is_dir():
-        yield from flatten(map(find_modules, p.iterdir()))
+        yield from flatten(_find_modules(cp, sys_path) for cp in p.iterdir())
+
+
+def find_modules(p: AbsPath) -> Iterable[ModuleLocated]:
+    "Recursively find modules at given path. Nonexistent Path is ignored"
+    return _find_modules(p, frozenset(map(Path, sys.path)))
