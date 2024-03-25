@@ -162,6 +162,14 @@ def test_namespaced(runner: CliRunner):
     assert result.output == "All OK!\nScanned 4 module(s), 1 class(es).\n"
 
 
+def test_implicitly_namespaced(runner: CliRunner):
+    result = runner.invoke(
+        cli, ["-m", "implicitly_namespaced"], catch_exceptions=False
+    )
+    assert result.exit_code == 0
+    assert result.output == "All OK!\nScanned 8 module(s), 2 class(es).\n"
+
+
 def test_multiple_modules(runner: CliRunner):
     result = runner.invoke(
         cli,

@@ -20,6 +20,7 @@ from typing import (
     Iterator,
     NamedTuple,
     Optional,
+    Tuple,
     Union,
 )
 
@@ -172,10 +173,7 @@ def module_tree(
     if spec.submodule_search_locations is None:
         tree = Module(name)
     else:
-        assert len(spec.submodule_search_locations) == 1
-        pkg_location = Path(spec.submodule_search_locations[0])
-        location = location or pkg_location
-        tree = _package(name, pkg_location)
+        tree = _package(name, spec.submodule_search_locations)
 
     if expected_location and location != expected_location:
         raise UnexpectedImportLocation(module, expected_location, location)
@@ -189,27 +187,27 @@ def _add_namespace(tree: ModuleTree, name: ModuleNamePart) -> ModuleTree:
 
 def _submodule(m: pkgutil.ModuleInfo) -> ModuleTree:
     if m.ispkg:
-        [subdir] = m.module_finder.find_spec(
-            m.name  # type: ignore
-        ).submodule_search_locations
-        return _package(m.name, Path(subdir))
+        spec = m.module_finder.find_spec(m.name)  # type: ignore[call-arg]
+        assert spec is not None
+        assert spec.submodule_search_locations is not None
+        return _package(m.name, spec.submodule_search_locations)
     else:
         return Module(m.name)
 
 
-def _is_submodule(m: pkgutil.ModuleInfo, path: AbsPath) -> bool:
-    return getattr(m.module_finder, "path", "").startswith(str(path))
+def _is_submodule(m: pkgutil.ModuleInfo, paths: Tuple[str, ...]) -> bool:
+    return getattr(m.module_finder, "path", "").startswith(paths)
 
 
-def _package(name: ModuleNamePart, path: AbsPath) -> Package:
+def _package(name: ModuleNamePart, paths: Collection[str]) -> Package:
     return Package(
         name,
         frozenset(
             map(
                 _submodule,
                 filter(
-                    partial(_is_submodule, path=path),
-                    pkgutil.walk_packages([str(path)]),
+                    partial(_is_submodule, paths=tuple(paths)),
+                    pkgutil.iter_modules(paths),
                 ),
             )
         ),
