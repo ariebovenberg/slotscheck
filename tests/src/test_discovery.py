@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import FrozenSet, List, TypeVar
 from unittest import mock
 
@@ -5,6 +6,7 @@ import pytest
 
 from slotscheck.discovery import (
     FailedImport,
+    FileNotInSysPathError,
     Module,
     ModuleLocated,
     ModuleTree,
@@ -418,10 +420,10 @@ class TestFindModules:
             ModuleLocated("files.subdir.some_module.sub", location)
         ]
 
-    def test_given_file_not_in_sys_path(self, tmp_path):
+    def test_given_file_not_in_sys_path(self, tmp_path: Path):
         location = tmp_path / "foo.py"
         location.touch()
-        with pytest.raises(ModuleNotFoundError, match="foo"):
+        with pytest.raises(FileNotInSysPathError, match=r"foo\.py"):
             list(find_modules(location))
 
 

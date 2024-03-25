@@ -165,7 +165,7 @@ def module_tree(
     except BaseException as e:
         return FailedImport(module, e)
     if spec is None:
-        raise ModuleNotFoundError(f"No module named '{module}'", name=module)
+        raise ModuleNotFoundError(f"No module named {module!r}", name=module)
     *namespaces, name = module.split(".")
     location = Path(spec.origin) if spec.has_location and spec.origin else None
     tree: ModuleTree
@@ -292,6 +292,12 @@ class ModuleLocated(NamedTuple):
     expected_location: Optional[AbsPath]
 
 
+class FileNotInSysPathError(Exception):
+    def __init__(self, file: Path) -> None:
+        super().__init__(f"File {str(file)!r} is not in PYTHONPATH")
+        self.file = file
+
+
 def _is_module(p: AbsPath) -> bool:
     return (p.is_file() and p.suffixes == [".py"]) or _is_package(p)
 
@@ -308,7 +314,7 @@ def _module_parents(
         if pp in sys_path:
             return
         yield pp
-    raise ModuleNotFoundError(f"No module named '{p.stem}'", name=p.stem)
+    raise FileNotInSysPathError(p)
 
 
 def _find_modules(
