@@ -9,7 +9,7 @@ However, there are some complications that you may need to be aware of.
 
    You should generally be fine if you follow these rules:
 
-   - To check files in your current directory,
+   - To check files in your current directory, or subdirectories of it,
      you should run slotscheck as ``python -m slotscheck``.
    - To check files elsewhere, you may need to set the ``$PYTHONPATH``
      environment variable.
