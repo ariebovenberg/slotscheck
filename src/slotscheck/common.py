@@ -118,7 +118,7 @@ else:
         return getattr(t, "_is_protocol", False) and t not in (
             Protocol,
             _TypingExtProtocol,
-        )
+        )  # type: ignore[comparison-overlap]
 
 
 # From https://github.com/ericvsmith/dataclasses/blob/master/dataclass_tools.py
