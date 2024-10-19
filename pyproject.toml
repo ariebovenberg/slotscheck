@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slotscheck"
-version = "0.19.0"
+version = "0.19.1"
 description = "Ensure your __slots__ are working properly."
 authors = ["Arie Bovenberg <a.c.bovenberg@gmail.com>"]
 license = "MIT"
@@ -8,11 +8,11 @@ classifiers = [
     "Typing :: Typed",
     "Topic :: Software Development :: Quality Assurance",
     "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 packages = [
     { include = "slotscheck", from = "src" },
