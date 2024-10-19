@@ -7,12 +7,22 @@ Pre-commit hook
 You can run ``slotscheck`` as a pre-commit hook.
 Use the following configuration:
 
+.. attention::
+
+   Although slotscheck supports pre-commit, it is not recommended to use it.
+   Use ``tox`` or a similar tool instead.
+
+   Why? Slotscheck needs to import your code, so it needs the same
+   dependencies. Pre-commit isn't meant for this use case.
+   Configuring slotscheck to work with pre-commit is possible, but it's
+   error-prone since you need to make sure the dependencies in the pre-commit
+   container match the dependencies in your project.
+
 .. warning::
 
    Slotscheck imports files to check them.
    Be sure to specify ``exclude``
    to prevent slotscheck from importing scripts unintentionally.
-
 
 .. code-block:: yaml
 
@@ -28,6 +38,7 @@ Use the following configuration:
        # Below is what you need to add if you're code isn't importable
        # from the project root, in a "src" directory:
        #
+       # NOTE: This won't work on Windows though.
        # entry: env PYTHONPATH=src slotscheck --verbose
 
        # Add files you don't want slotscheck to import.

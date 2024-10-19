@@ -96,6 +96,14 @@ Notes
   (i.e. attribute access speed and *some* memory savings).
   However, in most cases this is unintentional.
   ``slotscheck`` allows you to ignore specific cases.
+- Because ``slotscheck`` imports your code in arbitrary order,
+  it can—in rare cases—result in confusing and randomly-occurring import errors
+  in third-party libraries.
+  In such a case, it is recommended to omit modules such as your tests
+  and mypy plugins from the slotscheck run.
+  See `here <https://github.com/ariebovenberg/slotscheck/issues/178>`_.
+  Alternatively, you can use ``PYTHONHASHSEED=<any value>`` to make the import order deterministic.
+  A solution to this problem is being worked on in `this issue <https://github.com/ariebovenberg/slotscheck/issues/270>`_.
 
 Installation
 ------------
