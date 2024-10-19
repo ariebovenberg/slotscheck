@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.19.1 (2024-10-19)
+-------------------
+
+- Explicit Python 3.13 support, drop Python 3.8 support
+- Documentation improvements
+
 0.19.0 (2024-03-25)
 -------------------
 
