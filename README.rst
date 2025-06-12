@@ -88,6 +88,13 @@ to discuss the matter.
 Notes
 -----
 
+- ``slotscheck`` does not work on alternative Python implementations
+  such as PyPy, Jython, or IronPython. This is for two reasons:
+
+  1. Other implementations such as PyPy handle slots differently,
+     and running slotscheck wouldn't be useful.
+  2. To perform its checks, ``slotscheck`` uses CPython-specific features
+
 - ``slotscheck`` will try to import all submodules of the given package.
   If there are scripts without ``if __name__ == "__main__":`` blocks,
   they may be executed.

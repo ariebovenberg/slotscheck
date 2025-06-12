@@ -1,9 +1,5 @@
 "Slots-related checks and inspection tools"
-import platform
-import sys
-from typing import Collection, Generic, Iterator, Optional
-
-from .common import is_typeddict
+from typing import Collection, Iterator, Optional
 
 
 def slots(c: type) -> Optional[Collection[str]]:
@@ -21,20 +17,30 @@ def slots(c: type) -> Optional[Collection[str]]:
         return slots_raw  # type: ignore[no-any-return]
 
 
-def has_slots(c: type) -> bool:
-    return (
-        "__slots__" in c.__dict__
-        or not (issubclass(c, BaseException) or is_pure_python(c))
-        or is_typeddict(c)
-        or c is Generic  # type: ignore[comparison-overlap]
-    )
+def defines_slots(c: type) -> bool:
+    """Whether a class defines __slots__."""
+    # Checking c.__slots__ wouldn't work, since it might take it from a base class.
+    return "__slots__" in c.__dict__
 
 
-def has_slotless_base(c: type) -> bool:
-    return not all(map(has_slots, c.__bases__))
+def _has_slot(c: type, name: str) -> bool:
+    for ancestor in c.__mro__:
+        if name in (slots(ancestor) or ()):
+            return True
+    return False
+
+
+def has_implicit_dunder_dict(c: type) -> bool:
+    return c.__dictoffset__ != 0 and not _has_slot(c, "__dict__")
+
+
+def causes_dunder_dict(c: type) -> bool:
+    """Check if this type is the "cause" of a __dict__ being created."""
+    return not defines_slots(c) and has_implicit_dunder_dict(c)
 
 
 def slots_overlap(c: type) -> bool:
+    """Check whether slots of this class overlap with any of its ancestors."""
     maybe_slots = slots(c)
     if maybe_slots is None:
         return False
@@ -48,38 +54,3 @@ def slots_overlap(c: type) -> bool:
 def has_duplicate_slots(c: type) -> bool:
     slots_ = slots(c) or ()
     return len(set(slots_)) != len(list(slots_))
-
-
-# The 'is a pure python class' logic below is adapted
-# from https://stackoverflow.com/a/41012823/
-
-# If the active Python interpreter is the official CPython interpreter,
-# prefer a more reliable CPython-specific solution guaranteed to succeed.
-if platform.python_implementation() == "CPython":
-    # Magic numbers defined by the Python codebase at "Include/object.h".
-    Py_TPFLAGS_IMMUTABLETYPE = 1 << 8
-    Py_TPFLAGS_HEAPTYPE = 1 << 9
-
-    # Starting with CPython 3.10, `Py_TPFLAGS_HEAPTYPE` should no longer
-    # be relied on, and `!Py_TPFLAGS_IMMUTABLETYPE` should be used instead.
-    if sys.version_info >= (3, 10):
-
-        def is_pure_python(cls: type) -> bool:
-            "Whether the class is pure-Python or C-based"
-            return not (cls.__flags__ & Py_TPFLAGS_IMMUTABLETYPE)
-
-    else:  # pragma: no cover
-
-        def is_pure_python(cls: type) -> bool:
-            "Whether the class is pure-Python or C-based"
-            return bool(cls.__flags__ & Py_TPFLAGS_HEAPTYPE)
-
-
-# Else, fallback to a CPython-agnostic solution typically but *NOT*
-# necessarily succeeding. For all real-world objects of interest, this is
-# effectively successful. Edge cases exist but are suitably rare.
-else:  # pragma: no cover
-
-    def is_pure_python(cls: type) -> bool:
-        "Whether the class is pure-Python or C-based"
-        return "__dict__" in dir(cls) or hasattr(cls, "__slots__")

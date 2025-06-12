@@ -1,6 +1,21 @@
 from typing import Generic, Protocol, TypeVar
 
 from typing_extensions import Protocol as TypingExtProtocol
+from typing_extensions import TypedDict as MyTypingExtensionsTypedDict
+
+
+try:
+    from typing import TypedDict
+
+    class MyTypedDict(TypedDict):
+        pass
+
+except ImportError:
+    pass
+
+
+class MyTypedDictExc(MyTypingExtensionsTypedDict):
+    pass
 
 
 class A:
@@ -97,6 +112,10 @@ class X(RuntimeError):
     pass
 
 
+class Y(Exception):
+    __slots__ = ("a", "b", "c")
+
+
 class Z:
     __slots__ = ("a", "b", "c", "b", "b", "c")
 
@@ -113,6 +132,10 @@ class MyOtherProto(TypingExtProtocol):
     pass
 
 
+class SubProto(MyProto):
+    pass
+
+
 class Zb(MyProto):
     __slots__ = ()
 
@@ -122,3 +145,14 @@ Tvar = TypeVar("Tvar")
 
 class Zc(Generic[Tvar]):
     __slots__ = ()
+
+
+class Zd:
+    __slots__ = ("a", "b", "__dict__")
+
+
+class Ze(Zd):
+    pass
+
+class Zf(Zd):
+    __slots__ = ("c", "d")

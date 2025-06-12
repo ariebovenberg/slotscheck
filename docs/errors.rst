@@ -24,15 +24,26 @@ all base classes of a slotted classe need to define slots as well:
    class Good(HasSlots):
        __slots__ = ('x', 'y')
 
-
-You can see the memory impact of this mistake with ``pympler`` library:
+The benchmark below shows the difference in memory usage:
 
 .. code-block:: python
 
-   from pympler.asizeof import asizeof
+   import tracemalloc as tm
 
-   asizeof(Bad())  # 168
-   asizeof(Good())  # 48
+   tm.start()
+   _ = [Good() for _ in range(1_000_000)]
+   print(f"Allocated {tm.get_traced_memory()[0] // 1_000_000} MB for Good")
+
+   tm.start()
+   _ = [Bad() for _ in range(1_000_000)]
+   print(f"Allocated {tm.get_traced_memory()[0] // 1_000_000} MB for Bad")
+
+Which will print:
+
+.. code-block:: text
+
+    Allocated 56 MB for Good
+    Allocated 96 MB for Bad
 
 
 In addition, if a superclass has no slots, all subclasses will get ``__dict__``,
@@ -88,5 +99,5 @@ This mistake will cost you some memory:
        __slots__ = ('a', 'a', 'a', 'b', 'a', 'b')
 
 
-    asizeof(Good())  # 48
-    asizeof(Bad())  # 80
+    sys.getsizeof(Good())  # 48
+    sys.getsizeof(Bad())  # 80

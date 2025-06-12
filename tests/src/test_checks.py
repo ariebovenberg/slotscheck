@@ -9,7 +9,10 @@ from xml.etree.ElementTree import Element
 import pytest
 from typing_extensions import TypedDict as TypingExtensionsTypedDict
 
-from slotscheck.checks import has_slotless_base, has_slots, slots_overlap
+from slotscheck.checks import (
+    has_implicit_dunder_dict,
+    slots_overlap,
+)
 
 try:
     from typing import TypedDict
@@ -19,6 +22,10 @@ except ImportError:
 
 class HasSlots:
     __slots__ = ("a", "b")
+
+
+class NoSlots:
+    pass
 
 
 class GoodInherit(HasSlots):
@@ -50,6 +57,14 @@ class _RestrictiveMeta(type):
         raise TypeError("BOOM!")
 
 
+class MetaClass(type):
+    pass
+
+
+class MetaClassSlots(type):
+    __slots__ = ()
+
+
 class _UnsettableClass(metaclass=_RestrictiveMeta):
     pass
 
@@ -78,36 +93,74 @@ class MyTypingExtensionsTypedDict(TypingExtensionsTypedDict):
     bla: int
 
 
-class TestHasSlots:
+class MyException(Exception):
+    pass
+
+
+class DunderDictSlot:
+    __slots__ = ("a", "b", "__dict__")
+
+
+class DunderDictSlotExtra(HasSlots):
+    __slots__ = ("c", "d", "__dict__")
+
+
+class InheritDunderDictSlot(DunderDictSlot):
+    pass
+
+
+class ExtendDunderDictSlot(DunderDictSlot):
+    __slots__ = ("x",)
+
+
+class MyEnum(Enum):
+    A = 1
+    B = 2
+
+
+class TestHasImplicitDunderDict:
     @pytest.mark.parametrize(
-        "klass",
-        [type, dict, date, float, Decimal, Element, array],
-    )
-    def test_not_purepython(self, klass):
-        assert has_slots(klass)
-
-    def test_typeddict(self):
-        assert has_slots(MyDict)
-
-    def test_typing_extensions_typeddict(self):
-        assert has_slots(MyTypingExtensionsTypedDict)
-
-    @pytest.mark.parametrize(
-        "klass",
+        "klass, expect",
         [
-            Fraction,
-            HasSlots,
-            GoodInherit,
-            BadInherit,
-            BadOverlaps,
-            OneStringSlot,
-            ArrayInherit,
-            Foo,
-            FooMeta,
+            (type, True),
+            (dict, False),
+            (date, False),
+            (float, False),
+            (Decimal, False),
+            (Element, False),
+            (Exception, True),
+            (array, False),
         ],
     )
-    def test_slots(self, klass):
-        assert has_slots(klass)
+    def test_not_purepython(self, klass, expect):
+        assert has_implicit_dunder_dict(klass) is expect
+
+    def test_typeddict(self):
+        # This is a bit of a strange case
+        # but the errors in the end work out (see cli.py)
+        assert has_implicit_dunder_dict(MyDict)
+        assert has_implicit_dunder_dict(MyTypingExtensionsTypedDict)
+
+    def test_metaclass(self):
+        assert has_implicit_dunder_dict(MetaClass)
+        assert has_implicit_dunder_dict(MetaClassSlots)
+
+    @pytest.mark.parametrize(
+        "klass, expect",
+        [
+            (Fraction, False),
+            (HasSlots, False),
+            (GoodInherit, False),
+            (BadInherit, True),
+            (BadOverlaps, False),
+            (OneStringSlot, False),
+            (ArrayInherit, False),
+            (Foo, False),
+            (FooMeta, True),
+        ],
+    )
+    def test_slots(self, klass, expect):
+        assert has_implicit_dunder_dict(klass) is expect
 
     @pytest.mark.parametrize(
         "klass",
@@ -118,13 +171,21 @@ class TestHasSlots:
             ChildOfBadClass,
             RuntimeError,
             KeyboardInterrupt,
+            MyException,
+            MyEnum,
         ],
     )
     def test_no_slots(self, klass):
-        assert not has_slots(klass)
+        assert has_implicit_dunder_dict(klass)
 
     def test_immutable_class(self):
-        assert not has_slots(_UnsettableClass)
+        assert has_implicit_dunder_dict(_UnsettableClass)
+
+    def test_explicit_dunder_dict(self):
+        assert not has_implicit_dunder_dict(DunderDictSlot)
+        assert not has_implicit_dunder_dict(DunderDictSlotExtra)
+        assert not has_implicit_dunder_dict(InheritDunderDictSlot)
+        assert not has_implicit_dunder_dict(ExtendDunderDictSlot)
 
 
 class TestSlotsOverlap:
@@ -160,29 +221,3 @@ class TestSlotsOverlap:
     )
     def test_no_slots(self, klass):
         assert not slots_overlap(klass)
-
-
-class TestHasSlotlessBase:
-    @pytest.mark.parametrize(
-        "klass",
-        [type, dict, date, float, Decimal],
-    )
-    def test_not_purepython(self, klass):
-        assert not has_slotless_base(klass)
-
-    @pytest.mark.parametrize(
-        "klass", [Fraction, HasSlots, GoodInherit, BadOverlaps, OneStringSlot]
-    )
-    def test_slots_ok(self, klass):
-        assert not has_slotless_base(klass)
-
-    @pytest.mark.parametrize(
-        "klass",
-        [BadInherit, BadInheritAndOverlap, AssertionError, RuntimeError],
-    )
-    def test_slots_not_ok(self, klass):
-        assert has_slotless_base(klass)
-
-    @pytest.mark.parametrize("klass", [Enum, NoSlotsInherits, ChildOfBadClass])
-    def test_no_slots(self, klass):
-        assert not has_slotless_base(klass)

@@ -139,9 +139,8 @@ stats:
     skipped:   0
 
   classes:     64
-    has slots: 44
-    no slots:  20
-    n/a:       0
+    has slots: 20
+    no slots:  44
 """
     )
 
@@ -229,18 +228,21 @@ def test_errors_with_default_settings(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
+ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:S' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:U' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
+ERROR: 'module_not_ok.foo:V' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:Y' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
-ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 32 class(es).
+Scanned 4 module(s), 39 class(es).
 """
     )
 
@@ -253,21 +255,25 @@ def test_errors_require_slots_subclass(runner: CliRunner):
         result.output
         == """\
 ERROR: 'module_not_ok.a.b:A' has no slots, but it could have.
-ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
+ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:A' has no slots, but it could have.
 ERROR: 'module_not_ok.foo:C' has no slots, but it could have.
 ERROR: 'module_not_ok.foo:R' has no slots, but it could have.
-ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:S' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:U' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
+ERROR: 'module_not_ok.foo:V' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:Y' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
-ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:Ze' has no slots, but it could have.
 Oh no, found some problems!
-Scanned 4 module(s), 32 class(es).
+Scanned 4 module(s), 39 class(es).
 """
     )
 
@@ -281,18 +287,21 @@ def test_errors_disallow_nonslot_inherit(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
+ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:S' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:U' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
+ERROR: 'module_not_ok.foo:V' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:Y' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
-ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 32 class(es).
+Scanned 4 module(s), 39 class(es).
 """
     )
 
@@ -312,7 +321,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 32 class(es).
+Scanned 4 module(s), 39 class(es).
 """
     )
 
@@ -327,15 +336,17 @@ def test_errors_with_exclude_classes(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
-ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
+ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
+ERROR: 'module_not_ok.foo:V' defines slots but superclass does not.
+ERROR: 'module_not_ok.foo:Y' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
-ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 32 class(es).
+Scanned 4 module(s), 39 class(es).
 """
     )
 
@@ -350,12 +361,13 @@ def test_errors_with_include_classes(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:S' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
+ERROR: 'module_not_ok.foo:W' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 32 class(es).
+Scanned 4 module(s), 39 class(es).
 """
     )
 
@@ -375,7 +387,7 @@ def test_errors_with_include_modules(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
+ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
 Oh no, found some problems!
 Scanned 3 module(s), 2 class(es).
 """
@@ -407,16 +419,16 @@ def test_module_not_ok_verbose(runner: CliRunner):
     assert (
         result.output
         == """\
-ERROR: 'module_not_ok.a.b:U' has slots but superclass does not.
+ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
        Superclasses without slots:
        - 'module_not_ok.a.b:A'
-ERROR: 'module_not_ok.foo:S' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:S' defines slots but superclass does not.
        Superclasses without slots:
        - 'module_not_ok.foo:R'
-ERROR: 'module_not_ok.foo:T' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:T' defines slots but superclass does not.
        Superclasses without slots:
        - 'module_not_ok.foo:A'
-ERROR: 'module_not_ok.foo:U' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:U' defines slots but superclass does not.
        Superclasses without slots:
        - 'module_not_ok.foo:L'
        - 'module_not_ok.foo:D'
@@ -428,10 +440,24 @@ ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
        Slots already defined in superclass:
        - 'w' (module_not_ok.foo:U.Ua)
        - 'w' (module_not_ok.foo:Q)
+ERROR: 'module_not_ok.foo:V' defines slots but superclass does not.
+       Superclasses without slots:
+       - 'module_not_ok.foo:L'
+       - 'module_not_ok.foo:D'
+       - 'module_not_ok.foo:C'
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
        Slots already defined in superclass:
        - 'p' (module_not_ok.foo:U)
        - 'v' (module_not_ok.foo:V)
+ERROR: 'module_not_ok.foo:W' defines slots but superclass does not.
+       Superclasses without slots:
+       - 'module_not_ok.foo:L'
+       - 'module_not_ok.foo:D'
+       - 'module_not_ok.foo:C'
+ERROR: 'module_not_ok.foo:Y' defines slots but superclass does not.
+       Superclasses without slots:
+       - 'builtins:Exception'
+       - 'builtins:BaseException'
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
        Duplicate slot names:
        - 'b'
@@ -440,7 +466,7 @@ ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
        Slots already defined in superclass:
        - 'b' (module_not_ok.foo:Z)
        - 'c' (module_not_ok.foo:Z)
-ERROR: 'module_not_ok.foo:Zb' has slots but superclass does not.
+ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
        Superclasses without slots:
        - 'module_not_ok.foo:MyProto'
 Oh no, found some problems!
@@ -450,10 +476,9 @@ stats:
     excluded:  0
     skipped:   0
 
-  classes:     32
-    has slots: 23
-    no slots:  9
-    n/a:       0
+  classes:     39
+    has slots: 13
+    no slots:  26
 """
     )
 
@@ -552,7 +577,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 32 class(es).
+Scanned 4 module(s), 39 class(es).
 """
     )
 
@@ -581,7 +606,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 32 class(es).
+Scanned 4 module(s), 39 class(es).
 """
     )
 

@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.20.0 (2025-06-12)
+-------------------
+
+- Improve speed and accuracy of detecting of "slotless" classes,
+  even if they are not pure Python (e.g. C extension modules).
+- Remove support for alternative Python implementations (e.g. PyPy) since
+  they treat slots differently and running slotscheck wouldn't be useful.
+  It also allows us to use CPython-specific features.
+- Improve accuracy of benchmarks on "errors and violations" page.
+
 0.19.1 (2024-10-19)
 -------------------
 

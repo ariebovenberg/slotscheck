@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from functools import partial
-from itertools import chain, filterfalse, starmap
+from itertools import chain, starmap
 from operator import attrgetter, itemgetter, methodcaller, not_
 from pathlib import Path
 from textwrap import indent
@@ -22,10 +22,10 @@ import click
 
 from . import config
 from .checks import (
+    causes_dunder_dict,
+    has_implicit_dunder_dict,
     has_duplicate_slots,
-    has_slotless_base,
-    has_slots,
-    is_pure_python,
+    defines_slots,
     slots,
     slots_overlap,
 )
@@ -38,6 +38,7 @@ from .common import (
     groupby,
     is_protocol,
     map_optional,
+    is_typeddict,
 )
 from .discovery import (
     AbsPath,
@@ -52,6 +53,12 @@ from .discovery import (
     module_tree,
     walk_classes,
 )
+
+if __import__("platform").python_implementation() != "CPython":
+    raise RuntimeError(
+        "slotscheck does not support alternative Python implementations. "
+        "See the docs at https://slotscheck.readthedocs.io/"
+    )
 
 
 @click.command("slotscheck")
@@ -71,7 +78,7 @@ from .discovery import (
 @click.option(
     "--require-superclass/--no-require-superclass",
     help="Report an error when a slots class inherits from "
-    "a non-slotted class.",
+    "a non-slotted (or __dict__) class.",
     default=None,
     show_default="required",
 )
@@ -320,7 +327,7 @@ class BadSlotInheritance(Notice):
 
     def for_display(self, verbose: bool) -> str:
         return (
-            f"'{_class_fullname(self.cls)}' has slots "
+            f"'{_class_fullname(self.cls)}' defines slots "
             "but superclass does not."
             + verbose
             * (
@@ -331,7 +338,7 @@ class BadSlotInheritance(Notice):
                             "'{}'".format,
                             _class_fullname,
                         ),
-                        _slotless_superclasses(self.cls),
+                        _types_causing_dunder_dict(self.cls),
                     )
                 )
             )
@@ -459,12 +466,7 @@ def _print_report(
     modules: ModulesReport,
     classes: Collection[type],
 ) -> None:
-    classes_by_status = groupby(
-        classes,
-        key=lambda c: (
-            None if not is_pure_python(c) else True if has_slots(c) else False
-        ),
-    )
+    classes_by_status = groupby(classes, key=defines_slots)
     print(
         """\
 stats:
@@ -475,16 +477,14 @@ stats:
 
   classes:     {}
     has slots: {}
-    no slots:  {}
-    n/a:       {}""".format(
+    no slots:  {}""".format(
             sum(map(len, modules.all)),
             sum(map(len, modules.filtered)),
             sum(map(len, modules.all)) - sum(map(len, modules.filtered)),
             len(modules.skipped),
             len(classes),
-            len(classes_by_status[True]),
             len(classes_by_status[False]),
-            len(classes_by_status[None]),
+            len(classes_by_status[True]),
         ),
         file=sys.stderr,
     )
@@ -558,13 +558,14 @@ def slot_messages(
         yield OverlappingSlots(c)
     if has_duplicate_slots(c):
         yield DuplicateSlots(c)
-    if require_superclass and has_slots(c) and has_slotless_base(c):
+    if require_superclass and defines_slots(c) and has_implicit_dunder_dict(c):
         yield BadSlotInheritance(c)
     elif (
         require_subclass
-        and not has_slots(c)
-        and not has_slotless_base(c)
-        and not is_protocol(c)
+        and not defines_slots(c)
+        and not any(map(has_implicit_dunder_dict, c.__bases__))
+        and not is_protocol(c)  # slotscheck/issues/130
+        and not is_typeddict(c)  # slotscheck/issues/120
     ):
         yield ShouldHaveSlots(c)
 
@@ -595,5 +596,5 @@ def _bulletlist(s: Iterable[str]) -> str:
     return "\n".join(map("- {}".format, s))
 
 
-def _slotless_superclasses(c: type) -> Iterable[type]:
-    return filterfalse(has_slots, c.mro())
+def _types_causing_dunder_dict(c: type) -> Iterable[type]:
+    return filter(causes_dunder_dict, c.mro())
