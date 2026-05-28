@@ -51,3 +51,31 @@ Alternatively, you can manually specify the config file to be used with the
 
 Note that CLI options have precedence over a config file.
 Thus, you can always override what's configured there.
+
+Unused slots detection (Experimental)
+--------------------------------------
+
+.. note::
+
+   Requires **Python 3.13+**. Disabled by default.
+
+To enable detection of unused slots:
+
+.. code-block:: toml
+
+   [tool.slotscheck]
+   detect-unused-slots = true
+
+To suppress false positives, use a regex pattern matching
+``module.path:ClassName.slot_name``:
+
+.. code-block:: toml
+
+   [tool.slotscheck]
+   detect-unused-slots = true
+   exclude-slots = '''
+   (
+     mymodule:MyClass\.externally_set_slot
+     |.*\.cache
+   )
+   '''

@@ -1,3 +1,4 @@
+import sys
 from array import array
 from datetime import date
 from decimal import Decimal
@@ -11,7 +12,9 @@ from typing_extensions import TypedDict as TypingExtensionsTypedDict
 
 from slotscheck.checks import (
     has_implicit_dunder_dict,
+    is_abstract,
     slots_overlap,
+    unused_slots,
 )
 
 try:
@@ -221,3 +224,144 @@ class TestSlotsOverlap:
     )
     def test_no_slots(self, klass):
         assert not slots_overlap(klass)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 13),
+    reason="unused_slots requires __static_attributes__ (Python 3.13+)",
+)
+class TestUnusedSlots:
+    def test_all_used(self):
+        class AllUsed:
+            __slots__ = ("a", "b")
+
+            def __init__(self):
+                self.a = 1
+                self.b = 2
+
+        assert unused_slots(AllUsed) == {}
+
+    def test_some_unused(self):
+        class SomeUnused:
+            __slots__ = ("used", "unused_one", "unused_two")
+
+            def __init__(self):
+                self.used = 1
+
+        result = unused_slots(SomeUnused)
+        assert set(result.keys()) == {"unused_one", "unused_two"}
+
+    def test_empty_slots(self):
+        class Empty:
+            __slots__ = ()
+
+        assert unused_slots(Empty) == {}
+
+    def test_inherited_usage(self):
+        class Base:
+            __slots__ = ("a",)
+
+        class Child(Base):
+            __slots__ = ("b",)
+
+            def __init__(self):
+                self.a = 1
+                self.b = 2
+
+        assert unused_slots(Child) == {}
+
+    def test_inherited_unused(self):
+        class Base:
+            __slots__ = ("a",)
+
+        class Child(Base):
+            __slots__ = ("b",)
+
+            def __init__(self):
+                self.b = 2
+
+        result = unused_slots(Child)
+        assert set(result.keys()) == {"a"}
+
+    def test_dunder_dict_excluded(self):
+        class WithDunderDict:
+            __slots__ = ("a", "__dict__")
+
+            def __init__(self):
+                self.a = 1
+
+        assert unused_slots(WithDunderDict) == {}
+
+    def test_weakref_excluded(self):
+        class WithWeakref:
+            __slots__ = ("a", "__weakref__")
+
+            def __init__(self):
+                self.a = 1
+
+        assert unused_slots(WithWeakref) == {}
+
+    def test_dataclass_fields(self):
+        from dataclasses import dataclass
+
+        @dataclass
+        class DC:
+            __slots__ = ("x", "y")
+            x: int
+            y: int
+
+        assert unused_slots(DC) == {}
+
+    def test_attrs_fields(self):
+        import attr
+
+        @attr.s(slots=True)
+        class AttrsClass:
+            x: int = attr.ib()
+            y: int = attr.ib()
+
+        assert unused_slots(AttrsClass) == {}
+
+
+class TestIsAbstract:
+    def test_abc_class(self):
+        from abc import ABC, abstractmethod
+
+        class MyABC(ABC):
+            __slots__ = ("x",)
+
+            @abstractmethod
+            def method(self):
+                pass
+
+        assert is_abstract(MyABC)
+
+    def test_abc_base(self):
+        from abc import ABC
+
+        class DirectABC(ABC):
+            pass
+
+        assert is_abstract(DirectABC)
+
+    def test_not_abstract(self):
+        assert not is_abstract(HasSlots)
+        assert not is_abstract(NoSlots)
+
+    def test_concrete_subclass_of_abc(self):
+        from abc import ABC, abstractmethod
+
+        class MyABC(ABC):
+            __slots__ = ("x",)
+
+            @abstractmethod
+            def method(self):
+                pass
+
+        class Concrete(MyABC):
+            __slots__ = ()
+
+            def method(self):
+                pass
+
+        assert not is_abstract(Concrete)

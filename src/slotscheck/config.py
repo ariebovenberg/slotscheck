@@ -31,6 +31,8 @@ class PartialConfig:
     exclude_modules: Optional[RegexStr]
     include_classes: Optional[RegexStr]
     exclude_classes: Optional[RegexStr]
+    detect_unused_slots: Optional[bool]
+    exclude_slots: Optional[RegexStr]
 
     EMPTY: ClassVar["PartialConfig"]
 
@@ -80,7 +82,9 @@ class PartialConfig:
         )
 
 
-PartialConfig.EMPTY = PartialConfig(None, None, None, None, None, None, None)
+PartialConfig.EMPTY = PartialConfig(
+    None, None, None, None, None, None, None, None, None
+)
 
 
 @dataclass(frozen=True)
@@ -91,6 +95,7 @@ class Config(PartialConfig):
     require_subclass: bool
     require_superclass: bool
     exclude_modules: RegexStr
+    detect_unused_slots: bool
 
     DEFAULT: ClassVar["Config"]
 
@@ -111,6 +116,8 @@ Config.DEFAULT = Config(
     exclude_modules=DEFAULT_MODULE_EXCLUDE_RE,
     include_classes=None,
     exclude_classes=None,
+    detect_unused_slots=False,
+    exclude_slots=None,
 )
 
 
@@ -202,4 +209,6 @@ _ALLOWED_KEYS = {
     "exclude-modules": str,
     "include-classes": str,
     "exclude-classes": str,
+    "detect-unused-slots": bool,
+    "exclude-slots": str,
 }

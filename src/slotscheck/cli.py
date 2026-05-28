@@ -26,8 +26,10 @@ from .checks import (
     has_implicit_dunder_dict,
     has_duplicate_slots,
     defines_slots,
+    is_abstract,
     slots,
     slots_overlap,
+    unused_slots,
 )
 from .common import (
     Predicate,
@@ -126,6 +128,19 @@ if __import__("platform").python_implementation() != "CPython":
     show_default="strict",
 )
 @click.option(
+    "--detect-unused-slots/--no-detect-unused-slots",
+    help="[Experimental, Python 3.13+] Detect slots that are never assigned "
+    "within the class body. Disabled by default.",
+    default=None,
+    show_default="disabled",
+)
+@click.option(
+    "--exclude-slots",
+    help="A regular expression matching slots to exclude from "
+    "unused-slot detection. Matches against 'module.path:Class.slot_name'. "
+    "Uses Python's verbose regex dialect.",
+)
+@click.option(
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
 )
 @click.option(
@@ -145,6 +160,8 @@ def root(
     require_superclass: Optional[bool],
     require_subclass: Optional[bool],
     strict_imports: Optional[bool],
+    detect_unused_slots: Optional[bool],
+    exclude_slots: Optional[config.RegexStr],
     exclude_classes: Optional[config.RegexStr],
     include_classes: Optional[config.RegexStr],
     exclude_modules: Optional[config.RegexStr],
@@ -160,10 +177,19 @@ def root(
             include_classes=include_classes,
             exclude_modules=exclude_modules,
             include_modules=include_modules,
+            detect_unused_slots=detect_unused_slots,
+            exclude_slots=exclude_slots,
         ),
         Path.cwd(),
         settings,
     )
+    if conf.detect_unused_slots and sys.version_info < (3, 13):
+        print(
+            "ERROR: --detect-unused-slots requires Python 3.13+. "
+            f"You are running Python {sys.version_info.major}"
+            f".{sys.version_info.minor}."
+        )
+        exit(1)
     if not (files or module):
         print("No files or modules given. Nothing to do!")
         exit(0)
@@ -216,6 +242,8 @@ for more information on why this happens and how to resolve it.""".format(
                 conf.include_classes,
                 conf.exclude_classes,
                 conf.require_subclass,
+                conf.detect_unused_slots,
+                conf.exclude_slots,
             ),
         )
     )
@@ -362,6 +390,20 @@ class ShouldHaveSlots(Notice):
 
 @add_slots
 @dataclass(frozen=True)
+class UnusedSlots(Notice):
+    "A class has unused slots."
+    cls: type
+    unused: Collection[str]
+
+    def for_display(self, verbose: bool) -> str:
+        return f"'{_class_fullname(self.cls)}' has unused slots." + verbose * (
+            "\nUnused slots:\n"
+            + _bulletlist(map("'{}'".format, sorted(self.unused)))
+        )
+
+
+@add_slots
+@dataclass(frozen=True)
 class Message:
     "A notice with error level."
     notice: Notice
@@ -496,7 +538,14 @@ def _check_classes(
     include: Optional[str],
     exclude: Optional[str],
     require_subclass: bool,
+    detect_unused_slots: bool,
+    exclude_slots: Optional[str],
 ) -> Iterator[Message]:
+    exclude_slots_pattern = (
+        re.compile(exclude_slots, flags=re.VERBOSE)
+        if exclude_slots
+        else None
+    )
     return map(
         partial(Message, error=True),
         flatten(
@@ -505,6 +554,8 @@ def _check_classes(
                     slot_messages,
                     require_subclass=require_subclass,
                     require_superclass=require_superclass,
+                    detect_unused_slots=detect_unused_slots,
+                    exclude_slots_pattern=exclude_slots_pattern,
                 ),
                 sorted(
                     _class_includes(
@@ -552,7 +603,11 @@ def _class_includes(
 
 
 def slot_messages(
-    c: type, require_superclass: bool, require_subclass: bool
+    c: type,
+    require_superclass: bool,
+    require_subclass: bool,
+    detect_unused_slots: bool,
+    exclude_slots_pattern: "Optional[re.Pattern[str]]",
 ) -> Iterable[Notice]:
     if slots_overlap(c):
         yield OverlappingSlots(c)
@@ -560,7 +615,24 @@ def slot_messages(
         yield DuplicateSlots(c)
     if require_superclass and defines_slots(c) and has_implicit_dunder_dict(c):
         yield BadSlotInheritance(c)
-    elif (
+    if (
+        detect_unused_slots
+        and defines_slots(c)
+        and not is_abstract(c)
+        and not is_protocol(c)
+    ):
+        unused = unused_slots(c)
+        if exclude_slots_pattern:
+            unused = {
+                slot: origin
+                for slot, origin in unused.items()
+                if not exclude_slots_pattern.search(
+                    f"{_class_fullname(c)}.{slot}"
+                )
+            }
+        if unused:
+            yield UnusedSlots(c, unused)
+    if (
         require_subclass
         and not defines_slots(c)
         and not any(map(has_implicit_dunder_dict, c.__bases__))

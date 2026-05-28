@@ -10,6 +10,10 @@ Changelog
   they treat slots differently and running slotscheck wouldn't be useful.
   It also allows us to use CPython-specific features.
 - Improve accuracy of benchmarks on "errors and violations" page.
+- Add experimental ``--detect-unused-slots`` flag (Python 3.13+ only) to
+  detect slots that are declared but never assigned within the class body.
+  Disabled by default. Use ``--exclude-slots`` to suppress false positives.
+  Abstract classes are automatically excluded from this check.
 
 0.19.1 (2024-10-19)
 -------------------

@@ -1,8 +1,11 @@
 "Slots-related checks and inspection tools"
-from typing import Collection, Iterator, Optional
+from typing import Collection, Iterator, Optional, Mapping
+from inspect import isabstract as _is_abstract
+from abc import ABC
 
 
 def slots(c: type) -> Optional[Collection[str]]:
+    """Get the __slots__ defined on a class."""
     try:
         slots_raw = c.__dict__["__slots__"]
     except KeyError:
@@ -19,19 +22,62 @@ def slots(c: type) -> Optional[Collection[str]]:
 
 def defines_slots(c: type) -> bool:
     """Whether a class defines __slots__."""
-    # Checking c.__slots__ wouldn't work, since it might take it from a base class.
+    # Checking c.__slots__ wouldn't work, since it might take it from
+    # a base class.
     return "__slots__" in c.__dict__
 
 
-def _has_slot(c: type, name: str) -> bool:
+def _all_static_attrs(c: type) -> Iterator[str]:
     for ancestor in c.__mro__:
-        if name in (slots(ancestor) or ()):
-            return True
-    return False
+        # NOTE: this only works on Python 3.13+, but the CLI should guard
+        # against its use.
+        try:
+            yield from ancestor.__dataclass_fields__
+            continue
+        except AttributeError:
+            pass
+        # attrs classes store field info in __attrs_attrs__
+        try:
+            yield from (a.name for a in ancestor.__attrs_attrs__)
+            continue
+        except (AttributeError, TypeError):
+            pass
+        yield from getattr(ancestor, "__static_attributes__", ())
+
+
+_IGNORED_SLOTS = frozenset({"__weakref__", "__dict__"})
+
+
+def unused_slots(c: type) -> Mapping[str, type]:
+    slots_by_class = {
+        k: v
+        for k, v in _slots_by_class(c)
+        if k not in _IGNORED_SLOTS
+    }
+    for attr in _all_static_attrs(c):
+        slots_by_class.pop(attr, None)
+    return slots_by_class
+
+
+def is_abstract(c: type) -> bool:
+    return _is_abstract(c) or ABC in c.__bases__
+
+
+def _slots_by_class(c: type) -> Iterator[tuple[str, type]]:
+    """Get all slots defined on a class and its ancestors."""
+    for ancestor in reversed(c.__mro__):
+        for slot in slots(ancestor) or ():
+            yield slot, ancestor
+
+
+def _all_slots(c: type) -> Iterator[str]:
+    """Get all slots defined on a class and its ancestors."""
+    for ancestor in reversed(c.__mro__):
+        yield from slots(ancestor) or ()
 
 
 def has_implicit_dunder_dict(c: type) -> bool:
-    return c.__dictoffset__ != 0 and not _has_slot(c, "__dict__")
+    return c.__dictoffset__ != 0 and "__dict__" not in _all_slots(c)
 
 
 def causes_dunder_dict(c: type) -> bool:

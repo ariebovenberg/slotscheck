@@ -100,14 +100,20 @@ def test_collect(tmpdir):
 
 class TestOptionsApply:
     def test_empty(self):
-        assert Config(True, False, True, None, "", "hello", None).apply(
-            PartialConfig(None, None, None, None, None, None, None)
-        ) == Config(True, False, True, None, "", "hello", None)
+        assert Config(
+            True, False, True, None, "", "hello", None, False, None
+        ).apply(
+            PartialConfig(None, None, None, None, None, None, None, None, None)
+        ) == Config(True, False, True, None, "", "hello", None, False, None)
 
     def test_different(self):
-        assert Config(True, False, True, None, "", "hello", None).apply(
-            PartialConfig(False, None, None, "hi", "", None, None)
-        ) == Config(False, False, True, "hi", "", "hello", None)
+        assert Config(
+            True, False, True, None, "", "hello", None, False, None
+        ).apply(
+            PartialConfig(False, None, None, "hi", "", None, None, None, None)
+        ) == Config(
+            False, False, True, "hi", "", "hello", None, False, None
+        )
 
 
 class TestPartialOptionsFromToml:
@@ -128,6 +134,8 @@ class TestPartialOptionsFromToml:
   |some\\.specific\\.module
 )
 """,
+            detect_unused_slots=None,
+            exclude_slots=None,
         )
 
     def test_invalid_toml(self, tmpdir):
@@ -144,7 +152,9 @@ k = 5
         )
         assert PartialConfig.load(
             Path(tmpdir / "myconf.toml")
-        ) == PartialConfig(None, None, None, None, None, None, None)
+        ) == PartialConfig(
+            None, None, None, None, None, None, None, None, None
+        )
 
     def test_empty_slotscheck_section(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(
@@ -154,13 +164,17 @@ k = 5
         )
         assert PartialConfig.load(
             Path(tmpdir / "myconf.toml")
-        ) == PartialConfig(None, None, None, None, None, None, None)
+        ) == PartialConfig(
+            None, None, None, None, None, None, None, None, None
+        )
 
     def test_empty(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(b"")
         assert PartialConfig.load(
             Path(tmpdir / "myconf.toml")
-        ) == PartialConfig(None, None, None, None, None, None, None)
+        ) == PartialConfig(
+            None, None, None, None, None, None, None, None, None
+        )
 
     def test_invalid_keys(self, tmpdir):
         (tmpdir / "myconf.toml").write_binary(
@@ -209,6 +223,8 @@ class TestPartialOptionsFromIni:
 |__main__
 |some\\.specific\\.module
 )""",
+            detect_unused_slots=None,
+            exclude_slots=None,
         )
 
     def test_no_slotscheck_section(self, tmpdir):
@@ -220,7 +236,7 @@ k = 5
             encoding="utf-8",
         )
         assert PartialConfig.load(Path(tmpdir / "setup.cfg")) == PartialConfig(
-            None, None, None, None, None, None, None
+            None, None, None, None, None, None, None, None, None
         )
 
     def test_empty_slotscheck_section(self, tmpdir):
@@ -231,13 +247,13 @@ k = 5
             encoding="utf-8",
         )
         assert PartialConfig.load(Path(tmpdir / "setup.cfg")) == PartialConfig(
-            None, None, None, None, None, None, None
+            None, None, None, None, None, None, None, None, None
         )
 
     def test_empty(self, tmpdir):
         (tmpdir / "setup.cfg").write_text("", encoding="utf-8")
         assert PartialConfig.load(Path(tmpdir / "setup.cfg")) == PartialConfig(
-            None, None, None, None, None, None, None
+            None, None, None, None, None, None, None, None, None
         )
 
     def test_invalid_keys(self, tmpdir):

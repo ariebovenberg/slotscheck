@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -242,7 +243,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 39 class(es).
+Scanned 4 module(s), 44 class(es).
 """
     )
 
@@ -273,7 +274,7 @@ ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:Ze' has no slots, but it could have.
 Oh no, found some problems!
-Scanned 4 module(s), 39 class(es).
+Scanned 4 module(s), 44 class(es).
 """
     )
 
@@ -301,7 +302,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 39 class(es).
+Scanned 4 module(s), 44 class(es).
 """
     )
 
@@ -321,7 +322,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 39 class(es).
+Scanned 4 module(s), 44 class(es).
 """
     )
 
@@ -346,7 +347,7 @@ ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
-Scanned 4 module(s), 39 class(es).
+Scanned 4 module(s), 44 class(es).
 """
     )
 
@@ -367,7 +368,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 39 class(es).
+Scanned 4 module(s), 44 class(es).
 """
     )
 
@@ -476,9 +477,9 @@ stats:
     excluded:  0
     skipped:   0
 
-  classes:     39
+  classes:     44
     has slots: 13
-    no slots:  26
+    no slots:  31
 """
     )
 
@@ -577,7 +578,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 39 class(es).
+Scanned 4 module(s), 44 class(es).
 """
     )
 
@@ -606,7 +607,7 @@ ERROR: 'module_not_ok.foo:W' defines overlapping slots.
 ERROR: 'module_not_ok.foo:Z' has duplicate slots.
 ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
-Scanned 4 module(s), 39 class(es).
+Scanned 4 module(s), 44 class(es).
 """
     )
 
@@ -657,3 +658,132 @@ def test_ambiguous_import_excluded(runner: CliRunner):
 Files or modules given, but filtered out by exclude/include. Nothing to do!
 """
     )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 13),
+    reason="unused_slots requires __static_attributes__ (Python 3.13+)",
+)
+class TestDetectUnusedSlots:
+    def test_disabled_by_default(self, runner: CliRunner):
+        """Without --detect-unused-slots, no unused slot errors appear."""
+        result = runner.invoke(
+            cli,
+            ["-m", "module_not_ok", "--no-require-superclass"],
+            catch_exceptions=False,
+        )
+        assert "unused slots" not in result.output
+
+    def test_enabled_detects_unused(self, runner: CliRunner):
+        result = runner.invoke(
+            cli,
+            [
+                "-m",
+                "module_not_ok",
+                "--no-require-superclass",
+                "--detect-unused-slots",
+                "--include-classes",
+                r":UnusedSlotsClass$",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 1
+        assert "has unused slots" in result.output
+        assert "UnusedSlotsClass" in result.output
+
+    def test_all_used_no_error(self, runner: CliRunner):
+        result = runner.invoke(
+            cli,
+            [
+                "-m",
+                "module_not_ok",
+                "--no-require-superclass",
+                "--detect-unused-slots",
+                "--include-classes",
+                r":AllSlotsUsed$",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        assert "unused slots" not in result.output
+
+    def test_abstract_class_skipped(self, runner: CliRunner):
+        result = runner.invoke(
+            cli,
+            [
+                "-m",
+                "module_not_ok",
+                "--no-require-superclass",
+                "--detect-unused-slots",
+                "--include-classes",
+                r":AbstractWithSlots$",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        assert "unused slots" not in result.output
+
+    def test_exclude_slots_regex(self, runner: CliRunner):
+        result = runner.invoke(
+            cli,
+            [
+                "-m",
+                "module_not_ok",
+                "--no-require-superclass",
+                "--detect-unused-slots",
+                "--include-classes",
+                r":UnusedSlotsClass$",
+                "--exclude-slots",
+                r"unused_one|unused_two",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        assert "unused slots" not in result.output
+
+    def test_verbose_output(self, runner: CliRunner):
+        result = runner.invoke(
+            cli,
+            [
+                "-m",
+                "module_not_ok",
+                "--no-require-superclass",
+                "--detect-unused-slots",
+                "--include-classes",
+                r":UnusedSlotsClass$",
+                "-v",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 1
+        assert "'unused_one'" in result.output
+        assert "'unused_two'" in result.output
+
+    def test_protocol_class_skipped(self, runner: CliRunner):
+        result = runner.invoke(
+            cli,
+            [
+                "-m",
+                "module_not_ok",
+                "--no-require-superclass",
+                "--detect-unused-slots",
+                "--include-classes",
+                r":ProtoWithSlots$",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        assert "unused slots" not in result.output
+
+
+def test_detect_unused_slots_version_guard(runner: CliRunner):
+    """Test that the version guard produces a clear error on < 3.13."""
+    if sys.version_info >= (3, 13):
+        pytest.skip("This test is for Python < 3.13")
+    result = runner.invoke(  # type: ignore[unreachable]
+        cli,
+        ["-m", "module_not_ok", "--detect-unused-slots"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 1
+    assert "--detect-unused-slots requires Python 3.13+" in result.output
