@@ -31,8 +31,8 @@ It's easy to get wrong, and what's worse: there is nothing warning you that you 
 ``slotscheck`` helps you validate your slots are working properly.
 You can even use it to enforce the use of slots across (parts of) your codebase.
 
-See my `blog post <https://dev.arie.bovenberg.net/blog/finding-broken-slots-in-popular-python-libraries/>`_
-for the origin story behind ``slotscheck``.
+See `my talk at EuroPython <https://www.youtube.com/watch?v=87DoVbgtuRA>`_
+for the details of how slots work and what can go wrong with them.
 
 Quickstart
 ----------

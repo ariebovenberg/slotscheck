@@ -2,6 +2,8 @@ name: Build
 
 on:
   push:
+    tags:
+      - "*"
     branches:
       - main
   pull_request:
@@ -21,14 +23,15 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install 'poetry>=1.8,<1.9'
+        pip install 'poetry>=2.2.1,<2.3'
         poetry check --lock
 
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
     - uses: actions/checkout@v1
@@ -39,12 +42,72 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install 'tox<5' tox-gh-actions 'poetry>=1.8,<1.9'
+        pip install 'tox<5' tox-gh-actions 'poetry>=2.2,<2.3'
     - name: Test with tox
       run: tox
 
     - name: Upload coverage to Codecov
-      if: matrix.python-version == 3.11
+      if: matrix.python-version == 3.13
       uses: codecov/codecov-action@v2.1.0
       with:
         file: ./coverage.xml
+
+  # https://github.com/marketplace/actions/alls-green#why
+  all-green:
+    name: Are all checks green?
+    if: always()
+    needs:
+      - poetry-lockfile-up-to-date
+      - build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        jobs: ${{ toJSON(needs) }}
+
+  check-tag:
+    name: Check tag correctness
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/v')"
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          version=$(grep -E '^version\s*=' pyproject.toml | sed -E 's/^version\s*=\s*"([^"]+)".*/\1/')
+
+          tag="${GITHUB_REF_NAME}"
+
+          echo "Detected version in pyproject.toml: $version"
+          echo "Detected tag name: $tag"
+
+          # Compare them
+          if [ "v$version" != "$tag" ]; then
+            echo "❌ Tag ($tag) does not match version in pyproject.toml ($version)"
+            exit 1
+          fi
+
+          echo "✅ Tag matches version. Proceeding with release..."
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/v')"
+    needs: [all-green, check-tag]
+    environment: PyPI
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          pip install 'poetry>=2.2,<2.3'
+      - name: Build distribution
+        run: |
+          poetry build
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

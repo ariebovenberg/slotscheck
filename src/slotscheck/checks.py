@@ -1,7 +1,8 @@
 "Slots-related checks and inspection tools"
-from typing import Collection, Iterator, Optional, Mapping
-from inspect import isabstract as _is_abstract
+
 from abc import ABC
+from inspect import isabstract as _is_abstract
+from typing import Collection, Iterator, Mapping, Optional
 
 
 def slots(c: type) -> Optional[Collection[str]]:
@@ -13,7 +14,7 @@ def slots(c: type) -> Optional[Collection[str]]:
     if isinstance(slots_raw, str):
         return (slots_raw,)
     elif isinstance(slots_raw, Iterator):
-        raise NotImplementedError("Iterator __slots__ not supported. See #22")
+        raise Exception("Iterator __slots__ not supported. See #22")
     else:
         # We know it's a collection of strings now, since class creation
         # would have failed otherwise
@@ -32,13 +33,13 @@ def _all_static_attrs(c: type) -> Iterator[str]:
         # NOTE: this only works on Python 3.13+, but the CLI should guard
         # against its use.
         try:
-            yield from ancestor.__dataclass_fields__
+            yield from ancestor.__dataclass_fields__  # type: ignore[attr-defined]
             continue
         except AttributeError:
             pass
         # attrs classes store field info in __attrs_attrs__
         try:
-            yield from (a.name for a in ancestor.__attrs_attrs__)
+            yield from (a.name for a in ancestor.__attrs_attrs__)  # type: ignore[attr-defined]
             continue
         except (AttributeError, TypeError):
             pass
@@ -50,9 +51,7 @@ _IGNORED_SLOTS = frozenset({"__weakref__", "__dict__"})
 
 def unused_slots(c: type) -> Mapping[str, type]:
     slots_by_class = {
-        k: v
-        for k, v in _slots_by_class(c)
-        if k not in _IGNORED_SLOTS
+        k: v for k, v in _slots_by_class(c) if k not in _IGNORED_SLOTS
     }
     for attr in _all_static_attrs(c):
         slots_by_class.pop(attr, None)

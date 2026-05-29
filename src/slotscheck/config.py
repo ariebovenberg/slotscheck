@@ -24,6 +24,7 @@ _T = TypeVar("_T")
 @dataclass(frozen=True)
 class PartialConfig:
     "Configuration options where not all options may be defined."
+
     strict_imports: Optional[bool]
     require_subclass: Optional[bool]
     require_superclass: Optional[bool]
@@ -90,6 +91,7 @@ PartialConfig.EMPTY = PartialConfig(
 @dataclass(frozen=True)
 class Config(PartialConfig):
     "A full set of options"
+
     __slots__ = ()
     strict_imports: bool
     require_subclass: bool
@@ -142,10 +144,7 @@ def find_config_file(path: Path) -> Optional[Path]:
     )
     return next(
         filter(
-            both(
-                Path.is_file,  # type: ignore[arg-type]
-                _has_slotscheck_section,
-            ),
+            both(Path.is_file, _has_slotscheck_section),
             candidates,
         ),
         None,

@@ -13,6 +13,7 @@ from typing_extensions import TypedDict as TypingExtensionsTypedDict
 from slotscheck.checks import (
     has_implicit_dunder_dict,
     is_abstract,
+    slots,
     slots_overlap,
     unused_slots,
 )
@@ -365,3 +366,12 @@ class TestIsAbstract:
                 pass
 
         assert not is_abstract(Concrete)
+
+
+def test_iterator_slots():
+
+    class A:
+        __slots__ = iter(("foo", "bar"))
+
+    with pytest.raises(Exception, match="[Ii]terator"):
+        slots(A)

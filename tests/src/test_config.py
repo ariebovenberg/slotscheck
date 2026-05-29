@@ -104,7 +104,9 @@ class TestOptionsApply:
             True, False, True, None, "", "hello", None, False, None
         ).apply(
             PartialConfig(None, None, None, None, None, None, None, None, None)
-        ) == Config(True, False, True, None, "", "hello", None, False, None)
+        ) == Config(
+            True, False, True, None, "", "hello", None, False, None
+        )
 
     def test_different(self):
         assert Config(
@@ -144,12 +146,10 @@ class TestPartialOptionsFromToml:
             PartialConfig.load(Path(tmpdir / "myconf.toml"))
 
     def test_no_slotscheck_section(self, tmpdir):
-        (tmpdir / "myconf.toml").write_binary(
-            b"""
+        (tmpdir / "myconf.toml").write_binary(b"""
 [tool.bla]
 k = 5
-"""
-        )
+""")
         assert PartialConfig.load(
             Path(tmpdir / "myconf.toml")
         ) == PartialConfig(
@@ -157,11 +157,9 @@ k = 5
         )
 
     def test_empty_slotscheck_section(self, tmpdir):
-        (tmpdir / "myconf.toml").write_binary(
-            b"""
+        (tmpdir / "myconf.toml").write_binary(b"""
 [tool.slotscheck]
-"""
-        )
+""")
         assert PartialConfig.load(
             Path(tmpdir / "myconf.toml")
         ) == PartialConfig(
@@ -177,14 +175,12 @@ k = 5
         )
 
     def test_invalid_keys(self, tmpdir):
-        (tmpdir / "myconf.toml").write_binary(
-            b"""
+        (tmpdir / "myconf.toml").write_binary(b"""
 [tool.slotscheck]
 k = 9
 strict-imports = true
 foo = 4
-"""
-        )
+""")
         with pytest.raises(
             InvalidKeys,
             match=re.escape("Invalid configuration key(s): 'foo', 'k'."),
@@ -192,13 +188,11 @@ foo = 4
             PartialConfig.load(Path(tmpdir / "myconf.toml"))
 
     def test_invalid_types(self, tmpdir):
-        (tmpdir / "myconf.toml").write_binary(
-            b"""
+        (tmpdir / "myconf.toml").write_binary(b"""
 [tool.slotscheck]
 strict-imports = true
 include-modules = false
-"""
-        )
+""")
         with pytest.raises(
             InvalidValueType,
             match=re.escape("Invalid value type for 'include-modules'."),

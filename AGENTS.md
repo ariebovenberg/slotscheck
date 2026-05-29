@@ -60,7 +60,7 @@ CLI args + config file
 
 ### Prerequisites
 
-- Python 3.9+ (3.9–3.13 supported)
+- Python 3.10+ (3.10–3.14 supported)
 - [Poetry](https://python-poetry.org/) for dependency management
 - [tox](https://tox.wiki/) for test automation
 
@@ -96,8 +96,8 @@ pip install -r docs/requirements.txt
 ### CI
 
 GitHub Actions (`.github/workflows/build.yml`):
-- Tests on Python 3.9–3.13
-- Coverage uploaded to Codecov on Python 3.11
+- Tests on Python 3.10–3.14
+- Coverage uploaded to Codecov on Python 3.13
 - Poetry lockfile consistency check
 
 ## Testing

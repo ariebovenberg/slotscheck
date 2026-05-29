@@ -23,9 +23,9 @@ import click
 from . import config
 from .checks import (
     causes_dunder_dict,
-    has_implicit_dunder_dict,
-    has_duplicate_slots,
     defines_slots,
+    has_duplicate_slots,
+    has_implicit_dunder_dict,
     is_abstract,
     slots,
     slots_overlap,
@@ -39,8 +39,8 @@ from .common import (
     flatten,
     groupby,
     is_protocol,
-    map_optional,
     is_typeddict,
+    map_optional,
 )
 from .discovery import (
     AbsPath,
@@ -56,7 +56,9 @@ from .discovery import (
     walk_classes,
 )
 
-if __import__("platform").python_implementation() != "CPython":
+if (
+    __import__("platform").python_implementation() != "CPython"
+):  # pragma: no cover
     raise RuntimeError(
         "slotscheck does not support alternative Python implementations. "
         "See the docs at https://slotscheck.readthedocs.io/"
@@ -183,7 +185,10 @@ def root(
         Path.cwd(),
         settings,
     )
-    if conf.detect_unused_slots and sys.version_info < (3, 13):
+    if conf.detect_unused_slots and sys.version_info < (
+        3,
+        13,
+    ):  # pragma: no cover
         print(
             "ERROR: --detect-unused-slots requires Python 3.13+. "
             f"You are running Python {sys.version_info.major}"
@@ -204,8 +209,7 @@ def root(
         )
         exit(1)
     except UnexpectedImportLocation as e:
-        print(
-            """\
+        print("""\
 Cannot check due to import ambiguity.
 The given files do not correspond with what would be imported:
 
@@ -218,10 +222,7 @@ You may need to define $PYTHONPATH or run as 'python -m slotscheck'
 to ensure the correct files can be imported.
 
 See slotscheck.rtfd.io/en/latest/discovery.html
-for more information on why this happens and how to resolve it.""".format(
-                e
-            )
-        )
+for more information on why this happens and how to resolve it.""".format(e))
         exit(1)
 
     if not (modules.filtered or modules.skipped):
@@ -274,6 +275,7 @@ for more information on why this happens and how to resolve it.""".format(
 
 class Notice(ABC):
     "Base class for notices to be displayed"
+
     __slots__ = ()
 
     @abstractmethod
@@ -285,6 +287,7 @@ class Notice(ABC):
 @dataclass(frozen=True)
 class ModuleSkipped(Notice):
     "Notice that a module has been skipped due to an import failure."
+
     failure: FailedImport
 
     def for_display(self, verbose: bool) -> str:
@@ -298,6 +301,7 @@ class ModuleSkipped(Notice):
 @dataclass(frozen=True)
 class OverlappingSlots(Notice):
     "Notice that slots on a class overlap with its superclass(es)."
+
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -329,6 +333,7 @@ def _overlapping_slots(c: type) -> Iterable[Tuple[str, type]]:
 @dataclass(frozen=True)
 class DuplicateSlots(Notice):
     "Notice that a class defines duplicate slots."
+
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -351,6 +356,7 @@ def _duplicate_slots(c: type) -> Iterable[str]:
 @dataclass(frozen=True)
 class BadSlotInheritance(Notice):
     "Notice that a class has slots, but some of its superclasses do not."
+
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -377,6 +383,7 @@ class BadSlotInheritance(Notice):
 @dataclass(frozen=True)
 class ShouldHaveSlots(Notice):
     "Notice that a class should have slots, but doesn't."
+
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -392,6 +399,7 @@ class ShouldHaveSlots(Notice):
 @dataclass(frozen=True)
 class UnusedSlots(Notice):
     "A class has unused slots."
+
     cls: type
     unused: Collection[str]
 
@@ -406,6 +414,7 @@ class UnusedSlots(Notice):
 @dataclass(frozen=True)
 class Message:
     "A notice with error level."
+
     notice: Notice
     error: bool
 
@@ -419,6 +428,7 @@ class Message:
 @dataclass(frozen=True)
 class ModulesReport:
     "Report with data on modules excluded or skipped."
+
     all: Collection[ModuleTree]
     filtered: Collection[ModuleTree]
     skipped: Collection[ModuleSkipped]
@@ -542,9 +552,7 @@ def _check_classes(
     exclude_slots: Optional[str],
 ) -> Iterator[Message]:
     exclude_slots_pattern = (
-        re.compile(exclude_slots, flags=re.VERBOSE)
-        if exclude_slots
-        else None
+        re.compile(exclude_slots, flags=re.VERBOSE) if exclude_slots else None
     )
     return map(
         partial(Message, error=True),

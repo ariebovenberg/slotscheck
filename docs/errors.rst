@@ -137,8 +137,10 @@ implementors.
 The special slots ``__weakref__`` and ``__dict__`` are also excluded,
 as they serve Python-internal purposes rather than user assignment.
 
-**Known limitation:** This check uses Python 3.13's ``__static_attributes__``
-to determine which attributes are assigned within the class body.
-Attributes that are only set externally (e.g. ``obj.slot = value``
-from outside the class) will be reported as unused. Use
-``--exclude-slots`` with a regex pattern to suppress such false positives.
+.. admonition:: Limitations
+
+   This check uses Python 3.13's ``__static_attributes__``
+   to determine which attributes are assigned within the class body.
+   Attributes that are only set externally (e.g. ``obj.slot = value``
+   from outside the class) will be reported as unused. Use
+   ``--exclude-slots`` with a regex pattern to suppress such false positives.

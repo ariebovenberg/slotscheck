@@ -57,6 +57,7 @@ def groupby(
 @dataclass(frozen=True, repr=False)
 class compose:
     "Funtion composition"
+
     __slots__ = ("_functions",)
     _functions: Tuple[Callable[[Any], Any], ...]
 

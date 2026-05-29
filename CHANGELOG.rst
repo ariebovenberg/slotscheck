@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.20.0 (2025-06-12)
+0.20.0 (2026-05-29)
 -------------------
 
 - Improve speed and accuracy of detecting of "slotless" classes,
