@@ -1,3 +1,4 @@
+import sys
 from array import array
 from datetime import date
 from decimal import Decimal
@@ -9,7 +10,13 @@ from xml.etree.ElementTree import Element
 import pytest
 from typing_extensions import TypedDict as TypingExtensionsTypedDict
 
-from slotscheck.checks import has_slotless_base, has_slots, slots_overlap
+from slotscheck.checks import (
+    has_implicit_dunder_dict,
+    is_abstract,
+    slots,
+    slots_overlap,
+    unused_slots,
+)
 
 try:
     from typing import TypedDict
@@ -19,6 +26,10 @@ except ImportError:
 
 class HasSlots:
     __slots__ = ("a", "b")
+
+
+class NoSlots:
+    pass
 
 
 class GoodInherit(HasSlots):
@@ -50,6 +61,14 @@ class _RestrictiveMeta(type):
         raise TypeError("BOOM!")
 
 
+class MetaClass(type):
+    pass
+
+
+class MetaClassSlots(type):
+    __slots__ = ()
+
+
 class _UnsettableClass(metaclass=_RestrictiveMeta):
     pass
 
@@ -78,36 +97,74 @@ class MyTypingExtensionsTypedDict(TypingExtensionsTypedDict):
     bla: int
 
 
-class TestHasSlots:
+class MyException(Exception):
+    pass
+
+
+class DunderDictSlot:
+    __slots__ = ("a", "b", "__dict__")
+
+
+class DunderDictSlotExtra(HasSlots):
+    __slots__ = ("c", "d", "__dict__")
+
+
+class InheritDunderDictSlot(DunderDictSlot):
+    pass
+
+
+class ExtendDunderDictSlot(DunderDictSlot):
+    __slots__ = ("x",)
+
+
+class MyEnum(Enum):
+    A = 1
+    B = 2
+
+
+class TestHasImplicitDunderDict:
     @pytest.mark.parametrize(
-        "klass",
-        [type, dict, date, float, Decimal, Element, array],
-    )
-    def test_not_purepython(self, klass):
-        assert has_slots(klass)
-
-    def test_typeddict(self):
-        assert has_slots(MyDict)
-
-    def test_typing_extensions_typeddict(self):
-        assert has_slots(MyTypingExtensionsTypedDict)
-
-    @pytest.mark.parametrize(
-        "klass",
+        "klass, expect",
         [
-            Fraction,
-            HasSlots,
-            GoodInherit,
-            BadInherit,
-            BadOverlaps,
-            OneStringSlot,
-            ArrayInherit,
-            Foo,
-            FooMeta,
+            (type, True),
+            (dict, False),
+            (date, False),
+            (float, False),
+            (Decimal, False),
+            (Element, False),
+            (Exception, True),
+            (array, False),
         ],
     )
-    def test_slots(self, klass):
-        assert has_slots(klass)
+    def test_not_purepython(self, klass, expect):
+        assert has_implicit_dunder_dict(klass) is expect
+
+    def test_typeddict(self):
+        # This is a bit of a strange case
+        # but the errors in the end work out (see cli.py)
+        assert has_implicit_dunder_dict(MyDict)
+        assert has_implicit_dunder_dict(MyTypingExtensionsTypedDict)
+
+    def test_metaclass(self):
+        assert has_implicit_dunder_dict(MetaClass)
+        assert has_implicit_dunder_dict(MetaClassSlots)
+
+    @pytest.mark.parametrize(
+        "klass, expect",
+        [
+            (Fraction, False),
+            (HasSlots, False),
+            (GoodInherit, False),
+            (BadInherit, True),
+            (BadOverlaps, False),
+            (OneStringSlot, False),
+            (ArrayInherit, False),
+            (Foo, False),
+            (FooMeta, True),
+        ],
+    )
+    def test_slots(self, klass, expect):
+        assert has_implicit_dunder_dict(klass) is expect
 
     @pytest.mark.parametrize(
         "klass",
@@ -118,13 +175,21 @@ class TestHasSlots:
             ChildOfBadClass,
             RuntimeError,
             KeyboardInterrupt,
+            MyException,
+            MyEnum,
         ],
     )
     def test_no_slots(self, klass):
-        assert not has_slots(klass)
+        assert has_implicit_dunder_dict(klass)
 
     def test_immutable_class(self):
-        assert not has_slots(_UnsettableClass)
+        assert has_implicit_dunder_dict(_UnsettableClass)
+
+    def test_explicit_dunder_dict(self):
+        assert not has_implicit_dunder_dict(DunderDictSlot)
+        assert not has_implicit_dunder_dict(DunderDictSlotExtra)
+        assert not has_implicit_dunder_dict(InheritDunderDictSlot)
+        assert not has_implicit_dunder_dict(ExtendDunderDictSlot)
 
 
 class TestSlotsOverlap:
@@ -162,27 +227,151 @@ class TestSlotsOverlap:
         assert not slots_overlap(klass)
 
 
-class TestHasSlotlessBase:
-    @pytest.mark.parametrize(
-        "klass",
-        [type, dict, date, float, Decimal],
-    )
-    def test_not_purepython(self, klass):
-        assert not has_slotless_base(klass)
+@pytest.mark.skipif(
+    sys.version_info < (3, 13),
+    reason="unused_slots requires __static_attributes__ (Python 3.13+)",
+)
+class TestUnusedSlots:
+    def test_all_used(self):
+        class AllUsed:
+            __slots__ = ("a", "b")
 
-    @pytest.mark.parametrize(
-        "klass", [Fraction, HasSlots, GoodInherit, BadOverlaps, OneStringSlot]
-    )
-    def test_slots_ok(self, klass):
-        assert not has_slotless_base(klass)
+            def __init__(self):
+                self.a = 1
+                self.b = 2
 
-    @pytest.mark.parametrize(
-        "klass",
-        [BadInherit, BadInheritAndOverlap, AssertionError, RuntimeError],
-    )
-    def test_slots_not_ok(self, klass):
-        assert has_slotless_base(klass)
+        assert unused_slots(AllUsed) == {}
 
-    @pytest.mark.parametrize("klass", [Enum, NoSlotsInherits, ChildOfBadClass])
-    def test_no_slots(self, klass):
-        assert not has_slotless_base(klass)
+    def test_some_unused(self):
+        class SomeUnused:
+            __slots__ = ("used", "unused_one", "unused_two")
+
+            def __init__(self):
+                self.used = 1
+
+        result = unused_slots(SomeUnused)
+        assert set(result.keys()) == {"unused_one", "unused_two"}
+
+    def test_empty_slots(self):
+        class Empty:
+            __slots__ = ()
+
+        assert unused_slots(Empty) == {}
+
+    def test_inherited_usage(self):
+        class Base:
+            __slots__ = ("a",)
+
+        class Child(Base):
+            __slots__ = ("b",)
+
+            def __init__(self):
+                self.a = 1
+                self.b = 2
+
+        assert unused_slots(Child) == {}
+
+    def test_inherited_unused(self):
+        class Base:
+            __slots__ = ("a",)
+
+        class Child(Base):
+            __slots__ = ("b",)
+
+            def __init__(self):
+                self.b = 2
+
+        result = unused_slots(Child)
+        assert set(result.keys()) == {"a"}
+
+    def test_dunder_dict_excluded(self):
+        class WithDunderDict:
+            __slots__ = ("a", "__dict__")
+
+            def __init__(self):
+                self.a = 1
+
+        assert unused_slots(WithDunderDict) == {}
+
+    def test_weakref_excluded(self):
+        class WithWeakref:
+            __slots__ = ("a", "__weakref__")
+
+            def __init__(self):
+                self.a = 1
+
+        assert unused_slots(WithWeakref) == {}
+
+    def test_dataclass_fields(self):
+        from dataclasses import dataclass
+
+        @dataclass
+        class DC:
+            __slots__ = ("x", "y")
+            x: int
+            y: int
+
+        assert unused_slots(DC) == {}
+
+    def test_attrs_fields(self):
+        import attr
+
+        @attr.s(slots=True)
+        class AttrsClass:
+            x: int = attr.ib()
+            y: int = attr.ib()
+
+        assert unused_slots(AttrsClass) == {}
+
+
+class TestIsAbstract:
+    def test_abc_class(self):
+        from abc import ABC, abstractmethod
+
+        class MyABC(ABC):
+            __slots__ = ("x",)
+
+            @abstractmethod
+            def method(self):
+                pass
+
+        assert is_abstract(MyABC)
+
+    def test_abc_base(self):
+        from abc import ABC
+
+        class DirectABC(ABC):
+            pass
+
+        assert is_abstract(DirectABC)
+
+    def test_not_abstract(self):
+        assert not is_abstract(HasSlots)
+        assert not is_abstract(NoSlots)
+
+    def test_concrete_subclass_of_abc(self):
+        from abc import ABC, abstractmethod
+
+        class MyABC(ABC):
+            __slots__ = ("x",)
+
+            @abstractmethod
+            def method(self):
+                pass
+
+        class Concrete(MyABC):
+            __slots__ = ()
+
+            def method(self):
+                pass
+
+        assert not is_abstract(Concrete)
+
+
+def test_iterator_slots():
+
+    class A:
+        __slots__ = iter(("foo", "bar"))
+
+    with pytest.raises(Exception, match="[Ii]terator"):
+        slots(A)

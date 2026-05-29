@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from dataclasses import dataclass
 from functools import partial
-from itertools import chain, filterfalse, starmap
+from itertools import chain, starmap
 from operator import attrgetter, itemgetter, methodcaller, not_
 from pathlib import Path
 from textwrap import indent
@@ -22,12 +22,14 @@ import click
 
 from . import config
 from .checks import (
+    causes_dunder_dict,
+    defines_slots,
     has_duplicate_slots,
-    has_slotless_base,
-    has_slots,
-    is_pure_python,
+    has_implicit_dunder_dict,
+    is_abstract,
     slots,
     slots_overlap,
+    unused_slots,
 )
 from .common import (
     Predicate,
@@ -37,6 +39,7 @@ from .common import (
     flatten,
     groupby,
     is_protocol,
+    is_typeddict,
     map_optional,
 )
 from .discovery import (
@@ -52,6 +55,14 @@ from .discovery import (
     module_tree,
     walk_classes,
 )
+
+if (
+    __import__("platform").python_implementation() != "CPython"
+):  # pragma: no cover
+    raise RuntimeError(
+        "slotscheck does not support alternative Python implementations. "
+        "See the docs at https://slotscheck.readthedocs.io/"
+    )
 
 
 @click.command("slotscheck")
@@ -71,7 +82,7 @@ from .discovery import (
 @click.option(
     "--require-superclass/--no-require-superclass",
     help="Report an error when a slots class inherits from "
-    "a non-slotted class.",
+    "a non-slotted (or __dict__) class.",
     default=None,
     show_default="required",
 )
@@ -119,6 +130,19 @@ from .discovery import (
     show_default="strict",
 )
 @click.option(
+    "--detect-unused-slots/--no-detect-unused-slots",
+    help="[Experimental, Python 3.13+] Detect slots that are never assigned "
+    "within the class body. Disabled by default.",
+    default=None,
+    show_default="disabled",
+)
+@click.option(
+    "--exclude-slots",
+    help="A regular expression matching slots to exclude from "
+    "unused-slot detection. Matches against 'module.path:Class.slot_name'. "
+    "Uses Python's verbose regex dialect.",
+)
+@click.option(
     "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
 )
 @click.option(
@@ -138,6 +162,8 @@ def root(
     require_superclass: Optional[bool],
     require_subclass: Optional[bool],
     strict_imports: Optional[bool],
+    detect_unused_slots: Optional[bool],
+    exclude_slots: Optional[config.RegexStr],
     exclude_classes: Optional[config.RegexStr],
     include_classes: Optional[config.RegexStr],
     exclude_modules: Optional[config.RegexStr],
@@ -153,10 +179,22 @@ def root(
             include_classes=include_classes,
             exclude_modules=exclude_modules,
             include_modules=include_modules,
+            detect_unused_slots=detect_unused_slots,
+            exclude_slots=exclude_slots,
         ),
         Path.cwd(),
         settings,
     )
+    if conf.detect_unused_slots and sys.version_info < (
+        3,
+        13,
+    ):  # pragma: no cover
+        print(
+            "ERROR: --detect-unused-slots requires Python 3.13+. "
+            f"You are running Python {sys.version_info.major}"
+            f".{sys.version_info.minor}."
+        )
+        exit(1)
     if not (files or module):
         print("No files or modules given. Nothing to do!")
         exit(0)
@@ -171,8 +209,7 @@ def root(
         )
         exit(1)
     except UnexpectedImportLocation as e:
-        print(
-            """\
+        print("""\
 Cannot check due to import ambiguity.
 The given files do not correspond with what would be imported:
 
@@ -185,10 +222,7 @@ You may need to define $PYTHONPATH or run as 'python -m slotscheck'
 to ensure the correct files can be imported.
 
 See slotscheck.rtfd.io/en/latest/discovery.html
-for more information on why this happens and how to resolve it.""".format(
-                e
-            )
-        )
+for more information on why this happens and how to resolve it.""".format(e))
         exit(1)
 
     if not (modules.filtered or modules.skipped):
@@ -209,6 +243,8 @@ for more information on why this happens and how to resolve it.""".format(
                 conf.include_classes,
                 conf.exclude_classes,
                 conf.require_subclass,
+                conf.detect_unused_slots,
+                conf.exclude_slots,
             ),
         )
     )
@@ -239,6 +275,7 @@ for more information on why this happens and how to resolve it.""".format(
 
 class Notice(ABC):
     "Base class for notices to be displayed"
+
     __slots__ = ()
 
     @abstractmethod
@@ -250,6 +287,7 @@ class Notice(ABC):
 @dataclass(frozen=True)
 class ModuleSkipped(Notice):
     "Notice that a module has been skipped due to an import failure."
+
     failure: FailedImport
 
     def for_display(self, verbose: bool) -> str:
@@ -263,6 +301,7 @@ class ModuleSkipped(Notice):
 @dataclass(frozen=True)
 class OverlappingSlots(Notice):
     "Notice that slots on a class overlap with its superclass(es)."
+
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -294,6 +333,7 @@ def _overlapping_slots(c: type) -> Iterable[Tuple[str, type]]:
 @dataclass(frozen=True)
 class DuplicateSlots(Notice):
     "Notice that a class defines duplicate slots."
+
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -316,11 +356,12 @@ def _duplicate_slots(c: type) -> Iterable[str]:
 @dataclass(frozen=True)
 class BadSlotInheritance(Notice):
     "Notice that a class has slots, but some of its superclasses do not."
+
     cls: type
 
     def for_display(self, verbose: bool) -> str:
         return (
-            f"'{_class_fullname(self.cls)}' has slots "
+            f"'{_class_fullname(self.cls)}' defines slots "
             "but superclass does not."
             + verbose
             * (
@@ -331,7 +372,7 @@ class BadSlotInheritance(Notice):
                             "'{}'".format,
                             _class_fullname,
                         ),
-                        _slotless_superclasses(self.cls),
+                        _types_causing_dunder_dict(self.cls),
                     )
                 )
             )
@@ -342,6 +383,7 @@ class BadSlotInheritance(Notice):
 @dataclass(frozen=True)
 class ShouldHaveSlots(Notice):
     "Notice that a class should have slots, but doesn't."
+
     cls: type
 
     def for_display(self, verbose: bool) -> str:
@@ -355,8 +397,24 @@ class ShouldHaveSlots(Notice):
 
 @add_slots
 @dataclass(frozen=True)
+class UnusedSlots(Notice):
+    "A class has unused slots."
+
+    cls: type
+    unused: Collection[str]
+
+    def for_display(self, verbose: bool) -> str:
+        return f"'{_class_fullname(self.cls)}' has unused slots." + verbose * (
+            "\nUnused slots:\n"
+            + _bulletlist(map("'{}'".format, sorted(self.unused)))
+        )
+
+
+@add_slots
+@dataclass(frozen=True)
 class Message:
     "A notice with error level."
+
     notice: Notice
     error: bool
 
@@ -370,6 +428,7 @@ class Message:
 @dataclass(frozen=True)
 class ModulesReport:
     "Report with data on modules excluded or skipped."
+
     all: Collection[ModuleTree]
     filtered: Collection[ModuleTree]
     skipped: Collection[ModuleSkipped]
@@ -459,12 +518,7 @@ def _print_report(
     modules: ModulesReport,
     classes: Collection[type],
 ) -> None:
-    classes_by_status = groupby(
-        classes,
-        key=lambda c: (
-            None if not is_pure_python(c) else True if has_slots(c) else False
-        ),
-    )
+    classes_by_status = groupby(classes, key=defines_slots)
     print(
         """\
 stats:
@@ -475,16 +529,14 @@ stats:
 
   classes:     {}
     has slots: {}
-    no slots:  {}
-    n/a:       {}""".format(
+    no slots:  {}""".format(
             sum(map(len, modules.all)),
             sum(map(len, modules.filtered)),
             sum(map(len, modules.all)) - sum(map(len, modules.filtered)),
             len(modules.skipped),
             len(classes),
-            len(classes_by_status[True]),
             len(classes_by_status[False]),
-            len(classes_by_status[None]),
+            len(classes_by_status[True]),
         ),
         file=sys.stderr,
     )
@@ -496,7 +548,12 @@ def _check_classes(
     include: Optional[str],
     exclude: Optional[str],
     require_subclass: bool,
+    detect_unused_slots: bool,
+    exclude_slots: Optional[str],
 ) -> Iterator[Message]:
+    exclude_slots_pattern = (
+        re.compile(exclude_slots, flags=re.VERBOSE) if exclude_slots else None
+    )
     return map(
         partial(Message, error=True),
         flatten(
@@ -505,6 +562,8 @@ def _check_classes(
                     slot_messages,
                     require_subclass=require_subclass,
                     require_superclass=require_superclass,
+                    detect_unused_slots=detect_unused_slots,
+                    exclude_slots_pattern=exclude_slots_pattern,
                 ),
                 sorted(
                     _class_includes(
@@ -552,19 +611,41 @@ def _class_includes(
 
 
 def slot_messages(
-    c: type, require_superclass: bool, require_subclass: bool
+    c: type,
+    require_superclass: bool,
+    require_subclass: bool,
+    detect_unused_slots: bool,
+    exclude_slots_pattern: "Optional[re.Pattern[str]]",
 ) -> Iterable[Notice]:
     if slots_overlap(c):
         yield OverlappingSlots(c)
     if has_duplicate_slots(c):
         yield DuplicateSlots(c)
-    if require_superclass and has_slots(c) and has_slotless_base(c):
+    if require_superclass and defines_slots(c) and has_implicit_dunder_dict(c):
         yield BadSlotInheritance(c)
-    elif (
-        require_subclass
-        and not has_slots(c)
-        and not has_slotless_base(c)
+    if (
+        detect_unused_slots
+        and defines_slots(c)
+        and not is_abstract(c)
         and not is_protocol(c)
+    ):
+        unused = unused_slots(c)
+        if exclude_slots_pattern:
+            unused = {
+                slot: origin
+                for slot, origin in unused.items()
+                if not exclude_slots_pattern.search(
+                    f"{_class_fullname(c)}.{slot}"
+                )
+            }
+        if unused:
+            yield UnusedSlots(c, unused)
+    if (
+        require_subclass
+        and not defines_slots(c)
+        and not any(map(has_implicit_dunder_dict, c.__bases__))
+        and not is_protocol(c)  # slotscheck/issues/130
+        and not is_typeddict(c)  # slotscheck/issues/120
     ):
         yield ShouldHaveSlots(c)
 
@@ -595,5 +676,5 @@ def _bulletlist(s: Iterable[str]) -> str:
     return "\n".join(map("- {}".format, s))
 
 
-def _slotless_superclasses(c: type) -> Iterable[type]:
-    return filterfalse(has_slots, c.mro())
+def _types_causing_dunder_dict(c: type) -> Iterable[type]:
+    return filter(causes_dunder_dict, c.mro())

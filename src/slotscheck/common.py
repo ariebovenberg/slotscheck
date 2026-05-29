@@ -57,6 +57,7 @@ def groupby(
 @dataclass(frozen=True, repr=False)
 class compose:
     "Funtion composition"
+
     __slots__ = ("_functions",)
     _functions: Tuple[Callable[[Any], Any], ...]
 
@@ -104,7 +105,7 @@ except ImportError:  # pragma: no cover
 def is_protocol(t: type) -> bool:  # pragma: no cover
     return (
         getattr(t, "_is_protocol", False)
-        and t != Protocol  # type: ignore[comparison-overlap]
+        and t is not Protocol  # type: ignore[comparison-overlap]
     )
 
 

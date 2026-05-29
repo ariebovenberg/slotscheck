@@ -24,6 +24,7 @@ _T = TypeVar("_T")
 @dataclass(frozen=True)
 class PartialConfig:
     "Configuration options where not all options may be defined."
+
     strict_imports: Optional[bool]
     require_subclass: Optional[bool]
     require_superclass: Optional[bool]
@@ -31,6 +32,8 @@ class PartialConfig:
     exclude_modules: Optional[RegexStr]
     include_classes: Optional[RegexStr]
     exclude_classes: Optional[RegexStr]
+    detect_unused_slots: Optional[bool]
+    exclude_slots: Optional[RegexStr]
 
     EMPTY: ClassVar["PartialConfig"]
 
@@ -80,17 +83,21 @@ class PartialConfig:
         )
 
 
-PartialConfig.EMPTY = PartialConfig(None, None, None, None, None, None, None)
+PartialConfig.EMPTY = PartialConfig(
+    None, None, None, None, None, None, None, None, None
+)
 
 
 @dataclass(frozen=True)
 class Config(PartialConfig):
     "A full set of options"
+
     __slots__ = ()
     strict_imports: bool
     require_subclass: bool
     require_superclass: bool
     exclude_modules: RegexStr
+    detect_unused_slots: bool
 
     DEFAULT: ClassVar["Config"]
 
@@ -111,6 +118,8 @@ Config.DEFAULT = Config(
     exclude_modules=DEFAULT_MODULE_EXCLUDE_RE,
     include_classes=None,
     exclude_classes=None,
+    detect_unused_slots=False,
+    exclude_slots=None,
 )
 
 
@@ -135,10 +144,7 @@ def find_config_file(path: Path) -> Optional[Path]:
     )
     return next(
         filter(
-            both(
-                Path.is_file,  # type: ignore[arg-type]
-                _has_slotscheck_section,
-            ),
+            both(Path.is_file, _has_slotscheck_section),
             candidates,
         ),
         None,
@@ -202,4 +208,6 @@ _ALLOWED_KEYS = {
     "exclude-modules": str,
     "include-classes": str,
     "exclude-classes": str,
+    "detect-unused-slots": bool,
+    "exclude-slots": str,
 }

@@ -1,0 +1,8 @@
+[flake8]
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,.tox
+extend-ignore =
+  # let black handle line length
+  E501
+  # not black compatible (whitespace before `:`)
+  E203
+

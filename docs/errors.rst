@@ -24,15 +24,26 @@ all base classes of a slotted classe need to define slots as well:
    class Good(HasSlots):
        __slots__ = ('x', 'y')
 
-
-You can see the memory impact of this mistake with ``pympler`` library:
+The benchmark below shows the difference in memory usage:
 
 .. code-block:: python
 
-   from pympler.asizeof import asizeof
+   import tracemalloc as tm
 
-   asizeof(Bad())  # 168
-   asizeof(Good())  # 48
+   tm.start()
+   _ = [Good() for _ in range(1_000_000)]
+   print(f"Allocated {tm.get_traced_memory()[0] // 1_000_000} MB for Good")
+
+   tm.start()
+   _ = [Bad() for _ in range(1_000_000)]
+   print(f"Allocated {tm.get_traced_memory()[0] // 1_000_000} MB for Bad")
+
+Which will print:
+
+.. code-block:: text
+
+    Allocated 56 MB for Good
+    Allocated 96 MB for Bad
 
 
 In addition, if a superclass has no slots, all subclasses will get ``__dict__``,
@@ -88,5 +99,48 @@ This mistake will cost you some memory:
        __slots__ = ('a', 'a', 'a', 'b', 'a', 'b')
 
 
-    asizeof(Good())  # 48
-    asizeof(Bad())  # 80
+    sys.getsizeof(Good())  # 48
+    sys.getsizeof(Bad())  # 80
+
+Unused slots (Experimental)
+---------------------------
+
+.. note::
+
+   This check is **experimental** and requires **Python 3.13+**.
+   Enable it with the ``--detect-unused-slots`` flag or
+   ``detect-unused-slots = true`` in your configuration.
+
+Slots that are declared but never assigned within the class body
+are likely dead code or indicate a refactoring oversight.
+
+.. code-block:: python
+
+   class Bad:
+       __slots__ = ('x', 'y', 'unused')
+
+       def __init__(self):
+           self.x = 1
+           self.y = 2
+
+   class Good:
+       __slots__ = ('x', 'y')
+
+       def __init__(self):
+           self.x = 1
+           self.y = 2
+
+Abstract classes and Protocol classes are excluded from this check,
+since their slots are expected to be assigned by subclasses or
+implementors.
+
+The special slots ``__weakref__`` and ``__dict__`` are also excluded,
+as they serve Python-internal purposes rather than user assignment.
+
+.. admonition:: Limitations
+
+   This check uses Python 3.13's ``__static_attributes__``
+   to determine which attributes are assigned within the class body.
+   Attributes that are only set externally (e.g. ``obj.slot = value``
+   from outside the class) will be reported as unused. Use
+   ``--exclude-slots`` with a regex pattern to suppress such false positives.
