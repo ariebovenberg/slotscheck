@@ -197,7 +197,9 @@ class TestModuleTree:
             ),
         )
         assert len(list(tree)) == len(tree) == 9
-        assert tree.display() == """\
+        assert (
+            tree.display()
+            == """\
 module_misc
  a
   b
@@ -207,6 +209,7 @@ module_misc
     bla
     foo
      z"""
+        )
 
     def test_submodule(self):
         tree = module_tree("module_misc.a.b.c", None)

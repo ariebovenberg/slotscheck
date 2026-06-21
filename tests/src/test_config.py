@@ -104,18 +104,14 @@ class TestOptionsApply:
             True, False, True, None, "", "hello", None, False, None
         ).apply(
             PartialConfig(None, None, None, None, None, None, None, None, None)
-        ) == Config(
-            True, False, True, None, "", "hello", None, False, None
-        )
+        ) == Config(True, False, True, None, "", "hello", None, False, None)
 
     def test_different(self):
         assert Config(
             True, False, True, None, "", "hello", None, False, None
         ).apply(
             PartialConfig(False, None, None, "hi", "", None, None, None, None)
-        ) == Config(
-            False, False, True, "hi", "", "hello", None, False, None
-        )
+        ) == Config(False, False, True, "hi", "", "hello", None, False, None)
 
 
 class TestPartialOptionsFromToml:

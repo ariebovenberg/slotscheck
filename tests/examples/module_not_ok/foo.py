@@ -4,7 +4,6 @@ from typing import Generic, Protocol, TypeVar
 from typing_extensions import Protocol as TypingExtProtocol
 from typing_extensions import TypedDict as MyTypingExtensionsTypedDict
 
-
 try:
     from typing import TypedDict
 

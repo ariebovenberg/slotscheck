@@ -16,11 +16,7 @@
 .. image:: https://github.com/ariebovenberg/slotscheck/actions/workflows/build.yml/badge.svg
    :target: https://github.com/ariebovenberg/slotscheck/actions/workflows/build.yml
 
-.. image:: https://img.shields.io/codecov/c/github/ariebovenberg/slotscheck.svg
-   :target: https://codecov.io/gh/ariebovenberg/slotscheck
-
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-   :target: https://github.com/psf/black
+.. image:: https://img.shields.io/badge/coverage-100%25-forestgreen?style=flat-square
 
 Adding ``__slots__`` to a class in Python is a great way to improve performance.
 But to work properly, all base classes need to implement it — without overlap!

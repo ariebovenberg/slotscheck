@@ -1,43 +1,33 @@
-.PHONY: clean isort isort-check format format-check fix lint type-check pytest check test documentation docs
-
-
+.PHONY: init clean format fix lint type-check pytest check test docs
 
 init:
-	poetry install
-	pip install -r docs/requirements.txt
+	uv sync --locked --all-groups
 
 clean:
-	rm -rf .coverage .hypothesis .mypy_cache .pytest_cache .tox *.egg-info
+	rm -rf .coverage .hypothesis .mypy_cache .pytest_cache .ruff_cache *.egg-info
 	rm -rf dist
 	find . | grep -E "(__pycache__|docs_.*$$|\.pyc|\.pyo$$)" | xargs rm -rf
 
-isort:
-	isort src tests/src/
-
-isort-check:
-	isort . --check-only --diff
-
 format:
-	black src tests/src
+	uv run ruff format .
 
-format-check:
-	black --check --diff .
-
-fix: isort format
+fix:
+	uv run ruff check --select I --fix .
+	uv run ruff format .
 
 lint:
-	flake8 src tests --exclude=.tox,build
+	uv run ruff check .
 
 type-check:
-	mypy --pretty src tests/src
+	uv run mypy --pretty src tests/src
 
-check: lint isort-check format-check type-check
+check: lint type-check
 
 pytest:
-	pytest --cov=slotscheck
+	uv run pytest --cov=slotscheck
 
 test: check pytest
 
 docs:
 	@touch docs/cli.rst
-	make -C docs/ html
+	uv run make -C docs/ html

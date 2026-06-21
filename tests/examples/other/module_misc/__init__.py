@@ -5,8 +5,7 @@ class A:
     pass
 
 
-class B(A):
-    ...
+class B(A): ...
 
 
 K = K

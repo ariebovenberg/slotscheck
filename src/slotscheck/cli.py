@@ -209,7 +209,8 @@ def root(
         )
         exit(1)
     except UnexpectedImportLocation as e:
-        print("""\
+        print(
+            """\
 Cannot check due to import ambiguity.
 The given files do not correspond with what would be imported:
 
@@ -222,7 +223,8 @@ You may need to define $PYTHONPATH or run as 'python -m slotscheck'
 to ensure the correct files can be imported.
 
 See slotscheck.rtfd.io/en/latest/discovery.html
-for more information on why this happens and how to resolve it.""".format(e))
+for more information on why this happens and how to resolve it.""".format(e)
+        )
         exit(1)
 
     if not (modules.filtered or modules.skipped):

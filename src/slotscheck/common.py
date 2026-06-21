@@ -104,8 +104,7 @@ except ImportError:  # pragma: no cover
 # The implementation below is derived from it.
 def is_protocol(t: type) -> bool:  # pragma: no cover
     return (
-        getattr(t, "_is_protocol", False)
-        and t is not Protocol  # type: ignore[comparison-overlap]
+        getattr(t, "_is_protocol", False) and t is not Protocol  # type: ignore[comparison-overlap]
     )
 
 
