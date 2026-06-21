@@ -4,7 +4,7 @@
 
 # Before merge
 
-- [ ] ``tox`` runs successfully
+- [ ] ``make test`` runs successfully
 - [ ] Docs updated
 
 # Before release (if applicable)

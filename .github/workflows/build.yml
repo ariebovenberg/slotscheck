@@ -1,32 +1,19 @@
 name: Build
 
 on:
+  pull_request:
+    branches:
+      - "**"
   push:
     tags:
       - "*"
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
-  poetry-lockfile-up-to-date:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v6
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install 'poetry>=2.2.1,<2.3'
-        poetry check --lock
-
-  build:
+  test:
+    name: Tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,31 +21,67 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
-    - uses: actions/checkout@v6
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install 'tox<5' tox-gh-actions 'poetry>=2.2,<2.3'
-    - name: Test with tox
-      run: tox
+      - uses: actions/checkout@v6
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+      - name: Install dependencies
+        run: uv sync --locked --group test
+      - if: matrix.python-version == '3.13'
+        name: Run tests (with coverage)
+        run: uv run pytest --cov=slotscheck
+      - if: matrix.python-version != '3.13'
+        name: Run tests
+        run: uv run pytest
 
-    - name: Upload coverage to Codecov
-      if: matrix.python-version == 3.13
-      uses: codecov/codecov-action@v6.0.1
-      with:
-        file: ./coverage.xml
+  typecheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+      - name: Install dependencies
+        run: uv sync --locked --group test --group typecheck
+      - name: Run type checks
+        run: uv run mypy --pretty src tests/src
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+      - name: check lockfile
+        run: uv lock --check
+      - name: Install dependencies
+        run: uv sync --locked --group linting
+      - name: Run linters
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+          uv run slotscheck -m slotscheck --verbose
 
   # https://github.com/marketplace/actions/alls-green#why
   all-green:
     name: Are all checks green?
     if: always()
     needs:
-      - poetry-lockfile-up-to-date
-      - build
+      - test
+      - typecheck
+      - lint
     runs-on: ubuntu-latest
 
     steps:
@@ -103,11 +126,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - name: Install dependencies
-        run: |
-          pip install 'poetry>=2.2,<2.3'
-      - name: Build distribution
-        run: |
-          poetry build
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+      - run: uv build
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

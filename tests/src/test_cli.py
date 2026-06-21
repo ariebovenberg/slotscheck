@@ -59,11 +59,14 @@ def test_module_is_uninspectable(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "broken.submodule"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: Failed to import 'broken.submodule'.
 Oh no, found some problems!
 Scanned 0 module(s), 0 class(es).
 """
+    )
 
 
 def test_module_is_uninspectable_no_strict_imports(runner: CliRunner):
@@ -71,23 +74,29 @@ def test_module_is_uninspectable_no_strict_imports(runner: CliRunner):
         cli, ["-m", "broken.submodule", "--no-strict-imports"]
     )
     assert result.exit_code == 0
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 NOTE:  Failed to import 'broken.submodule'.
 All OK!
 Scanned 0 module(s), 0 class(es).
 """
+    )
 
 
 def test_path_doesnt_exist(runner: CliRunner):
     result = runner.invoke(cli, ["doesnt_exist"])
     assert result.exit_code == 2
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 Usage: slotscheck [OPTIONS] [FILES]...
 Try 'slotscheck --help' for help.
 
 Error: Invalid value for '[FILES]...': Path 'doesnt_exist' does not exist.
 """
+    )
 
 
 def test_everything_ok(runner: CliRunner):
@@ -120,7 +129,9 @@ def test_success_verbose(runner: CliRunner):
         cli, ["-m", "module_ok", "-v"], catch_exceptions=False
     )
     assert result.exit_code == 0
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 All OK!
 stats:
   modules:     7
@@ -132,6 +143,7 @@ stats:
     has slots: 20
     no slots:  44
 """
+    )
 
 
 def test_submodule(runner: CliRunner):
@@ -214,7 +226,9 @@ def test_errors_with_default_settings(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_not_ok"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:S' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:T' defines slots but superclass does not.
@@ -231,13 +245,16 @@ ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
 Scanned 4 module(s), 44 class(es).
 """
+    )
 
 
 def test_errors_require_slots_subclass(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_not_ok", "--require-subclass"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.a.b:A' has no slots, but it could have.
 ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:A' has no slots, but it could have.
@@ -259,6 +276,7 @@ ERROR: 'module_not_ok.foo:Ze' has no slots, but it could have.
 Oh no, found some problems!
 Scanned 4 module(s), 44 class(es).
 """
+    )
 
 
 def test_errors_disallow_nonslot_inherit(runner: CliRunner):
@@ -267,7 +285,9 @@ def test_errors_disallow_nonslot_inherit(runner: CliRunner):
     )
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:S' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:T' defines slots but superclass does not.
@@ -284,6 +304,7 @@ ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
 Scanned 4 module(s), 44 class(es).
 """
+    )
 
 
 def test_errors_no_require_superclass(runner: CliRunner):
@@ -292,7 +313,9 @@ def test_errors_no_require_superclass(runner: CliRunner):
     )
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
@@ -301,6 +324,7 @@ ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
 Scanned 4 module(s), 44 class(es).
 """
+    )
 
 
 def test_errors_with_exclude_classes(runner: CliRunner):
@@ -310,7 +334,9 @@ def test_errors_with_exclude_classes(runner: CliRunner):
     )
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:T' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
@@ -323,6 +349,7 @@ ERROR: 'module_not_ok.foo:Zb' defines slots but superclass does not.
 Oh no, found some problems!
 Scanned 4 module(s), 44 class(es).
 """
+    )
 
 
 def test_errors_with_include_classes(runner: CliRunner):
@@ -332,7 +359,9 @@ def test_errors_with_include_classes(runner: CliRunner):
     )
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.foo:S' defines slots but superclass does not.
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
@@ -341,6 +370,7 @@ ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
 Scanned 4 module(s), 44 class(es).
 """
+    )
 
 
 def test_errors_with_include_modules(runner: CliRunner):
@@ -355,11 +385,14 @@ def test_errors_with_include_modules(runner: CliRunner):
     )
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
 Oh no, found some problems!
 Scanned 3 module(s), 2 class(es).
 """
+    )
 
 
 def test_ignores_given_module_completely(runner: CliRunner):
@@ -384,7 +417,9 @@ def test_module_not_ok_verbose(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_not_ok", "-v"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.a.b:U' defines slots but superclass does not.
        Superclasses without slots:
        - 'module_not_ok.a.b:A'
@@ -446,6 +481,7 @@ stats:
     has slots: 13
     no slots:  31
 """
+    )
 
 
 def test_module_misc(runner: CliRunner):
@@ -455,11 +491,14 @@ def test_module_misc(runner: CliRunner):
         catch_exceptions=False,
     )
     assert result.exit_code == 0
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 NOTE:  Failed to import 'module_misc.a.evil'.
 All OK!
 Scanned 18 module(s), 8 class(es).
 """
+    )
 
 
 def test_module_exclude(runner: CliRunner):
@@ -475,11 +514,14 @@ def test_module_exclude(runner: CliRunner):
         catch_exceptions=False,
     )
     assert result.exit_code == 0
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 NOTE:  Failed to import 'module_misc.a.b.__main__'.
 All OK!
 Scanned 16 module(s), 9 class(es).
 """
+    )
 
     from module_misc import a  # type: ignore
 
@@ -490,21 +532,27 @@ def test_module_disallow_import_failures(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_misc", "--strict-imports"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: Failed to import 'module_misc.a.evil'.
 Oh no, found some problems!
 Scanned 18 module(s), 8 class(es).
 """
+    )
 
 
 def test_module_allow_import_failures(runner: CliRunner):
     result = runner.invoke(cli, ["-m", "module_misc", "--no-strict-imports"])
     assert result.exit_code == 0
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 NOTE:  Failed to import 'module_misc.a.evil'.
 All OK!
 Scanned 18 module(s), 8 class(es).
 """
+    )
 
 
 def test_finds_config(runner: CliRunner, mocker, tmpdir):
@@ -519,7 +567,9 @@ require-superclass = false
     result = runner.invoke(cli, ["-m", "module_not_ok"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
@@ -528,6 +578,7 @@ ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
 Scanned 4 module(s), 44 class(es).
 """
+    )
 
 
 def test_given_config(runner: CliRunner, tmpdir):
@@ -543,7 +594,9 @@ require-superclass = false
     )
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 ERROR: 'module_not_ok.foo:U.Ua' defines overlapping slots.
 ERROR: 'module_not_ok.foo:U.Ub' defines overlapping slots.
 ERROR: 'module_not_ok.foo:W' defines overlapping slots.
@@ -552,6 +605,7 @@ ERROR: 'module_not_ok.foo:Za' defines overlapping slots.
 Oh no, found some problems!
 Scanned 4 module(s), 44 class(es).
 """
+    )
 
 
 def test_ambiguous_import(runner: CliRunner):
@@ -579,9 +633,7 @@ to ensure the correct files can be imported.
 See slotscheck.rtfd.io/en/latest/discovery.html
 for more information on why this happens and how to resolve it.
 """.format(
-            find_spec(
-                "module_misc.a.b.c"
-            ).loader.path,  # type: ignore[union-attr]
+            find_spec("module_misc.a.b.c").loader.path,  # type: ignore[union-attr]
             EXAMPLES_DIR / "other/module_misc/a/b/c.py",
         )
     )
@@ -594,9 +646,12 @@ def test_ambiguous_import_excluded(runner: CliRunner):
         catch_exceptions=False,
     )
     assert result.exit_code == 0
-    assert result.output == """\
+    assert (
+        result.output
+        == """\
 Files or modules given, but filtered out by exclude/include. Nothing to do!
 """
+    )
 
 
 @pytest.mark.skipif(

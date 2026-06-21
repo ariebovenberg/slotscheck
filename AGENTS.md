@@ -61,44 +61,41 @@ CLI args + config file
 ### Prerequisites
 
 - Python 3.10+ (3.10–3.14 supported)
-- [Poetry](https://python-poetry.org/) for dependency management
-- [tox](https://tox.wiki/) for test automation
+- [uv](https://docs.astral.sh/uv/) for dependency management
+- [ruff](https://docs.astral.sh/ruff/) for formatting and linting
 
 ### Setup
 
 ```bash
-poetry install
-pip install -r docs/requirements.txt
+uv sync --locked --all-groups
 ```
 
 ### Common Commands
 
 | Task | Command |
 |------|---------|
-| Run tests | `pytest --cov=slotscheck` or `tox` |
-| Lint | `flake8 src tests --exclude=.tox,build` |
-| Format | `black src tests/src` |
-| Sort imports | `isort src tests/src/` |
-| Type check | `mypy --pretty src tests/src` |
-| All checks | `make test` (lint + format + isort + mypy + pytest) |
+| Run tests | `uv run pytest --cov=slotscheck` |
+| Lint | `uv run ruff check .` |
+| Format | `uv run ruff format .` |
+| Sort imports | `uv run ruff check --select I --fix .` |
+| Type check | `uv run mypy --pretty src tests/src` |
+| All checks | `make test` (lint + type-check + pytest) |
 | Self-check | `slotscheck -m slotscheck --verbose` |
-| Build docs | `tox -e docs` |
+| Build docs | `uv run make -C docs/ html` |
 
-### Tox Environments
+### Dependency Groups
 
-- Default: runs pytest with coverage
-- `lint`: black --check + flake8
-- `isort`: isort --check
-- `mypy`: type checking
-- `slots`: runs slotscheck on itself
-- `docs`: Sphinx build (warns-as-errors)
+- `test`: pytest, coverage, and test fixtures
+- `typecheck`: mypy
+- `linting`: ruff
+- `docs`: Sphinx and HTML theme/extensions
 
 ### CI
 
 GitHub Actions (`.github/workflows/build.yml`):
 - Tests on Python 3.10–3.14
 - Coverage uploaded to Codecov on Python 3.13
-- Poetry lockfile consistency check
+- `uv lock --check` in linting
 
 ## Testing
 
@@ -159,8 +156,8 @@ runs in the project's own environment.
 
 ## Style & Conventions
 
-- **Line length:** 79 characters (black + isort configured)
-- **Import sorting:** isort with black profile
+- **Line length:** 79 characters (ruff format + lint configured)
+- **Import sorting:** ruff with isort rules
 - **Type annotations:** fully typed (`py.typed` marker present), checked with mypy
 - **Dataclasses with slots:** uses a custom `@add_slots` decorator from `common.py`
 - **Functional style:** heavy use of iterators, `flatten`, `groupby`, `compose`
