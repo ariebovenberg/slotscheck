@@ -55,7 +55,6 @@ Use the following configuration:
        #
        # additional_dependencies:
        # - requests==2.26
-       # - click~=8.0
 
        # Instead of `additional_dependencies`, you can reuse the currently
        # active environment by setting language to `system`.

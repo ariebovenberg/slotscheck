@@ -1,3 +1,4 @@
+import argparse
 import re
 import sys
 from abc import ABC, abstractmethod
@@ -18,9 +19,7 @@ from typing import (
     Tuple,
 )
 
-import click
-
-from . import config
+from . import __version__, config
 from .checks import (
     causes_dunder_dict,
     defines_slots,
@@ -65,111 +64,137 @@ if (
     )
 
 
-@click.command("slotscheck")
-@click.argument(
-    "FILES",
-    type=click.Path(path_type=Path, exists=True, resolve_path=True),
-    required=False,
-    nargs=-1,
-)
-@click.option(
-    "-m",
-    "--module",
-    help="Check this module. Cannot be combined with FILES argument. "
-    "Can be repeated multiple times to scan several modules. ",
-    multiple=True,
-)
-@click.option(
-    "--require-superclass/--no-require-superclass",
-    help="Report an error when a slots class inherits from "
-    "a non-slotted (or __dict__) class.",
-    default=None,
-    show_default="required",
-)
-@click.option(
-    "--require-subclass/--no-require-subclass",
-    help="Report an error when a non-slotted class inherits from "
-    "a slotted class. In effect, this option enforces the use of slots "
-    "wherever possible.",
-    default=None,
-    show_default="not required",
-)
-@click.option(
-    "--include-modules",
-    help="A regular expression that matches modules to include. "
-    "Exclusions are determined first, then inclusions. "
-    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
-)
-@click.option(
-    "--exclude-modules",
-    help="A regular expression that matches modules to exclude. "
-    "Excluded modules will not be imported. "
-    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
-    show_default=f"``{config.DEFAULT_MODULE_EXCLUDE_RE}``",
-)
-@click.option(
-    "--include-classes",
-    help="A regular expression that matches classes to include. "
-    "Use ``:`` to separate module and class paths. "
-    "For example: ``app\\.config:.*Settings``, ``:(Foo|Bar)``. "
-    "Exclusions are determined first, then inclusions. "
-    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
-)
-@click.option(
-    "--exclude-classes",
-    help="A regular expression that matches classes to exclude. "
-    "Use ``:`` to separate module and class paths. "
-    "For example: ``app\\.config:Settings``, ``:.*(Exception|Error)``. "
-    "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
-    show_default="``^$``",
-)
-@click.option(
-    "--strict-imports/--no-strict-imports",
-    help="Treat failed imports as errors.",
-    default=None,
-    show_default="strict",
-)
-@click.option(
-    "--detect-unused-slots/--no-detect-unused-slots",
-    help="[Experimental, Python 3.13+] Detect slots that are never assigned "
-    "within the class body. Disabled by default.",
-    default=None,
-    show_default="disabled",
-)
-@click.option(
-    "--exclude-slots",
-    help="A regular expression matching slots to exclude from "
-    "unused-slot detection. Matches against 'module.path:Class.slot_name'. "
-    "Uses Python's verbose regex dialect.",
-)
-@click.option(
-    "-v", "--verbose", is_flag=True, help="Display extra descriptive output."
-)
-@click.option(
-    "--settings",
-    help="Path to the configuration file to use. "
-    "Allowed extensions are toml, cfg, ini.",
-    type=click.Path(
-        path_type=Path, exists=True, resolve_path=True, dir_okay=False
-    ),
-)
-@click.version_option()
-def root(
-    files: Sequence[AbsPath],
-    module: Sequence[str],
-    verbose: bool,
-    settings: Optional[AbsPath],
-    require_superclass: Optional[bool],
-    require_subclass: Optional[bool],
-    strict_imports: Optional[bool],
-    detect_unused_slots: Optional[bool],
-    exclude_slots: Optional[config.RegexStr],
-    exclude_classes: Optional[config.RegexStr],
-    include_classes: Optional[config.RegexStr],
-    exclude_modules: Optional[config.RegexStr],
-    include_modules: Optional[config.RegexStr],
-) -> None:
+def _existing_path(path: str) -> AbsPath:
+    resolved = Path(path).resolve()
+    if not resolved.exists():
+        raise argparse.ArgumentTypeError(f"Path {path!r} does not exist.")
+    return resolved
+
+
+def _existing_file(path: str) -> AbsPath:
+    resolved = _existing_path(path)
+    if not resolved.is_file():
+        raise argparse.ArgumentTypeError(f"Path {path!r} is not a file.")
+    return resolved
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="slotscheck",
+        description="Check whether your __slots__ are working properly.",
+    )
+    parser.add_argument(
+        "files",
+        metavar="FILES",
+        type=_existing_path,
+        nargs="*",
+    )
+    parser.add_argument(
+        "-m",
+        "--module",
+        action="append",
+        default=[],
+        help="Check this module. Cannot be combined with FILES argument. "
+        "Can be repeated multiple times to scan several modules.",
+    )
+    parser.add_argument(
+        "--require-superclass",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Report an error when a slots class inherits from "
+        "a non-slotted (or __dict__) class.",
+    )
+    parser.add_argument(
+        "--require-subclass",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Report an error when a non-slotted class inherits from "
+        "a slotted class. In effect, this option enforces the use of slots "
+        "wherever possible.",
+    )
+    parser.add_argument(
+        "--include-modules",
+        help="A regular expression that matches modules to include. "
+        "Exclusions are determined first, then inclusions. "
+        "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
+    )
+    parser.add_argument(
+        "--exclude-modules",
+        help="A regular expression that matches modules to exclude. "
+        "Excluded modules will not be imported. "
+        "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
+    )
+    parser.add_argument(
+        "--include-classes",
+        help="A regular expression that matches classes to include. "
+        "Use ':' to separate module and class paths. "
+        r"For example: 'app\.config:.*Settings', ':(Foo|Bar)'. "
+        "Exclusions are determined first, then inclusions. "
+        "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
+    )
+    parser.add_argument(
+        "--exclude-classes",
+        help="A regular expression that matches classes to exclude. "
+        "Use ':' to separate module and class paths. "
+        r"For example: 'app\.config:Settings', ':.*(Exception|Error)'. "
+        "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
+    )
+    parser.add_argument(
+        "--strict-imports",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Treat failed imports as errors.",
+    )
+    parser.add_argument(
+        "--detect-unused-slots",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="[Experimental, Python 3.13+] Detect slots that are never "
+        "assigned within the class body. Disabled by default.",
+    )
+    parser.add_argument(
+        "--exclude-slots",
+        help="A regular expression matching slots to exclude from unused-slot "
+        "detection. Matches against 'module.path:Class.slot_name'. "
+        "Uses Python's verbose regex dialect.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Display extra descriptive output.",
+    )
+    parser.add_argument(
+        "--settings",
+        type=_existing_file,
+        help="Path to the configuration file to use. "
+        "Allowed extensions are toml, cfg, ini.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"slotscheck, version {__version__}",
+    )
+    return parser
+
+
+def root(argv: Optional[Sequence[str]] = None) -> None:
     "Check whether your __slots__ are working properly."
+    args = _parser().parse_args(argv)
+    files: Sequence[AbsPath] = args.files
+    module: Sequence[str] = args.module
+    verbose: bool = args.verbose
+    settings: Optional[AbsPath] = args.settings
+    require_superclass: Optional[bool] = args.require_superclass
+    require_subclass: Optional[bool] = args.require_subclass
+    strict_imports: Optional[bool] = args.strict_imports
+    detect_unused_slots: Optional[bool] = args.detect_unused_slots
+    exclude_slots: Optional[config.RegexStr] = args.exclude_slots
+    exclude_classes: Optional[config.RegexStr] = args.exclude_classes
+    include_classes: Optional[config.RegexStr] = args.include_classes
+    exclude_modules: Optional[config.RegexStr] = args.exclude_modules
+    include_modules: Optional[config.RegexStr] = args.include_modules
+
     conf = config.collect(
         config.PartialConfig(
             strict_imports=strict_imports,

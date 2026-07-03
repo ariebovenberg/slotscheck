@@ -1,20 +1,57 @@
+import contextlib
+import io
 import os
 import re
 import sys
+from dataclasses import dataclass
 from importlib.util import find_spec
 from pathlib import Path
 
 import pytest
-from click.testing import CliRunner
 
 from slotscheck.cli import root as cli
 
 from .conftest import EXAMPLES_DIR
 
 
+@dataclass(frozen=True)
+class Result:
+    exit_code: int
+    output: str
+    exception: BaseException | None
+
+
+class Runner:
+    def invoke(
+        self,
+        cli,
+        args: list[str],
+        catch_exceptions: bool = True,
+    ) -> Result:
+        output = io.StringIO()
+        try:
+            with (
+                contextlib.redirect_stdout(output),
+                contextlib.redirect_stderr(output),
+            ):
+                cli(args)
+        except SystemExit as e:
+            code = 0 if e.code is None else e.code
+            return Result(
+                code if isinstance(code, int) else 1,
+                output.getvalue(),
+                e,
+            )
+        except BaseException as e:
+            if catch_exceptions:
+                return Result(1, output.getvalue(), e)
+            raise
+        return Result(0, output.getvalue(), None)
+
+
 @pytest.fixture()
 def runner():
-    return CliRunner()
+    return Runner()
 
 
 @pytest.fixture(autouse=True)
@@ -24,13 +61,13 @@ def set_cwd(request):
     os.chdir(request.config.invocation_dir)
 
 
-def test_no_inputs(runner: CliRunner):
+def test_no_inputs(runner: Runner):
     result = runner.invoke(cli, [])
     assert result.exit_code == 0
     assert result.output == "No files or modules given. Nothing to do!\n"
 
 
-def test_module_doesnt_exist(runner: CliRunner):
+def test_module_doesnt_exist(runner: Runner):
     result = runner.invoke(cli, ["-m", "foo"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
@@ -41,7 +78,7 @@ def test_module_doesnt_exist(runner: CliRunner):
     )
 
 
-def test_python_file_not_in_sys_path(runner: CliRunner, tmp_path: Path):
+def test_python_file_not_in_sys_path(runner: Runner, tmp_path: Path):
     file = tmp_path / "foo.py"
     file.write_text('print("Hello, world!")', encoding="utf-8")
     result = runner.invoke(cli, [str(file)])
@@ -55,7 +92,7 @@ def test_python_file_not_in_sys_path(runner: CliRunner, tmp_path: Path):
     )
 
 
-def test_module_is_uninspectable(runner: CliRunner):
+def test_module_is_uninspectable(runner: Runner):
     result = runner.invoke(cli, ["-m", "broken.submodule"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
@@ -69,7 +106,7 @@ Scanned 0 module(s), 0 class(es).
     )
 
 
-def test_module_is_uninspectable_no_strict_imports(runner: CliRunner):
+def test_module_is_uninspectable_no_strict_imports(runner: Runner):
     result = runner.invoke(
         cli, ["-m", "broken.submodule", "--no-strict-imports"]
     )
@@ -84,28 +121,47 @@ Scanned 0 module(s), 0 class(es).
     )
 
 
-def test_path_doesnt_exist(runner: CliRunner):
+def test_path_doesnt_exist(runner: Runner):
     result = runner.invoke(cli, ["doesnt_exist"])
     assert result.exit_code == 2
     assert isinstance(result.exception, SystemExit)
-    assert (
+    assert "usage: slotscheck" in result.output
+    assert "argument FILES: Path 'doesnt_exist' does not exist." in (
         result.output
-        == """\
-Usage: slotscheck [OPTIONS] [FILES]...
-Try 'slotscheck --help' for help.
-
-Error: Invalid value for '[FILES]...': Path 'doesnt_exist' does not exist.
-"""
     )
 
 
-def test_everything_ok(runner: CliRunner):
+def test_settings_must_be_file(runner: Runner):
+    result = runner.invoke(cli, ["--settings", "."])
+    assert result.exit_code == 2
+    assert isinstance(result.exception, SystemExit)
+    assert "usage: slotscheck" in result.output
+    assert "argument --settings: Path '.' is not a file." in result.output
+
+
+def test_help(runner: Runner):
+    result = runner.invoke(cli, ["--help"])
+    assert result.exit_code == 0
+    assert isinstance(result.exception, SystemExit)
+    assert "usage: slotscheck" in result.output
+    assert "-m, --module MODULE" in result.output
+    assert "--strict-imports, --no-strict-imports" in result.output
+
+
+def test_version(runner: Runner):
+    result = runner.invoke(cli, ["--version"])
+    assert result.exit_code == 0
+    assert isinstance(result.exception, SystemExit)
+    assert result.output == "slotscheck, version 0.20.0\n"
+
+
+def test_everything_ok(runner: Runner):
     result = runner.invoke(cli, ["-m", "module_ok"])
     assert result.exit_code == 0
     assert result.output == "All OK!\nScanned 6 module(s), 64 class(es).\n"
 
 
-def test_single_file_module(runner: CliRunner):
+def test_single_file_module(runner: Runner):
     result = runner.invoke(
         cli, ["-m", "module_singular"], catch_exceptions=False
     )
@@ -113,18 +169,18 @@ def test_single_file_module(runner: CliRunner):
     assert result.output == "All OK!\nScanned 1 module(s), 5 class(es).\n"
 
 
-def test_builtins(runner: CliRunner):
+def test_builtins(runner: Runner):
     result = runner.invoke(cli, ["-m", "builtins"])
     assert result.exit_code == 0
 
 
-def test_extension(runner: CliRunner):
+def test_extension(runner: Runner):
     result = runner.invoke(cli, ["-m", "ujson"])
     assert result.exit_code == 0
     assert result.output == ("All OK!\nScanned 1 module(s), 1 class(es).\n")
 
 
-def test_success_verbose(runner: CliRunner):
+def test_success_verbose(runner: Runner):
     result = runner.invoke(
         cli, ["-m", "module_ok", "-v"], catch_exceptions=False
     )
@@ -146,7 +202,7 @@ stats:
     )
 
 
-def test_submodule(runner: CliRunner):
+def test_submodule(runner: Runner):
     result = runner.invoke(
         cli, ["-m", "module_ok.a.b"], catch_exceptions=False
     )
@@ -154,7 +210,7 @@ def test_submodule(runner: CliRunner):
     assert result.output == "All OK!\nScanned 4 module(s), 32 class(es).\n"
 
 
-def test_namespaced(runner: CliRunner):
+def test_namespaced(runner: Runner):
     result = runner.invoke(
         cli, ["-m", "namespaced.module"], catch_exceptions=False
     )
@@ -162,7 +218,7 @@ def test_namespaced(runner: CliRunner):
     assert result.output == "All OK!\nScanned 4 module(s), 1 class(es).\n"
 
 
-def test_implicitly_namespaced(runner: CliRunner):
+def test_implicitly_namespaced(runner: Runner):
     result = runner.invoke(
         cli, ["-m", "implicitly_namespaced"], catch_exceptions=False
     )
@@ -170,7 +226,7 @@ def test_implicitly_namespaced(runner: CliRunner):
     assert result.output == "All OK!\nScanned 8 module(s), 2 class(es).\n"
 
 
-def test_multiple_modules(runner: CliRunner):
+def test_multiple_modules(runner: Runner):
     result = runner.invoke(
         cli,
         ["-m", "module_singular", "-m", "module_ok", "-m", "namespaced"],
@@ -180,7 +236,7 @@ def test_multiple_modules(runner: CliRunner):
     assert result.output == "All OK!\nScanned 11 module(s), 70 class(es).\n"
 
 
-def test_implicitly_namespaced_path(runner: CliRunner):
+def test_implicitly_namespaced_path(runner: Runner):
     result = runner.invoke(
         cli,
         [str(EXAMPLES_DIR / "implicitly_namespaced")],
@@ -190,7 +246,7 @@ def test_implicitly_namespaced_path(runner: CliRunner):
     assert result.output == "All OK!\nScanned 7 module(s), 1 class(es).\n"
 
 
-def test_multiple_paths(runner: CliRunner):
+def test_multiple_paths(runner: Runner):
     result = runner.invoke(
         cli,
         [
@@ -204,7 +260,7 @@ def test_multiple_paths(runner: CliRunner):
     assert result.output == "All OK!\nScanned 8 module(s), 38 class(es).\n"
 
 
-def test_path_is_module_directory(runner: CliRunner):
+def test_path_is_module_directory(runner: Runner):
     # let's define the path indirectly to ensure it works
     path = str(EXAMPLES_DIR / "module_ok/a/../")
     result = runner.invoke(cli, [path], catch_exceptions=False)
@@ -212,8 +268,8 @@ def test_path_is_module_directory(runner: CliRunner):
     assert result.output == "All OK!\nScanned 6 module(s), 64 class(es).\n"
 
 
-def test_cannot_pass_both_path_and_module(runner: CliRunner):
-    result = runner.invoke(cli, ["module_ok", "-m", "click"])
+def test_cannot_pass_both_path_and_module(runner: Runner):
+    result = runner.invoke(cli, ["module_ok", "-m", "module_singular"])
     assert result.exit_code == 2
     assert (
         result.output
@@ -222,7 +278,7 @@ def test_cannot_pass_both_path_and_module(runner: CliRunner):
     )
 
 
-def test_errors_with_default_settings(runner: CliRunner):
+def test_errors_with_default_settings(runner: Runner):
     result = runner.invoke(cli, ["-m", "module_not_ok"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
@@ -248,7 +304,7 @@ Scanned 4 module(s), 44 class(es).
     )
 
 
-def test_errors_require_slots_subclass(runner: CliRunner):
+def test_errors_require_slots_subclass(runner: Runner):
     result = runner.invoke(cli, ["-m", "module_not_ok", "--require-subclass"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
@@ -279,7 +335,7 @@ Scanned 4 module(s), 44 class(es).
     )
 
 
-def test_errors_disallow_nonslot_inherit(runner: CliRunner):
+def test_errors_disallow_nonslot_inherit(runner: Runner):
     result = runner.invoke(
         cli, ["-m", "module_not_ok", "--require-superclass"]
     )
@@ -307,7 +363,7 @@ Scanned 4 module(s), 44 class(es).
     )
 
 
-def test_errors_no_require_superclass(runner: CliRunner):
+def test_errors_no_require_superclass(runner: Runner):
     result = runner.invoke(
         cli, ["-m", "module_not_ok", "--no-require-superclass"]
     )
@@ -327,7 +383,7 @@ Scanned 4 module(s), 44 class(es).
     )
 
 
-def test_errors_with_exclude_classes(runner: CliRunner):
+def test_errors_with_exclude_classes(runner: Runner):
     result = runner.invoke(
         cli,
         ["-m", "module_not_ok", "--exclude-classes", "(foo:U$|:(W|S))"],
@@ -352,7 +408,7 @@ Scanned 4 module(s), 44 class(es).
     )
 
 
-def test_errors_with_include_classes(runner: CliRunner):
+def test_errors_with_include_classes(runner: Runner):
     result = runner.invoke(
         cli,
         ["-m", "module_not_ok", "--include-classes", "(foo:.*a|:(W|S))"],
@@ -373,7 +429,7 @@ Scanned 4 module(s), 44 class(es).
     )
 
 
-def test_errors_with_include_modules(runner: CliRunner):
+def test_errors_with_include_modules(runner: Runner):
     result = runner.invoke(
         cli,
         [
@@ -395,7 +451,7 @@ Scanned 3 module(s), 2 class(es).
     )
 
 
-def test_ignores_given_module_completely(runner: CliRunner):
+def test_ignores_given_module_completely(runner: Runner):
     result = runner.invoke(
         cli,
         [
@@ -413,7 +469,7 @@ def test_ignores_given_module_completely(runner: CliRunner):
     )
 
 
-def test_module_not_ok_verbose(runner: CliRunner):
+def test_module_not_ok_verbose(runner: Runner):
     result = runner.invoke(cli, ["-m", "module_not_ok", "-v"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
@@ -484,7 +540,7 @@ stats:
     )
 
 
-def test_module_misc(runner: CliRunner):
+def test_module_misc(runner: Runner):
     result = runner.invoke(
         cli,
         ["-m", "module_misc", "--no-strict-imports"],
@@ -501,7 +557,7 @@ Scanned 18 module(s), 8 class(es).
     )
 
 
-def test_module_exclude(runner: CliRunner):
+def test_module_exclude(runner: Runner):
     result = runner.invoke(
         cli,
         [
@@ -528,7 +584,7 @@ Scanned 16 module(s), 9 class(es).
     assert not a.evil_was_imported
 
 
-def test_module_disallow_import_failures(runner: CliRunner):
+def test_module_disallow_import_failures(runner: Runner):
     result = runner.invoke(cli, ["-m", "module_misc", "--strict-imports"])
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
@@ -542,7 +598,7 @@ Scanned 18 module(s), 8 class(es).
     )
 
 
-def test_module_allow_import_failures(runner: CliRunner):
+def test_module_allow_import_failures(runner: Runner):
     result = runner.invoke(cli, ["-m", "module_misc", "--no-strict-imports"])
     assert result.exit_code == 0
     assert (
@@ -555,7 +611,7 @@ Scanned 18 module(s), 8 class(es).
     )
 
 
-def test_finds_config(runner: CliRunner, mocker, tmpdir):
+def test_finds_config(runner: Runner, mocker, tmpdir):
     (tmpdir / "myconf.toml").write_binary(b"""
 [tool.slotscheck]
 require-superclass = false
@@ -581,7 +637,7 @@ Scanned 4 module(s), 44 class(es).
     )
 
 
-def test_given_config(runner: CliRunner, tmpdir):
+def test_given_config(runner: Runner, tmpdir):
     my_config = tmpdir / "myconf.toml"
     my_config.write_binary(b"""
 [tool.slotscheck]
@@ -608,7 +664,7 @@ Scanned 4 module(s), 44 class(es).
     )
 
 
-def test_ambiguous_import(runner: CliRunner):
+def test_ambiguous_import(runner: Runner):
     result = runner.invoke(
         cli,
         [str(EXAMPLES_DIR / "other/module_misc/a/b/c.py")],
@@ -639,7 +695,7 @@ for more information on why this happens and how to resolve it.
     )
 
 
-def test_ambiguous_import_excluded(runner: CliRunner):
+def test_ambiguous_import_excluded(runner: Runner):
     result = runner.invoke(
         cli,
         ["other/module_misc/a/b/c.py", "--exclude-modules", "module_misc"],
@@ -659,7 +715,7 @@ Files or modules given, but filtered out by exclude/include. Nothing to do!
     reason="unused_slots requires __static_attributes__ (Python 3.13+)",
 )
 class TestDetectUnusedSlots:
-    def test_disabled_by_default(self, runner: CliRunner):
+    def test_disabled_by_default(self, runner: Runner):
         """Without --detect-unused-slots, no unused slot errors appear."""
         result = runner.invoke(
             cli,
@@ -668,7 +724,7 @@ class TestDetectUnusedSlots:
         )
         assert "unused slots" not in result.output
 
-    def test_enabled_detects_unused(self, runner: CliRunner):
+    def test_enabled_detects_unused(self, runner: Runner):
         result = runner.invoke(
             cli,
             [
@@ -685,7 +741,7 @@ class TestDetectUnusedSlots:
         assert "has unused slots" in result.output
         assert "UnusedSlotsClass" in result.output
 
-    def test_all_used_no_error(self, runner: CliRunner):
+    def test_all_used_no_error(self, runner: Runner):
         result = runner.invoke(
             cli,
             [
@@ -701,7 +757,7 @@ class TestDetectUnusedSlots:
         assert result.exit_code == 0
         assert "unused slots" not in result.output
 
-    def test_abstract_class_skipped(self, runner: CliRunner):
+    def test_abstract_class_skipped(self, runner: Runner):
         result = runner.invoke(
             cli,
             [
@@ -717,7 +773,7 @@ class TestDetectUnusedSlots:
         assert result.exit_code == 0
         assert "unused slots" not in result.output
 
-    def test_exclude_slots_regex(self, runner: CliRunner):
+    def test_exclude_slots_regex(self, runner: Runner):
         result = runner.invoke(
             cli,
             [
@@ -735,7 +791,7 @@ class TestDetectUnusedSlots:
         assert result.exit_code == 0
         assert "unused slots" not in result.output
 
-    def test_verbose_output(self, runner: CliRunner):
+    def test_verbose_output(self, runner: Runner):
         result = runner.invoke(
             cli,
             [
@@ -753,7 +809,7 @@ class TestDetectUnusedSlots:
         assert "'unused_one'" in result.output
         assert "'unused_two'" in result.output
 
-    def test_protocol_class_skipped(self, runner: CliRunner):
+    def test_protocol_class_skipped(self, runner: Runner):
         result = runner.invoke(
             cli,
             [
@@ -770,7 +826,7 @@ class TestDetectUnusedSlots:
         assert "unused slots" not in result.output
 
 
-def test_detect_unused_slots_version_guard(runner: CliRunner):
+def test_detect_unused_slots_version_guard(runner: Runner):
     """Test that the version guard produces a clear error on < 3.13."""
     if sys.version_info >= (3, 13):
         pytest.skip("This test is for Python < 3.13")
