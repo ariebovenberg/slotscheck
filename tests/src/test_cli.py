@@ -152,7 +152,7 @@ def test_version(runner: Runner):
     result = runner.invoke(cli, ["--version"])
     assert result.exit_code == 0
     assert isinstance(result.exception, SystemExit)
-    assert result.output == "slotscheck, version 0.20.0\n"
+    assert result.output == "slotscheck, version 0.20.1\n"
 
 
 def test_everything_ok(runner: Runner):
