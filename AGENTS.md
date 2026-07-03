@@ -18,7 +18,7 @@ import ordering, and `sys.path` configuration are central concerns.
 src/slotscheck/
 ├── __init__.py      # Package version (from importlib.metadata)
 ├── __main__.py      # `python -m slotscheck` entrypoint
-├── cli.py           # Click CLI, orchestration, message/report formatting
+├── cli.py           # argparse CLI, orchestration, message/report formatting
 ├── checks.py        # Low-level slot introspection predicates
 ├── common.py        # Shared functional utilities and type helpers
 ├── config.py        # Configuration loading, merging, validation
@@ -109,13 +109,13 @@ tests/
 │   ├── test_checks.py   # Unit tests for checks.py
 │   ├── test_config.py   # Config loading/merging/validation
 │   ├── test_discovery.py # Module tree building, class extraction
-│   └── test_cli.py      # End-to-end CLI tests via CliRunner
+│   └── test_cli.py      # End-to-end CLI tests via local Runner helper
 └── examples/            # Crafted packages for test scenarios
 ```
 
 ### Key Testing Patterns
 
-- **`click.testing.CliRunner`** for CLI integration tests
+- **Local `Runner` helper** for CLI integration tests
 - **`@pytest.mark.parametrize`** for table-driven tests
 - **Autouse fixtures:**
   - `add_pypath()`: prepends example dirs to `sys.path`
@@ -161,4 +161,4 @@ runs in the project's own environment.
 - **Type annotations:** fully typed (`py.typed` marker present), checked with mypy
 - **Dataclasses with slots:** uses a custom `@add_slots` decorator from `common.py`
 - **Functional style:** heavy use of iterators, `flatten`, `groupby`, `compose`
-- **No runtime dependencies** beyond `click` and `tomli` (Python <3.11 only)
+- **No runtime dependencies** beyond `tomli` (Python <3.11 only)
