@@ -19,7 +19,7 @@ from typing import (
     Tuple,
 )
 
-from . import __version__, config
+from . import config
 from .checks import (
     causes_dunder_dict,
     defines_slots,
@@ -62,6 +62,19 @@ if (
         "slotscheck does not support alternative Python implementations. "
         "See the docs at https://slotscheck.readthedocs.io/"
     )
+
+
+class _VersionAction(argparse.Action):
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: object,
+        option_string: Optional[str] = None,
+    ) -> None:
+        from . import __version__
+
+        parser.exit(message=f"slotscheck, version {__version__}\n")
 
 
 def _existing_path(path: str) -> AbsPath:
@@ -172,8 +185,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--version",
-        action="version",
-        version=f"slotscheck, version {__version__}",
+        action=_VersionAction,
+        nargs=0,
+        help="show program's version number and exit",
     )
     return parser
 
