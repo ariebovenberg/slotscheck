@@ -81,6 +81,21 @@ This all but requires running the code to determine the slots and class tree.
 There's `an issue <https://github.com/ariebovenberg/slotscheck/issues/6>`_
 to discuss the matter.
 
+Why not pylint or ruff?
+-----------------------
+
+Pylint and Ruff do have some checks related to ``__slots__``, but they are
+still static analyzers.
+They cannot see slots that are computed at import time—or follow deep
+inheritance trees, which are common in real code.
+People often generate slots automatically when optimizing class hierarchies,
+and frameworks like ``dataclasses``, ``attrs``, and ``pydantic`` also generate
+slots for you.
+``slotscheck`` runs the code and inspects the resulting class tree, and it can
+also detect unused slots.
+Ruff and Pylint can still catch some more basic slot mistakes, such as invalid
+``__slots__`` declarations.
+
 Notes
 -----
 
