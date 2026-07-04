@@ -44,6 +44,7 @@ linting = [
 docs = [
     "sphinx>=8,<10",
     "furo>=2025.12.19,<2026",
+    "sphinx-argparse>=0.5.2,<0.7",
 ]
 
 [tool.uv]

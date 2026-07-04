@@ -819,6 +819,7 @@ docs = [
     { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "sphinx-argparse" },
 ]
 linting = [
     { name = "ruff" },
@@ -842,6 +843,7 @@ requires-dist = [{ name = "tomli", marker = "python_full_version < '3.11'", spec
 docs = [
     { name = "furo", specifier = ">=2025.12.19,<2026" },
     { name = "sphinx", specifier = ">=8,<10" },
+    { name = "sphinx-argparse", specifier = ">=0.5.2,<0.7" },
 ]
 linting = [{ name = "ruff", specifier = ">=0.15,<0.16" }]
 test = [
@@ -964,6 +966,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cd/bd/f08eb0f4eed5c83f1ba2a3bd18f7745a2b1525fad70660a1c00224ec468a/sphinx-9.1.0.tar.gz", hash = "sha256:7741722357dd75f8190766926071fed3bdc211c74dd2d7d4df5404da95930ddb", size = 8718324, upload-time = "2025-12-31T15:09:27.646Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/73/f7/b1884cb3188ab181fc81fa00c266699dab600f927a964df02ec3d5d1916a/sphinx-9.1.0-py3-none-any.whl", hash = "sha256:c84fdd4e782504495fe4f2c0b3413d6c2bf388589bb352d439b2a3bb99991978", size = 3921742, upload-time = "2025-12-31T15:09:25.561Z" },
+]
+
+[[package]]
+name = "sphinx-argparse"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docutils", version = "0.21.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "docutils", version = "0.22.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "sphinx", version = "8.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/25/5c/eb3e1d2166ad1975b000c8c3822c9f81f2d368af7d0e8ec531d72996ec35/sphinx_argparse-0.6.0.tar.gz", hash = "sha256:d072bb67dd52b294375f0eedc203cb8e50d0329910dbceb6764e9386bff94e9d", size = 37208, upload-time = "2026-07-01T06:45:52.841Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/fa/ce9d3a41d3af98f5feea7a7ea104f6b1b9286f820cb67eeeab8898defd5c/sphinx_argparse-0.6.0-py3-none-any.whl", hash = "sha256:abbf4445b7e477efadf0046871fe10e3dd4fe725c00763e55133585b3e03787a", size = 17698, upload-time = "2026-07-01T06:45:51.92Z" },
 ]
 
 [[package]]

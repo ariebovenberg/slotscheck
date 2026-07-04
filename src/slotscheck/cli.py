@@ -140,16 +140,16 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--include-classes",
         help="A regular expression that matches classes to include. "
-        "Use ':' to separate module and class paths. "
-        r"For example: 'app\.config:.*Settings', ':(Foo|Bar)'. "
+        "Use ``:`` to separate module and class paths. "
+        r"For example: ``app\.config:.*Settings``, ``:(Foo|Bar)``. "
         "Exclusions are determined first, then inclusions. "
         "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     )
     parser.add_argument(
         "--exclude-classes",
         help="A regular expression that matches classes to exclude. "
-        "Use ':' to separate module and class paths. "
-        r"For example: 'app\.config:Settings', ':.*(Exception|Error)'. "
+        "Use ``:`` to separate module and class paths. "
+        r"For example: ``app\.config:Settings``, ``:.*(Exception|Error)``. "
         "Uses Python's verbose regex dialect, so whitespace is mostly ignored.",
     )
     parser.add_argument(
@@ -168,7 +168,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--exclude-slots",
         help="A regular expression matching slots to exclude from unused-slot "
-        "detection. Matches against 'module.path:Class.slot_name'. "
+        "detection. Matches against ``module.path:Class.slot_name``. "
         "Uses Python's verbose regex dialect.",
     )
     parser.add_argument(
