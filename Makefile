@@ -29,5 +29,4 @@ pytest:
 test: check pytest
 
 docs:
-	@touch docs/cli.rst
 	uv run make -C docs/ html
