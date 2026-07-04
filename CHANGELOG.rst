@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.20.1 (2026-07-04)
+-------------------
+
+- Removed the ``click`` dependency in favor of the standard library ``argparse``.
+  This makes ``slotscheck`` dependency-free (aside from ``tomli`` for Python <3.11).
+- Add a readme note about the differences between ``slotscheck`` and
+  static linters like Ruff and Pylint.
+
 0.20.0 (2026-05-29)
 -------------------
 
