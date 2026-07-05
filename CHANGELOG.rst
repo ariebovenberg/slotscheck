@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.20.1 (2026-07-04)
+0.20.1 (2026-07-05)
 -------------------
 
 - Removed the ``click`` dependency in favor of the standard library ``argparse``.
