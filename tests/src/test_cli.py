@@ -144,7 +144,8 @@ def test_help(runner: Runner):
     assert result.exit_code == 0
     assert isinstance(result.exception, SystemExit)
     assert "usage: slotscheck" in result.output
-    assert "-m, --module MODULE" in result.output
+    assert "-m MODULE" in result.output
+    assert "--module MODULE" in result.output
     assert "--strict-imports, --no-strict-imports" in result.output
 
 
