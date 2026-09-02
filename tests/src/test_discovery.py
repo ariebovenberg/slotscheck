@@ -15,6 +15,7 @@ from slotscheck.discovery import (
     consolidate,
     find_modules,
     module_tree,
+    package_root,
     walk_classes,
 )
 
@@ -426,6 +427,34 @@ class TestFindModules:
         location.touch()
         with pytest.raises(FileNotInSysPathError, match=r"foo\.py"):
             list(find_modules(location))
+
+
+class TestPackageRoot:
+    def test_loose_file(self):
+        assert package_root(EXAMPLES_DIR / "gc.py") == EXAMPLES_DIR
+
+    def test_package(self):
+        assert package_root(EXAMPLES_DIR / "module_ok") == EXAMPLES_DIR
+
+    def test_nested_file(self):
+        assert (
+            package_root(EXAMPLES_DIR / "files/subdir/some_module/sub/foo.py")
+            == EXAMPLES_DIR / "files/subdir"
+        )
+
+    def test_nested_package(self):
+        assert (
+            package_root(EXAMPLES_DIR / "files/subdir/some_module")
+            == EXAMPLES_DIR / "files/subdir"
+        )
+
+    def test_implicit_namespace_package_is_not_traversed(self):
+        # A namespace package has no __init__.py, so we cannot tell it apart
+        # from an ordinary directory. The root is the namespace itself.
+        assert (
+            package_root(EXAMPLES_DIR / "implicitly_namespaced/another")
+            == EXAMPLES_DIR / "implicitly_namespaced"
+        )
 
 
 class TestConsolidate:

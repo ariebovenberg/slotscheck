@@ -85,11 +85,64 @@ def test_python_file_not_in_sys_path(runner: Runner, tmp_path: Path):
     assert result.exit_code == 1
     assert isinstance(result.exception, SystemExit)
     assert re.fullmatch(
-        "ERROR: File '.*/foo.py' is not in PYTHONPATH.\n\n"
+        "ERROR: File '.*/foo.py' is not in PYTHONPATH.\n"
+        "Try setting PYTHONPATH=.*, or passing --pythonpath .*\n\n"
         "See slotscheck.rtfd.io/en/latest/discovery.html\n"
         "for help resolving common import problems.\n",
         result.output,
     )
+
+
+def test_not_in_sys_path_suggests_the_package_root(
+    runner: Runner, tmp_path: Path
+):
+    package = tmp_path / "src/my_pkg"
+    package.mkdir(parents=True)
+    (package / "__init__.py").touch()
+    result = runner.invoke(cli, [str(package)])
+    assert result.exit_code == 1
+    assert f"Try setting PYTHONPATH={tmp_path / 'src'}," in result.output
+    assert f"or passing --pythonpath {tmp_path / 'src'}\n" in result.output
+
+
+def test_not_in_sys_path_suggests_relative_path_within_cwd(
+    runner: Runner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.chdir(tmp_path)
+    package = tmp_path / "my src/my_pkg"
+    package.mkdir(parents=True)
+    (package / "__init__.py").touch()
+    result = runner.invoke(cli, ["my src/my_pkg"])
+    assert result.exit_code == 1
+    assert (
+        "Try setting PYTHONPATH='my src', or passing --pythonpath 'my src'\n"
+        in result.output
+    )
+
+
+def test_pythonpath(
+    runner: Runner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(sys, "path", sys.path.copy())
+    package = tmp_path / "src/pythonpath_example"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text(
+        "class A:\n    __slots__ = ()\n", encoding="utf-8"
+    )
+    try:
+        result = runner.invoke(
+            cli, ["--pythonpath", str(tmp_path / "src"), str(package)]
+        )
+    finally:
+        sys.modules.pop("pythonpath_example", None)
+    assert result.exit_code == 0
+    assert "All OK!" in result.output
+
+
+def test_pythonpath_doesnt_exist(runner: Runner):
+    result = runner.invoke(cli, ["--pythonpath", "doesnt_exist", "-m", "foo"])
+    assert result.exit_code == 2
+    assert "does not exist" in result.output
 
 
 def test_module_is_uninspectable(runner: Runner):

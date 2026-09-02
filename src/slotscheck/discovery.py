@@ -304,6 +304,11 @@ def _is_package(p: AbsPath) -> bool:
     return p.is_dir() and (p / _INIT_PY).is_file()
 
 
+def package_root(p: AbsPath) -> AbsPath:
+    "The directory which must be in sys.path for `p` to be importable"
+    return next((pp for pp in p.parents if not _is_package(pp)), p.parent)
+
+
 def _module_parents(
     p: AbsPath, sys_path: FrozenSet[AbsPath]
 ) -> Iterable[AbsPath]:

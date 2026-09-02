@@ -1,70 +1,88 @@
 Module discovery
 ================
 
-Slotscheck needs to import files in order to check them.
-This process usually behaves as you would expect.
-However, there are some complications that you may need to be aware of.
+Slotscheck needs to import your code to check it.
+If it can't, it suggests which directory to add to Python's import path::
 
-.. admonition:: Summary
+   ERROR: File '/home/user/project/src/foo/bar.py' is not in PYTHONPATH.
+   Try setting PYTHONPATH=src, or passing --pythonpath src
 
-   You should generally be fine if you follow these rules:
+Either works. As a rule of thumb:
 
-   - To check files in your current directory, or subdirectories of it,
-     you should run slotscheck as ``python -m slotscheck``.
-   - To check files elsewhere, you may need to set the ``$PYTHONPATH``
-     environment variable.
+- To check files in the current directory (or below it), run slotscheck as
+  ``python -m slotscheck``.
+- To check files anywhere else, pass ``--pythonpath``, or set the
+  ``$PYTHONPATH`` environment variable.
 
-Whether you run ``python -m slotscheck`` or just ``slotscheck`` has an impact
-on which files will be imported and checked.
-This is not a choice by ``slotscheck``, but simply the way Python works.
-When running ``python -m slotscheck``, the current working
-directory is added to ``sys.path``, so any modules in the current directory
-can be imported. This is not the case when running bare ``slotscheck``.
+That is all you need to know.
+If the suggestion didn't work, see `What about implicit namespace packages?`_.
+The rest of this page explains why slotscheck can't find the directory
+on its own.
 
-So if you run ``slotscheck foo.py``, ``foo`` will not be importable.
-In fact, if ``foo`` happens to be the name of an installed module,
-``import foo`` will import that instead!
-In that case ``slotscheck`` will refuse to run,
-and print an informative message.
-An alternative way to ensure the correct files can be imported is with the
-``$PYTHONPATH`` environment variable.
+Why the import path matters
+---------------------------
 
-To illustrate all this, imagine the following file tree::
+Python, not slotscheck, decides which files can be imported,
+based on how you start slotscheck.
+``python -m slotscheck`` adds the current directory to ``sys.path``,
+so modules there can be imported. Bare ``slotscheck`` does not.
+
+So if you run ``slotscheck foo.py``, ``foo`` is not importable.
+In fact, if ``foo`` is also the name of an installed module,
+``import foo`` imports that instead!
+In that case slotscheck refuses to run rather than check the wrong files.
+
+Take this file tree::
 
    src/
      foo/
        __init__.py
        bar.py
 
-In this example:
+Each command below tries to check ``foo/bar.py``.
 
-- ❌ ``slotscheck src/foo/bar.py`` will result in an error, because ``src`` is
-  not in ``sys.path``.
-- ❌ ``slotscheck -m foo.bar`` will result in an error, because ``src`` is
-  not in ``sys.path``.
-- ❌ ``cd src && slotscheck foo/bar.py`` will also result in an error,
-  because the current working directory is not in ``sys.path``.
-- ❌ ``cd src && slotscheck -m foo.bar`` will also result in an error,
-  because the current working directory is not in ``sys.path``.
-- ✅ ``cd src && python -m slotscheck foo/bar.py`` will scan the ``foo.bar`` module as
-  expected, because the current working directory *is* in the import path.
-- ✅ ``cd src && python -m slotscheck -m foo.bar`` will scan the ``foo.bar`` module as
-  expected, because the current working directory *is* in the import path.
-- ✅ ``env PYTHONPATH=src slotscheck src/foo/bar.py`` will scan the ``foo.bar`` module
-  as expected, because ``src`` is added to ``sys.path`` by environment variable.
-- ✅ ``env PYTHONPATH=src slotscheck -m foo.bar`` will scan the ``foo.bar`` module
-  as expected, because ``src`` is added to ``sys.path`` by environment variable.
+.. list-table::
+   :header-rows: 1
 
-Once the ``foo`` module is installed into site-packages,
-the following behavior will change:
-if ``foo/`` files are passed, but the installed module would be imported
-instead, slotscheck will report an error.
+   * - Command
+     - Result
+   * - ``slotscheck src/foo/bar.py``
+     - ❌ ``src`` is not in ``sys.path``
+   * - ``cd src && slotscheck foo/bar.py``
+     - ❌ bare ``slotscheck`` doesn't add the current directory to ``sys.path``
+   * - ``cd src && python -m slotscheck foo/bar.py``
+     - ✅ ``python -m`` adds the current directory to ``sys.path``
+   * - ``slotscheck --pythonpath src src/foo/bar.py``
+     - ✅ ``--pythonpath`` adds ``src`` to ``sys.path``
+   * - ``env PYTHONPATH=src slotscheck src/foo/bar.py``
+     - ✅ ``$PYTHONPATH`` adds ``src`` to ``sys.path``
+
+The results are the same with ``-m foo.bar`` in place of the file path.
+
+What about implicit namespace packages?
+---------------------------------------
+
+To pick the directory to suggest, slotscheck walks up from your file until
+it reaches a directory without an ``__init__.py``.
+An implicit namespace package (:pep:`420`) has no ``__init__.py``,
+so slotscheck can't tell it apart from an ordinary directory.
+The suggestion then stops one level too deep. Given this tree::
+
+   src/
+     mycompany/       <- a namespace package: no __init__.py
+       tools/
+         __init__.py
+
+slotscheck suggests ``src/mycompany``, and with that path your code imports
+as ``tools`` rather than ``mycompany.tools``.
+Pass ``--pythonpath src`` instead, so that modules get their proper names.
 
 .. admonition:: Why doesn't slotscheck just add the right paths
    to ``sys.path`` for me?
 
-   Automatically changing ``sys.path`` is a global change that
-   could have unintended consequences.
-   In this case it's best not to assume this is the user's intention.
-   Since you'll probably only need to add a single entry to Python's path,
-   it's easy to define ``$PYTHONPATH`` explicitly.
+   ``sys.path`` is global: changing it affects every import in the process.
+   A wrong guess wouldn't merely fail to help---it would change how
+   *your own code* imports its dependencies, as the namespace package case
+   above shows. So slotscheck doesn't guess.
+   Since you'll probably need only a single entry, pass ``--pythonpath``
+   (or set ``$PYTHONPATH``) yourself; slotscheck suggests the likely directory.
