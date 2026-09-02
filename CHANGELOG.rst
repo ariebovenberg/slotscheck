@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.21.0 (unreleased)
+-------------------
+
+- Add ``--pythonpath`` option to add directories to Python's import path.
+  This is equivalent to setting ``$PYTHONPATH``, but usable in places where
+  environment variables are awkward to set (such as pre-commit on Windows).
+- When a file isn't importable, the error message now suggests the directory
+  to add to the import path, instead of only linking to the documentation.
+
 0.20.1 (2026-07-05)
 -------------------
 

@@ -28,18 +28,17 @@ Use the following configuration:
 
    repos:
    - repo: https://github.com/ariebovenberg/slotscheck
-     rev: v0.20.0
+     rev: v0.21.0
      hooks:
      - id: slotscheck
        # If your Python files are not importable from the project root,
        # (for example if they're in a "src" directory)
        # you will need to add this directory to Python's import path.
        # See slotscheck.rtfd.io/en/latest/discovery.html for more info.
-       # Below is what you need to add if you're code isn't importable
+       # Below is what you need to add if your code isn't importable
        # from the project root, in a "src" directory:
        #
-       # NOTE: This won't work on Windows though.
-       # entry: env PYTHONPATH=src slotscheck --verbose
+       # args: [--pythonpath, src]
 
        # Add files you don't want slotscheck to import.
        # The example below ensures slotscheck will only run on

@@ -1,5 +1,6 @@
 import argparse
 import re
+import shlex
 import sys
 from abc import ABC, abstractmethod
 from collections import Counter
@@ -52,6 +53,7 @@ from .discovery import (
     consolidate,
     find_modules,
     module_tree,
+    package_root,
     walk_classes,
 )
 
@@ -109,6 +111,19 @@ def _parser() -> argparse.ArgumentParser:
         default=[],
         help="Check this module. Cannot be combined with FILES argument. "
         "Can be repeated multiple times to scan several modules.",
+    )
+    parser.add_argument(
+        "--pythonpath",
+        metavar="PATH",
+        action="append",
+        default=[],
+        type=_existing_path,
+        help="Add this directory to Python's import path before importing. "
+        "Can be repeated multiple times to add several directories. "
+        "Equivalent to setting ``$PYTHONPATH``, but usable in places where "
+        "environment variables are awkward to set. "
+        "Note that this affects all imports, "
+        "so it may have unintended side effects.",
     )
     parser.add_argument(
         "--require-superclass",
@@ -197,6 +212,7 @@ def root(argv: Optional[Sequence[str]] = None) -> None:
     args = _parser().parse_args(argv)
     files: Sequence[AbsPath] = args.files
     module: Sequence[str] = args.module
+    pythonpath: Sequence[AbsPath] = args.pythonpath
     verbose: bool = args.verbose
     settings: Optional[AbsPath] = args.settings
     require_superclass: Optional[bool] = args.require_superclass
@@ -238,14 +254,22 @@ def root(argv: Optional[Sequence[str]] = None) -> None:
         print("No files or modules given. Nothing to do!")
         exit(0)
 
+    sys.path[:0] = list(map(str, pythonpath))
+
     try:
         classes, modules = _collect(files, module, conf)
-    except (ModuleNotFoundError, FileNotInSysPathError) as e:
+    except FileNotInSysPathError as e:
+        root_ = shlex.quote(_display_path(package_root(e.file)))
         print(
-            f"ERROR: {e}.\n\n"
-            "See slotscheck.rtfd.io/en/latest/discovery.html\n"
-            "for help resolving common import problems."
+            _import_help(
+                f"ERROR: {e}.\n"
+                f"Try setting PYTHONPATH={root_}, "
+                f"or passing --pythonpath {root_}"
+            )
         )
+        exit(1)
+    except ModuleNotFoundError as e:
+        print(_import_help(f"ERROR: {e}."))
         exit(1)
     except UnexpectedImportLocation as e:
         print(
@@ -312,6 +336,22 @@ for more information on why this happens and how to resolve it.""".format(e)
 
     if any_errors:
         exit(1)
+
+
+def _import_help(msg: str) -> str:
+    return (
+        f"{msg}\n\n"
+        "See slotscheck.rtfd.io/en/latest/discovery.html\n"
+        "for help resolving common import problems."
+    )
+
+
+def _display_path(p: AbsPath) -> str:
+    "Render a path relative to the current directory, if possible"
+    try:
+        return str(p.relative_to(Path.cwd()))
+    except ValueError:
+        return str(p)
 
 
 class Notice(ABC):
