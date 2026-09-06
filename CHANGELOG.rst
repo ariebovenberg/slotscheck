@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.21.0 (unreleased)
+0.21.0 (2026-09-06)
 -------------------
 
 - Add ``--pythonpath`` option to add directories to Python's import path.
